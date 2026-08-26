@@ -60,6 +60,11 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 /* toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* 闹铃停止按钮 */
+.alarm-stop{display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--red);border:none;color:#fff;padding:12px 26px;border-radius:24px;font-size:15px;font-weight:700;cursor:pointer;z-index:100;box-shadow:0 4px 18px rgba(224,108,117,.4);animation:pulse 1s infinite}
+.alarm-stop.show{display:block}
+@keyframes pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
 </style>
 </head>
 <body>
@@ -112,6 +117,7 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 </div>
 
 <div class="toast" id="toast"></div>
+<button class="alarm-stop" id="alarmStop" onclick="stopAlarm()">🔔 响铃中 · 点击停止</button>
 
 <script>
 /* ---------- 配置与状态 ---------- */
@@ -201,7 +207,7 @@ function finish(){
     toast("☕ 休息结束，继续专注！");
     goto("focus");
   }
-  if(autoOn) setTimeout(start,800);
+  if(autoOn) setTimeout(start,ALARM_SEC*1000+300); // 等闹铃结束再自动开始下一轮
 }
 
 /* ---------- 交互 ---------- */
@@ -221,20 +227,39 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-/* ---------- 提示音（Web Audio，无需外部文件） ---------- */
+/* ---------- 到点闹铃（Web Audio，响10秒，可点击停止） ---------- */
+let alarmCtx=null,alarmNodes=[],alarmTimer=null;
+const ALARM_SEC=10;
 function beep(){
   try{
-    const ctx=new (window.AudioContext||window.webkitAudioContext)();
-    [0,0.25,0.5].forEach((d,i)=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.frequency.value=i===2?880:660;o.type="sine";
-      g.gain.setValueAtTime(0.001,ctx.currentTime+d);
-      g.gain.exponentialRampToValueAtTime(0.25,ctx.currentTime+d+0.03);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d+0.22);
-      o.connect(g);g.connect(ctx.destination);
-      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+0.25);
-    });
+    if(!alarmCtx)alarmCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=alarmCtx;
+    if(ctx.state==="suspended")ctx.resume();
+    stopAlarm();
+    const t0=ctx.currentTime+0.05;
+    /* 10秒内每0.8秒一组"叮-叮"，所有音符预排进音频时间线（后台节流也不跑调） */
+    for(let g=0;g<Math.floor(ALARM_SEC/0.8);g++){
+      [0,0.35].forEach((off,i)=>{
+        const o=ctx.createOscillator(),ga=ctx.createGain();
+        o.type="sine";
+        o.frequency.setValueAtTime(i===0?880:1174,t0+g*0.8+off);
+        ga.gain.setValueAtTime(0.0001,t0+g*0.8+off);
+        ga.gain.exponentialRampToValueAtTime(0.3,t0+g*0.8+off+0.02);
+        ga.gain.exponentialRampToValueAtTime(0.0001,t0+g*0.8+off+0.3);
+        o.connect(ga);ga.connect(ctx.destination);
+        o.start(t0+g*0.8+off);o.stop(t0+g*0.8+off+0.32);
+        alarmNodes.push(o);
+      });
+    }
+    document.getElementById("alarmStop").classList.add("show");
+    alarmTimer=setTimeout(stopAlarm,ALARM_SEC*1000);
   }catch(e){}
+}
+function stopAlarm(){
+  alarmNodes.forEach(o=>{try{o.stop()}catch(e){}});
+  alarmNodes=[];
+  if(alarmTimer){clearTimeout(alarmTimer);alarmTimer=null}
+  document.getElementById("alarmStop").classList.remove("show");
 }
 
 /* ---------- Toast ---------- */

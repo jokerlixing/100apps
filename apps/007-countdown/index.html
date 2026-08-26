@@ -101,6 +101,19 @@ let events=[];
 try{events=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
 function save(){localStorage.setItem(KEY,JSON.stringify(events))}
 
+/* ---------- 加载时校准预设节日：代码里节表更新后，旧缓存自动对齐 ---------- */
+function syncPresetDates(){
+  let dirty=false;
+  events.forEach(e=>{
+    if(!PRESETS.some(p=>p[0]===e.name))return;   // 只校准快速添加的节日，自定义目标不动
+    const d=nextDate(e.name);
+    if(!d)return;
+    const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if(e.date!==iso){e.date=iso;dirty=true}
+  });
+  if(dirty)save();
+}
+
 /* ---------- 预设节日 ---------- */
 /* 公历节日：固定月日；农历节日：逐年查表（每年公历日期不同） */
 const PRESETS=[
@@ -220,7 +233,9 @@ if(!events.length){
   }
   save();
 }
-renderPresets();render();
+renderPresets();
+syncPresetDates();   // 先校准旧缓存里的节日日期，再渲染
+render();
 </script>
 </body>
 </html>

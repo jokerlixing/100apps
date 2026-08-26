@@ -123,6 +123,14 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:16px;line-he
 if(typeof qrcode==="undefined"&&!document.getElementById("cdnErr").style.display){
   document.getElementById("cdnErr").style.display="block";
 }
+/* 关键修复：默认编码只支持单字节字符，中文会被截成乱码导致扫码识别失败，切换到 UTF-8 编码函数 */
+if(typeof qrcode!=="undefined"){
+  if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"]){
+    qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
+  }else if(window.TextEncoder){
+    qrcode.stringToBytes=s=>Array.from(new TextEncoder().encode(s));
+  }
+}
 
 /* ---------- 状态 ---------- */
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");

@@ -166,7 +166,7 @@ const IDEAS=[
 ["百应用挑战追踪器","就是本页面：进度环+难度筛选+数据备份，挑战从这里开始","1","https://jokerlixing.github.io/100apps/"],
 ["番茄钟计时器","25分钟专注+5分钟休息，含当日专注统计","1","https://jokerlixing.github.io/100apps/apps/002-tomato-timer/"],
 ["待办清单 TodoList","增删改查+localStorage持久化，入门必备","1","https://jokerlixing.github.io/100apps/apps/003-todo-list/"],
-["二维码生成器","输入文本/链接生成二维码，支持下载","1"],
+["二维码生成器","输入文本/链接生成二维码，支持下载","1","https://jokerlixing.github.io/100apps/apps/004-qr-generator/"],
 ["密码生成器","可配长度与字符集，实时强度检测","1"],
 ["单位换算器","长度/重量/温度/面积多类换算","1"],
 ["倒计时日历","距离目标日期还有多少天，支持多个目标","1"],
@@ -267,7 +267,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v2";
-const INIT_DONE={1:"done",2:"done",3:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

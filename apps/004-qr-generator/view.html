@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📄 扫码文本</title>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:24px 16px}
+.app{width:100%;max-width:560px}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+#text{width:100%;min-height:200px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;color:var(--text);font-size:15px;line-height:1.8;outline:none;resize:vertical;font-family:inherit;word-break:break-all}
+#text:focus{border-color:var(--green)}
+.meta{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin:10px 2px 14px}
+.btn{width:100%;background:var(--green);border:none;border-radius:10px;padding:13px;color:#12211d;font-size:15px;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.1)}
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:14px;line-height:1.7}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📄 扫码传文本</h1>
+  <div class="sub">这是二维码跳转过来的文本页，可直接复制</div>
+  <div class="card">
+    <textarea id="text" readonly>（未携带文本：请通过二维码生成器的"微信/QQ 友好模式"生成二维码后扫码进入）</textarea>
+    <div class="meta"><span id="cnt">0 字符</span><span>数据只在 URL 里，本页不存储不上传</span></div>
+    <button class="btn" onclick="copy()">📋 复制全文</button>
+  </div>
+  <footer>100 Apps Challenge · App #004 配套文本展示页</footer>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const h=location.hash.slice(1);
+if(h){
+  try{
+    const b64=h.replace(/-/g,"+").replace(/_/g,"/");
+    const bin=atob(b64);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    document.getElementById("text").value=new TextDecoder().decode(bytes);
+  }catch(e){
+    document.getElementById("text").value="（文本解码失败，二维码可能不完整）";
+  }
+}
+document.getElementById("cnt").textContent=document.getElementById("text").value.length+" 字符";
+function copy(){
+  const t=document.getElementById("text");
+  t.select();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t.value).then(()=>ok(),()=>legacy());
+  }else legacy();
+  function legacy(){try{document.execCommand("copy");ok()}catch(e){toast("复制失败，请长按文本手动复制")}}
+  function ok(){toast("📋 已复制到剪贴板")}
+}
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+</script>
+</body>
+</html>

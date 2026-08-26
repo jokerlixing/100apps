@@ -101,34 +101,42 @@ let events=[];
 try{events=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
 function save(){localStorage.setItem(KEY,JSON.stringify(events))}
 
-/* ---------- 预设节日（自动算未来最近一次） ---------- */
+/* ---------- 预设节日 ---------- */
+/* 公历节日：固定月日；农历节日：逐年查表（每年公历日期不同） */
 const PRESETS=[
-  ["元旦",1,1,"🎉"],
-  ["春节",null,null,"🧧"],  // 春节按农历，手动维护年份
-  ["清明",4,5,"🌿"],
-  ["劳动节",5,1,"💪"],
-  ["端午",6,1,"🐉"],
-  ["中秋节",9,25,"🥮"],
-  ["国庆节",10,1,"🇨🇳"]
+  ["元旦","🎉"],["春节","🧧"],["清明","🌿"],["劳动节","💪"],
+  ["端午","🐉"],["中秋节","🥮"],["国庆节","🇨🇳"]
 ];
-/* 简化处理：固定日期节日自动找未来最近年份；春节/端午给近似日期，用户可改 */
-const FIXED={
-  "元旦":[1,1],"清明":[4,5],"劳动节":[5,1],
-  "端午":[6,19],"中秋节":[9,25],"国庆节":[10,1],"春节":[2,17]
+const SOLAR={"元旦":[1,1],"劳动节":[5,1],"国庆节":[10,1]};  // 公历固定
+const LUNAR={                                                 // 农历查表（官方日期）
+  "春节":{"2026":"02-17","2027":"02-06","2028":"01-26","2029":"02-13","2030":"02-03"},
+  "清明":{"2027":"04-05","2028":"04-04","2029":"04-04","2030":"04-05"},
+  "端午":{"2027":"06-09","2028":"05-28","2029":"06-05","2030":"06-03"},
+  "中秋节":{"2026":"09-25","2027":"09-15","2028":"10-03","2029":"09-22","2030":"09-12"}
 };
 function nextDate(name){
-  const md=FIXED[name];if(!md)return null;
   const now=new Date();now.setHours(0,0,0,0);
-  for(let y=now.getFullYear();y<=now.getFullYear()+1;y++){
-    const d=new Date(y,md[0]-1,md[1]);
-    if(d>=now)return d;
+  if(SOLAR[name]){
+    const [m,d]=SOLAR[name];
+    for(let y=now.getFullYear();y<=now.getFullYear()+1;y++){
+      const dt=new Date(y,m-1,d);
+      if(dt>=now)return dt;
+    }
+    return null;
+  }
+  if(LUNAR[name]){
+    const years=Object.keys(LUNAR[name]).sort();
+    for(const y of years){
+      const [m,d]=LUNAR[name][y].split("-").map(Number);
+      const dt=new Date(+y,m-1,d);
+      if(dt>=now)return dt;
+    }
   }
   return null;
 }
 function renderPresets(){
   $("presets").innerHTML=`<span>快速添加：</span>`+PRESETS.map(p=>{
-    const d=nextDate(p[0]);
-    return `<button class="chip" onclick="quickAdd('${p[0]}','${p[3]}')">${p[3]} ${p[0]}</button>`;
+    return `<button class="chip" onclick="quickAdd('${p[0]}','${p[1]}')">${p[1]} ${p[0]}</button>`;
   }).join("");
 }
 function quickAdd(name,emoji){

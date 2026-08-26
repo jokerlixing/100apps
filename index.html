@@ -160,7 +160,8 @@ const ST_NAMES={todo:"📋 未开始",doing:"🔥 进行中",done:"✅ 完成"};
 const NEXT={todo:"doing",doing:"done",done:"todo"};
 
 const IDEAS=[
-["番茄钟计时器","25分钟专注+5分钟休息，含当日专注统计","1"],
+["百应用挑战追踪器","就是本页面：进度环+难度筛选+数据备份，挑战从这里开始","1","https://jokerlixing.github.io/100apps/"],
+["番茄钟计时器","25分钟专注+5分钟休息，含当日专注统计","1","https://jokerlixing.github.io/100apps/apps/002-tomato-timer/"],
 ["待办清单 TodoList","增删改查+localStorage持久化，入门必备","1"],
 ["二维码生成器","输入文本/链接生成二维码，支持下载","1"],
 ["密码生成器","可配长度与字符集，实时强度检测","1"],
@@ -262,11 +263,12 @@ const IDEAS=[
 ["AI Agent平台","多工具调用+任务编排执行","5"]
 ];
 
-const KEY="apps100_v1";
+const KEY="apps100_v2";
+const INIT_DONE={1:"done",2:"done"}; // 挑战官方进度：#001 追踪器 / #002 番茄钟
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);return}}catch(e){}
-  apps=IDEAS.map((a,i)=>({id:i+1,name:a[0],desc:a[1],lv:+a[2],st:"todo",custom:false,link:""}));
+  apps=IDEAS.map((a,i)=>({id:i+1,name:a[0],desc:a[1],lv:+a[2],st:INIT_DONE[i+1]||"todo",custom:false,link:a[3]||""}));
   save();
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(apps))}

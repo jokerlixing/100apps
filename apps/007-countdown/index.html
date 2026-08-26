@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📅 倒计时日历 · Countdown</title>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:32px 16px}
+.app{width:100%;max-width:640px}
+h1{font-size:24px;font-weight:700;margin-bottom:4px}
+h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+/* 添加区 */
+.add{display:flex;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;flex-wrap:wrap}
+.add input{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:var(--text);font-size:14px;outline:none;transition:.15s}
+.add input:focus{border-color:var(--green)}
+.add .name{flex:2;min-width:140px}
+.add .date{flex:1;min-width:140px;color-scheme:dark}
+.add button{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+.add button:hover{filter:brightness(1.1)}
+
+/* 预设 */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.presets span{font-size:12px;color:var(--dim);align-self:center}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+
+/* 列表 */
+.list{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:.15s;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.item:hover{border-color:var(--dim)}
+.item.soon{border-left:3px solid var(--red)}
+.item.near{border-left:3px solid var(--orange)}
+.item.far{border-left:3px solid var(--green)}
+.item.past{opacity:.5;border-left:3px solid var(--dim)}
+
+.days{min-width:76px;text-align:center}
+.days b{font-size:30px;font-weight:700;display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.days span{font-size:11px;color:var(--dim)}
+.item.soon .days b{color:var(--red)}
+.item.near .days b{color:var(--orange)}
+.item.far .days b{color:var(--green)}
+.item.past .days b{color:var(--dim);font-size:22px}
+
+.info{flex:1;min-width:0}
+.info .name{font-size:15px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info .date{font-size:12px;color:var(--muted)}
+.emoji{font-size:22px;flex-shrink:0}
+
+.del{background:transparent;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:4px 7px;border-radius:6px;opacity:0;transition:.15s}
+.item:hover .del{opacity:1}
+.del:hover{color:var(--red);background:rgba(224,108,117,.12)}
+
+.empty{text-align:center;padding:48px 0;color:var(--dim);font-size:14px}
+.empty .big{font-size:38px;margin-bottom:10px}
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:20px;line-height:1.8}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📅 <span>倒计时日历</span></h1>
+  <div class="sub">多个目标日期倒计时 · 按紧急程度变色 · 数据本地保存</div>
+
+  <div class="add">
+    <input type="text" class="name" id="name" placeholder="目标名称，如：生日 / 发布会 / 还房贷" maxlength="30">
+    <input type="date" class="date" id="date">
+    <button onclick="add()">添加</button>
+  </div>
+
+  <div class="presets" id="presets">
+    <span>快速添加：</span>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>100 Apps Challenge · App #007 · 今天也要离目标近一点</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   核心知识点：日期差计算
+   1. 用 new Date(y, m-1, d) 本地零点构造，避免 toISOString 的时区陷阱
+   2. 用 Math.round(ms/86400000) 而不是 floor——夏令时导致的 23/25 小时天也能算准
+   ============================================================ */
+const KEY="countdown_v1";
+const DAY=86400000;
+const $=id=>document.getElementById(id);
+
+let events=[];
+try{events=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+function save(){localStorage.setItem(KEY,JSON.stringify(events))}
+
+/* ---------- 预设节日（自动算未来最近一次） ---------- */
+const PRESETS=[
+  ["元旦",1,1,"🎉"],
+  ["春节",null,null,"🧧"],  // 春节按农历，手动维护年份
+  ["清明",4,5,"🌿"],
+  ["劳动节",5,1,"💪"],
+  ["端午",6,1,"🐉"],
+  ["中秋节",9,25,"🥮"],
+  ["国庆节",10,1,"🇨🇳"]
+];
+/* 简化处理：固定日期节日自动找未来最近年份；春节/端午给近似日期，用户可改 */
+const FIXED={
+  "元旦":[1,1],"清明":[4,5],"劳动节":[5,1],
+  "端午":[6,19],"中秋节":[9,25],"国庆节":[10,1],"春节":[2,17]
+};
+function nextDate(name){
+  const md=FIXED[name];if(!md)return null;
+  const now=new Date();now.setHours(0,0,0,0);
+  for(let y=now.getFullYear();y<=now.getFullYear()+1;y++){
+    const d=new Date(y,md[0]-1,md[1]);
+    if(d>=now)return d;
+  }
+  return null;
+}
+function renderPresets(){
+  $("presets").innerHTML=`<span>快速添加：</span>`+PRESETS.map(p=>{
+    const d=nextDate(p[0]);
+    return `<button class="chip" onclick="quickAdd('${p[0]}','${p[3]}')">${p[3]} ${p[0]}</button>`;
+  }).join("");
+}
+function quickAdd(name,emoji){
+  const d=nextDate(name);if(!d)return;
+  const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  if(events.some(e=>e.name===name)){toast("已经有「"+name+"」啦");return}
+  events.push({id:Date.now(),name,emoji,date:iso});
+  save();render();toast(`已添加 ${emoji} ${name}`);
+}
+
+/* ---------- 倒计时计算 ---------- */
+function daysLeft(iso){
+  const [y,m,d]=iso.split("-").map(Number);
+  const target=new Date(y,m-1,d);          // 本地零点，无时区坑
+  const today=new Date();today.setHours(0,0,0,0);
+  return Math.round((target-today)/DAY);   // round 抗夏令时
+}
+function weekday(iso){
+  const [y,m,d]=iso.split("-").map(Number);
+  return "日一二三四五六"[new Date(y,m-1,d).getDay()];
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const list=[...events].sort((a,b)=>a.date.localeCompare(b.date));
+  $("list").innerHTML=list.length?list.map(e=>{
+    const left=daysLeft(e.date);
+    const cls=left<0?"past":left<=7?"soon":left<=30?"near":"far";
+    const dayText=left<0?`已过 ${-left}`:left===0?"就在今天":left;
+    const unit=left<0?"天":left===0?"🎉":left===1?"明天":"天";
+    return `<div class="item ${cls}">
+      <div class="emoji">${e.emoji||"📌"}</div>
+      <div class="days"><b>${dayText}</b><span>${unit}</span></div>
+      <div class="info">
+        <div class="name">${esc(e.name)}</div>
+        <div class="date">${e.date} · 周${weekday(e.date)}</div>
+      </div>
+      <button class="del" onclick="del(${e.id})" title="删除">✕</button>
+    </div>`;
+  }).join(""):`<div class="empty"><div class="big">🗓️</div>还没有目标，添加一个或点上面的节日快速开始</div>`;
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+/* ---------- 增删 ---------- */
+function add(){
+  const name=$("name").value.trim(),date=$("date").value;
+  if(!name){toast("先写目标名称 👀");return}
+  if(!date){toast("选一个日期");return}
+  events.push({id:Date.now(),name,emoji:"📌",date});
+  save();render();
+  $("name").value="";$("date").value="";
+  toast(`已添加「${name}」，还有 ${daysLeft(date)} 天`);
+}
+function del(id){
+  events=events.filter(e=>e.id!==id);
+  save();render();
+}
+
+/* 回车快捷添加 */
+$("name").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
+$("date").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
+
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* 首次使用：自动加两个示范目标 */
+if(!events.length){
+  const ny=nextDate("元旦");
+  if(ny){
+    const iso=`${ny.getFullYear()}-${String(ny.getMonth()+1).padStart(2,"0")}-${String(ny.getDate()).padStart(2,"0")}`;
+    events.push({id:1,name:"下一个元旦",emoji:"🎉",date:iso});
+  }
+  const nch=nextDate("国庆节");
+  if(nch){
+    const iso=`${nch.getFullYear()}-${String(nch.getMonth()+1).padStart(2,"0")}-${String(nch.getDate()).padStart(2,"0")}`;
+    events.push({id:2,name:"国庆节假期",emoji:"🇨🇳",date:iso});
+  }
+  save();
+}
+renderPresets();render();
+</script>
+</body>
+</html>

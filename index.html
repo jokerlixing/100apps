@@ -270,9 +270,21 @@ const KEY="apps100_v2";
 const INIT_DONE={1:"done",2:"done",3:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
-  try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);return}}catch(e){}
+  try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}
   apps=IDEAS.map((a,i)=>({id:i+1,name:a[0],desc:a[1],lv:+a[2],st:INIT_DONE[i+1]||"todo",custom:false,link:a[3]||""}));
   save();
+}
+/* 同步官方进度：内置应用的链接与完成态以代码为准（自定义点子不受影响） */
+function syncOfficial(){
+  let dirty=false;
+  apps.forEach(a=>{
+    if(a.custom)return;
+    const idea=IDEAS[a.id-1];
+    if(!idea)return;
+    if(idea[3]&&!a.link){a.link=idea[3];dirty=true}
+    if(INIT_DONE[a.id]==="done"&&a.st!=="done"){a.st="done";dirty=true}
+  });
+  if(dirty)save();
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(apps))}
 

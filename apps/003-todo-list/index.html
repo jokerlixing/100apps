@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✅ 待办清单 · TodoList</title>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:32px 16px}
+.app{width:100%;max-width:560px}
+h1{font-size:24px;font-weight:700;margin-bottom:4px}
+h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+/* 输入区 */
+.input-row{display:flex;gap:8px;margin-bottom:14px}
+input[type=text]{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;transition:.15s}
+input[type=text]:focus{border-color:var(--green)}
+input[type=text]::placeholder{color:var(--dim)}
+.add-btn{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+.add-btn:hover{filter:brightness(1.1)}
+
+/* 列表 */
+.list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:.15s;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.item:hover{border-color:var(--dim)}
+.item.done{opacity:.55}
+.item.done .text{text-decoration:line-through;text-decoration-color:var(--dim)}
+
+/* 复选框 */
+.chk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--dim);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#12211d;font-size:13px;transition:.15s}
+.chk:hover{border-color:var(--green)}
+.item.done .chk{background:var(--green);border-color:var(--green)}
+
+.text{flex:1;font-size:14px;line-height:1.5;word-break:break-all}
+.meta{font-size:11px;color:var(--dim);margin-top:2px}
+.del{background:transparent;border:none;color:var(--dim);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0;transition:.15s}
+.item:hover .del{opacity:1}
+.del:hover{color:var(--red);background:rgba(224,108,117,.12)}
+
+/* 底部栏 */
+.bar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.count{font-size:13px;color:var(--muted)}
+.count b{color:var(--orange)}
+.filters{display:flex;gap:4px}
+.f-btn{background:transparent;border:none;color:var(--muted);font-size:12px;padding:5px 10px;border-radius:14px;cursor:pointer;transition:.15s}
+.f-btn:hover{color:var(--text)}
+.f-btn.on{background:var(--blue);color:#12131a;font-weight:600}
+.clear{background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:5px 10px;border-radius:14px}
+.clear:hover{color:var(--red)}
+
+.empty{text-align:center;padding:48px 0;color:var(--dim);font-size:14px}
+.empty .big{font-size:38px;margin-bottom:10px}
+
+/* 进度条 */
+.prog-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.prog-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:8px}
+.prog-track{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:4px;transition:width .3s}
+
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:8px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>✅ <span>待办清单</span></h1>
+  <div class="sub">输入任务回车添加 · 点圆圈切换完成 · 悬停删除</div>
+
+  <div class="input-row">
+    <input type="text" id="inp" placeholder="今天要做什么？如：给番茄钟加个音效 🍅" maxlength="100" autofocus>
+    <button class="add-btn" onclick="add()">添加</button>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-label"><span>今日完成度</span><span id="progTxt">0 / 0</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="bar">
+    <span class="count">待办 <b id="left">0</b> 项</span>
+    <div class="filters">
+      <button class="f-btn on" data-f="all" onclick="setFilter('all',this)">全部</button>
+      <button class="f-btn" data-f="active" onclick="setFilter('active',this)">未完成</button>
+      <button class="f-btn" data-f="done" onclick="setFilter('done',this)">已完成</button>
+    </div>
+    <button class="clear" onclick="clearDone()">清除已完成</button>
+  </div>
+
+  <footer>100 Apps Challenge · App #003 · 数据存在浏览器本地，刷新不丢</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 数据层：唯一真相 ===== */
+const KEY="todo_v1";
+let todos=[];
+try{todos=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+let filter="all";
+
+/* ===== 持久化：数据一变就存 ===== */
+function save(){localStorage.setItem(KEY,JSON.stringify(todos))}
+
+/* ===== 渲染层：状态 -> 界面 ===== */
+function render(){
+  const shown=todos.filter(t=>filter==="all"||(filter==="done"?t.done:!t.done));
+  const list=document.getElementById("list");
+  list.innerHTML=shown.length?shown.map(t=>`
+    <div class="item ${t.done?"done":""}">
+      <button class="chk" onclick="toggle(${t.id})">${t.done?"✓":""}</button>
+      <div class="text">${esc(t.text)}<div class="meta">${t.time}</div></div>
+      <button class="del" onclick="del(${t.id})" title="删除">✕</button>
+    </div>`).join("")
+    :`<div class="empty"><div class="big">🌱</div>${filter==="all"?"还没有任务，从添加第一条开始":filter==="done"?"还没有完成的任务":"全部完成，太强了！"}</div>`;
+
+  const left=todos.filter(t=>!t.done).length,done=todos.length-left;
+  document.getElementById("left").textContent=left;
+  document.getElementById("progTxt").textContent=`${done} / ${todos.length}`;
+  document.getElementById("progFill").style.width=(todos.length?done/todos.length*100:0)+"%";
+  document.title=`(${left?"["+left+"]":""}) 待办清单`;
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+/* ===== 事件层：界面 -> 改数据 -> 重渲染 ===== */
+function add(){
+  const inp=document.getElementById("inp"),text=inp.value.trim();
+  if(!text){toast("先写点内容 👀");return}
+  const now=new Date();
+  todos.unshift({id:Date.now(),text,done:false,
+    time:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")} 添加`});
+  inp.value="";save();render();inp.focus();
+}
+function toggle(id){
+  const t=todos.find(t=>t.id===id);
+  if(!t)return;t.done=!t.done;
+  if(t.done&&todos.filter(x=>!x.done).length===0&&todos.length>1)toast("🎉 全部完成！");
+  save();render();
+}
+function del(id){todos=todos.filter(t=>t.id!==id);save();render()}
+function setFilter(f,el){
+  filter=f;
+  document.querySelectorAll(".f-btn").forEach(b=>b.classList.remove("on"));
+  el.classList.add("on");render();
+}
+function clearDone(){
+  const n=todos.filter(t=>t.done).length;
+  if(!n){toast("没有已完成的任务");return}
+  todos=todos.filter(t=>!t.done);save();render();toast(`🧹 已清除 ${n} 条`);
+}
+
+/* 回车快捷添加 */
+document.getElementById("inp").addEventListener("keydown",e=>{
+  if(e.key==="Enter")add();
+});
+
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+render();
+</script>
+</body>
+</html>

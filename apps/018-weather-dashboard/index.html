@@ -355,7 +355,8 @@ function render(d){
     const kb=b.dt.getDay()===0?7:b.dt.getDay();
     return ka-kb;
   });
-  const selBar=selDay===0?"":`<div style="margin-top:12px;background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span style="font-size:26px">${wmo(d.daily.weather_code[selDay])[1]}</span><b style="color:var(--gold)">${dayFullLabel(d.daily.time[selDay])}</b><span>${wmo(d.daily.weather_code[selDay])[0]}</span><span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_max[selDay])}° / ${Math.round(d.daily.temperature_2m_min[selDay])}°</span></div>`;
+  /* 详情条：今天默认也显示（selDay=0 就是今天），选中其他天同样显示 */
+  const selBar=`<div style="margin-top:12px;background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span style="font-size:26px">${wmo(d.daily.weather_code[selDay])[1]}</span><b style="color:var(--gold)">${selDay===0?"今天 · ":""}${dayFullLabel(d.daily.time[selDay])}</b><span>${wmo(d.daily.weather_code[selDay])[0]}</span><span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_max[selDay])}° / ${Math.round(d.daily.temperature_2m_min[selDay])}°</span></div>`;
   html+=`<div class="week"><h3>📅 未来 7 天预报${selDay!==0?'<span style="color:var(--gold);font-size:10px;margin-left:8px">● 已选中，10秒无操作自动回到今天</span>':''}</h3><div class="days">`+
     days7.map(({t,i,dt})=>{
       /* daily 码是全天最剧烈天气快照——降级显示更贴近体感（冰雹→雷雨） */
@@ -363,8 +364,8 @@ function render(d){
       const t2=d.daily.weather_code[i]>=95?"雷阵雨":RAW[0];
       const i2=d.daily.weather_code[i]>=95?"⛈":RAW[1];
       const dow=dt.getDay()===0?7:dt.getDay();
-      const dlabel=i===0?`今天 ${dt.getMonth()+1}/${dt.getDate()}`:`${dt.getMonth()+1}/${dt.getDate()} 周${wd[dow-1]}`;
-      return `<div class="day ${i===selDay?'sel':''}" onclick="pickDay(${i})" title="点击查看">
+      const dlabel=i===0?`今天·周${wd[dow-1]} ${dt.getMonth()+1}/${dt.getDate()}`:`${dt.getMonth()+1}/${dt.getDate()} 周${wd[dow-1]}`;
+      return `<div class="day ${i===selDay?'sel':''}" onclick="pickDay(${i})" title="点击查看详情">
         <div class="dw">${dlabel}</div>
         <div class="di">${i2}</div>
         <div class="dn">${t2}</div>

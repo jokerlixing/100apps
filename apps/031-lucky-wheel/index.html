@@ -62,6 +62,8 @@ h1{font-size:22px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 .prize .del{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:4px 7px;border-radius:6px;outline:none}
 @media(hover:hover){.prize .del:hover{color:var(--red)}}
 .prize .del.armed{color:var(--red);border:1px solid var(--red)}
+/* 中奖概率百分比（权重/总权重实时换算） */
+.prize .pct{font-size:10.5px;color:var(--green);font-weight:700;min-width:42px;text-align:right;font-variant-numeric:tabular-nums;background:rgba(78,201,176,.1);padding:3px 8px;border-radius:8px}
 .add-row{display:flex;gap:8px}
 .add-row input{flex:1;background:rgba(0,0,0,.22);border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 12px;border-radius:9px;outline:none;-webkit-user-select:text;user-select:text}
 .add-row input:focus{border-color:var(--gold)}
@@ -111,7 +113,7 @@ footer b{color:var(--gold)}
         <button class="add-btn" onclick="addPrize()">＋ 添加</button>
       </div>
       <div class="stats-line"><span>共 <b id="stCount">0</b> 项</span><span>总权重 <b id="stWeight">0</b></span><span>已抽 <b id="stDraws">0</b> 次</span></div>
-      <div class="tip">· 扇区大小 = 权重比例，指针落点用 <b>crypto.getRandomValues</b> 加密级随机<br>· 权重最小 1，删除需二次确认 · 配置自动保存</div>
+      <div class="tip">· 中奖概率 = 权重 ÷ 总权重（绿色百分比实时换算），扇区大小同比例<br>· 指针精确停在扇形正中 · crypto.getRandomValues 加密级随机 · 配置自动保存</div>
     </div>
   </div>
 
@@ -222,17 +224,18 @@ function drawWheel(){
     ctx.stroke();
     /* 文字：沿扇区中心角半径方向 */
     const midAng=(startAng+endAng)/2;
+    const pct=(p.weight/total*100).toFixed(1);
     ctx.save();
     ctx.translate(cx,cy);
     ctx.rotate(midAng);
     ctx.textAlign="right";
     ctx.fillStyle="rgba(0,0,0,.72)";
     ctx.font="bold 30px 'Segoe UI','Microsoft YaHei',sans-serif";
-    ctx.fillText(p.name,R-26,10);
-    /* 权重小字 */
-    ctx.font="16px sans-serif";
-    ctx.fillStyle="rgba(0,0,0,.45)";
-    ctx.fillText("×"+p.weight,R-26,36);
+    ctx.fillText(p.name,R-26,8);
+    /* 概率百分比小字 */
+    ctx.font="bold 19px sans-serif";
+    ctx.fillStyle="rgba(0,0,0,.5)";
+    ctx.fillText(pct+"%",R-26,36);
     ctx.restore();
     startAng=endAng;
   });
@@ -256,6 +259,7 @@ function drawWheel(){
 
 /* ---------- 奖项配置 ---------- */
 function renderPrizes(){
+  const total=totalWeight()||1;
   $("prizeList").innerHTML=prizes.map((p,i)=>
     `<div class="prize">
       <span class="no">${i+1}</span>
@@ -265,6 +269,7 @@ function renderPrizes(){
         <label>权重</label>
         <input type="number" min="1" max="99" value="${p.weight}" onchange="setWeight(${i},this.value)">
       </div>
+      <span class="pct" title="中奖概率=权重/总权重">${(p.weight/total*100).toFixed(1)}%</span>
       <button class="del" onclick="delPrize(${i},this)">✕</button>
     </div>`
   ).join("");
@@ -326,14 +331,17 @@ function spin(){
     r-=prizes[i].weight;
     if(r<0){hitIdx=i;break}
   }
-  /* ② 反算该奖项扇区中心角（绘制同款公式） */
+  /* ② 反算该奖项扇区中心角（与绘制完全同基准：-π/2 起顺时针） */
   let acc=0;
   for(let i=0;i<hitIdx;i++)acc+=prizes[i].weight;
-  const midFrac=(acc+prizes[hitIdx].weight/2)/total;      /* 0~1 */
-  const midAng=midFrac*Math.PI*2-Math.PI/2;               /* 与绘制同基准 */
-  /* 指针在正上方(-π/2 即 0 相对角)，转盘需转过 2π-midAng-π/2 归一 */
-  const targetRel=(Math.PI*2*1.5-midAng)%(Math.PI*2);     /* 目标相对角 */
-  const curRel=rotation%(Math.PI*2);
+  const midFrac=(acc+prizes[hitIdx].weight/2)/total;      /* 0~1 圈占比 */
+  const midAng=midFrac*Math.PI*2-Math.PI/2;               /* 扇区中心实际角 */
+  /* 指针固定在正上方(-π/2)。转盘转过 R 后扇区中心到指针处：
+     midAng + R ≡ -π/2 (mod 2π) → R = 1.5π - midAng (mod 2π) */
+  let targetRel=(1.5*Math.PI-midAng)%(Math.PI*2);
+  if(targetRel<0)targetRel+=Math.PI*2;
+  let curRel=rotation%(Math.PI*2);
+  if(curRel<0)curRel+=Math.PI*2;
   /* 计算需要转到的绝对角度：当前→对齐目标，外加 6~8 圈 */
   let delta=targetRel-curRel;
   if(delta<0)delta+=Math.PI*2;

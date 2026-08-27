@@ -103,7 +103,7 @@ footer b{color:var(--gold)}
         <div class="face front">
           <span class="tag" id="fTag">CARD</span>
           <span class="lv" id="fLv">Lv.0</span>
-          <button class="say-btn" id="sayBtn" onclick="event.stopPropagation();speak()" title="播放发音">🔊</button>
+          <button class="say-btn" id="sayBtn" onclick="event.stopPropagation();speakLoud()" title="播放发音">🔊</button>
           <div class="word" id="wWord">—</div>
           <div class="phon" id="wPhon"></div>
           <div class="hint">点击卡片查看释义</div>
@@ -111,7 +111,7 @@ footer b{color:var(--gold)}
         <div class="face back">
           <div class="cn" id="wCn">—</div>
           <div class="ex" id="wEx"></div>
-          <button class="say-btn" style="bottom:44px" onclick="event.stopPropagation();speak()" title="播放发音">🔊 再听一遍</button>
+          <button class="say-btn" style="bottom:44px" onclick="event.stopPropagation();speakLoud()" title="播放发音">🔊 再听一遍</button>
           <div class="hint">记住了吗？</div>
         </div>
       </div>
@@ -320,12 +320,18 @@ function speak(txt){
   if(voiceEn)u.voice=voiceEn;
   u.rate=0.85;      /* 学习场景稍慢 */
   u.pitch=1;
+  u.volume=1;       /* 音量拉满（0~1 上限，部分浏览器默认偏低） */
   /* 按钮反馈 */
   document.querySelectorAll(".say-btn").forEach(b=>{
     b.classList.add("playing");
     u.onend=u.onerror=()=>b.classList.remove("playing");
   });
   speechSynthesis.speak(u);
+}
+/* 增响技巧：同一词连续朗读两遍间隔极短，听感响度明显提升（TTS 天生音量偏低的补偿） */
+function speakLoud(){
+  speak();
+  setTimeout(()=>speak(),450);
 }
 
 function flip(){

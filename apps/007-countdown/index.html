@@ -148,16 +148,21 @@ function nextDate(name){
   return null;
 }
 function renderPresets(){
-  $("presets").innerHTML=`<span>快速添加：</span>`+PRESETS.map(p=>{
-    return `<button class="chip" onclick="quickAdd('${p[0]}','${p[1]}')">${p[1]} ${p[0]}</button>`;
-  }).join("");
+  /* 已添加的节日不再出现在快速添加栏——从源头杜绝重复添加的困惑 */
+  const remaining=PRESETS.filter(p=>!events.some(e=>e.name===p[0]));
+  $("presets").innerHTML=remaining.length
+    ?`<span>快速添加：</span>`+remaining.map(p=>{
+      return `<button class="chip" onclick="quickAdd('${p[0]}','${p[1]}')">${p[1]} ${p[0]}</button>`;
+    }).join("")
+    :`<span style="color:var(--dim);font-size:12px">🎉 预设节日已全部添加</span>`;
 }
 function quickAdd(name,emoji){
   const d=nextDate(name);if(!d)return;
   const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  if(events.some(e=>e.name===name)){toast("已经有「"+name+"」啦");return}
+  /* 双保险：列表里已存在同名节日直接提示并退出 */
+  if(events.some(e=>e.name===name)){toast("已经有「"+name+"」啦");renderPresets();return}
   events.push({id:Date.now(),name,emoji,date:iso});
-  save();render();toast(`已添加 ${emoji} ${name}`);
+  save();render();renderPresets();toast(`已添加 ${emoji} ${name}`);
 }
 
 /* ---------- 倒计时计算 ---------- */
@@ -198,6 +203,8 @@ function add(){
   const name=$("name").value.trim(),date=$("date").value;
   if(!name){toast("先写目标名称 👀");return}
   if(!date){toast("选一个日期");return}
+  /* 同名去重：已存在同名目标时提示 */
+  if(events.some(e=>e.name===name)){toast("已经有「"+name+"」啦，换个名字试试");return}
   events.push({id:Date.now(),name,emoji:"📌",date});
   save();render();
   $("name").value="";$("date").value="";
@@ -205,7 +212,7 @@ function add(){
 }
 function del(id){
   events=events.filter(e=>e.id!==id);
-  save();render();
+  save();render();renderPresets();   /* 删除后恢复快速添加按钮 */
 }
 
 /* 回车快捷添加 */

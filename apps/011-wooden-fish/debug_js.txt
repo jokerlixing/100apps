@@ -1,0 +1,186 @@
+
+/* ============================================================
+   新知识点：Canvas 粒子系统
+   - 每次敲击生成粒子（金色光点+功德文字）进入粒子池
+   - requestAnimationFrame 驱动统一重绘：每个粒子有速度/重力/寿命
+   - 寿命尽头自动回收（数组 splice）——所有游戏特效的底层套路
+   ============================================================ */
+const KEY="muyu_v1";
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+let total=0,peak=0,muted=false,autoTimer=null,autoOn=false;
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s){total=s.total||0;peak=s.peak||0}}catch(e){}
+function save(){localStorage.setItem(KEY,JSON.stringify({total,peak}))}
+
+/* ---------- 画布尺寸自适应 ---------- */
+function fit(){
+  const r=cv.parentElement.getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio;
+  cv.height=r.height*devicePixelRatio;
+}
+fit();addEventListener("resize",fit);
+
+/* ---------- 粒子系统 ---------- */
+const particles=[];
+function spawn(cx,cy){
+  /* 金色光点 ×6 */
+  for(let i=0;i<6;i++){
+    particles.push({
+      type:"dot",x:cx,y:cy,
+      vx:(Math.random()-.5)*2.4,
+      vy:-Math.random()*2.6-.6,
+      g:.045,                 /* 重力 */
+      life:1,decay:.016+Math.random()*.01,
+      r:2+Math.random()*2.5
+    });
+  }
+  /* 功德+1 飘字 */
+  particles.push({
+    type:"text",x:cx+(Math.random()-.5)*30,y:cy-30,
+    vx:(Math.random()-.5)*.5,vy:-1.3,g:0,
+    life:1,decay:.011,
+    txt:Math.random()<.12?["功德+10","心诚则灵","佛光普照","无量功德"][Math.floor(Math.random()*4)]:"功德 +1"
+  });
+}
+function loop(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save();
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue}
+    ctx.globalAlpha=Math.max(0,p.life);
+    if(p.type==="dot"){
+      ctx.fillStyle="#e5b567";
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);
+      ctx.fill();
+    }else{
+      ctx.fillStyle="#f0d9a8";
+      ctx.font="600 15px 'Segoe UI','Microsoft YaHei'";
+      ctx.textAlign="center";
+      ctx.fillText(p.txt,p.x,p.y);
+    }
+  }
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- 敲击 ---------- */
+const fish=$("fish");
+function knock(e){
+  /* e 可以是 PointerEvent（点击）或 undefined（自动/键盘） */
+  total++;
+  if(total>peak)peak=total;
+  save();
+  $("total").textContent=total.toLocaleString();
+  $("now").textContent=total.toLocaleString();
+  $("peak").textContent=peak.toLocaleString();
+
+  /* 粒子爆发位置：优先用点击坐标，否则用木鱼中心 */
+  let cx, cy;
+  if(e && e.clientX!==undefined){
+    const s=cv.parentElement.getBoundingClientRect();
+    cx=e.clientX-s.left;
+    cy=e.clientY-s.top;
+  }else{
+    const r=fish.getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+    cx=r.left-s.left+r.width/2;
+    cy=r.top-s.top+r.height/2;
+  }
+  spawn(cx,cy);
+  knockSound();
+}
+fish.addEventListener("pointerdown",e=>knock(e));
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();knock()}
+});
+
+/* ---------- 木鱼音效（Web Audio 合成"笃"声） ---------- */
+let actx=null;
+/* 音频预热：首次交互前创建 AudioContext 并播放静音解锁，避免第一次点击卡顿 */
+function prewarmAudio(){
+  try{
+    if(!actx){
+      actx=new (window.AudioContext||window.webkitAudioContext)();
+      /* 静音 buffer 播放，解锁浏览器音频策略 */
+      const buf=actx.createBuffer(1,1,22050);
+      const src=actx.createBufferSource();
+      src.buffer=buf;src.connect(actx.destination);src.start(0);
+    }
+    if(actx.state==="suspended")actx.resume();
+  }catch(e){}
+}
+["pointerdown","pointermove","keydown","touchstart"].forEach(ev=>{
+  document.addEventListener(ev,prewarmAudio,{once:true,passive:true});
+});
+function knockSound(){
+  if(muted)return;
+  try{
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    const t=actx.currentTime;
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="sine";
+    o.frequency.setValueAtTime(620,t);
+    o.frequency.exponentialRampToValueAtTime(140,t+.09);  /* 快速降频=木鱼"笃" */
+    g.gain.setValueAtTime(.5,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.13);
+    o.connect(g);g.connect(actx.destination);
+    o.start(t);o.stop(t+.15);
+  }catch(e){}
+}
+
+/* ---------- 工具 ---------- */
+let resetArmed=false,resetTimer=null;
+function reset(){
+  const btn=document.querySelector(".tbtn[onclick='reset()']");
+  if(!resetArmed){
+    /* 第一次点：进入待确认状态 */
+    resetArmed=true;
+    if(btn){btn.textContent="⚠️ 确认清零？";btn.style.borderColor="var(--red)";btn.style.color="var(--red)"}
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(()=>{
+      resetArmed=false;
+      if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
+    },3000);
+    return;
+  }
+  /* 第二次点：真清零 */
+  resetArmed=false;clearTimeout(resetTimer);
+  if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
+  total=0;peak=0;
+  try{localStorage.setItem(KEY,JSON.stringify({total:0,peak:0}))}catch(e){console.warn("save fail",e)}
+  $("total").textContent="0";
+  $("now").textContent="0";
+  $("peak").textContent="0";
+  particles.push({type:"text",x:cv.width/devicePixelRatio/2,y:180,vx:0,vy:-1,g:0,life:1,decay:.008,txt:"🙏 功德清零，重新修行"});
+}
+function toggleMute(){
+  muted=!muted;
+  $("btnMute").textContent=muted?"🔇 音效关":"🔊 音效开";
+}
+function pray(){
+  const msgs=["愿代码无bug","愿需求不改","愿上线不炸","愿数据库不锁","愿周报好写","愿薪资翻倍","愿头发浓密"];
+  const m=msgs[Math.floor(Math.random()*msgs.length)];
+  const r=$("fish").getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+  particles.push({type:"text",x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2-20,vx:0,vy:-1.1,g:0,life:1,decay:.008,txt:"🙏 "+m});
+}
+function toggleAuto(){
+  autoOn=!autoOn;
+  $("autoRow").classList.toggle("on",autoOn);
+  clearInterval(autoTimer);
+  if(autoOn){
+    const hz=+$("hz").value;
+    autoTimer=setInterval(knock,1000/hz);
+  }
+}
+$("hz").addEventListener("input",()=>{
+  if(autoOn){clearInterval(autoTimer);autoTimer=setInterval(knock,1000/+$("hz").value)}
+});
+
+/* ---------- 启动 ---------- */
+$("total").textContent=total.toLocaleString();
+$("now").textContent=total.toLocaleString();
+$("peak").textContent=peak.toLocaleString();

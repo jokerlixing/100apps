@@ -286,13 +286,29 @@ function knockSound(){
 }
 
 /* ---------- 工具 ---------- */
+let resetArmed=false,resetTimer=null;
 function reset(){
-  if(!confirm("功德清零？三思啊施主 🙏"))return;
+  const btn=document.querySelector(".tbtn[onclick='reset()']");
+  if(!resetArmed){
+    /* 第一次点：进入待确认状态 */
+    resetArmed=true;
+    if(btn){btn.textContent="⚠️ 确认清零？";btn.style.borderColor="var(--red)";btn.style.color="var(--red)"}
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(()=>{
+      resetArmed=false;
+      if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
+    },3000);
+    return;
+  }
+  /* 第二次点：真清零 */
+  resetArmed=false;clearTimeout(resetTimer);
+  if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
   total=0;peak=0;
   try{localStorage.setItem(KEY,JSON.stringify({total:0,peak:0}))}catch(e){console.warn("save fail",e)}
   $("total").textContent="0";
   $("now").textContent="0";
   $("peak").textContent="0";
+  particles.push({type:"text",x:cv.width/devicePixelRatio/2,y:180,vx:0,vy:-1,g:0,life:1,decay:.008,txt:"🙏 功德清零，重新修行"});
 }
 function toggleMute(){
   muted=!muted;

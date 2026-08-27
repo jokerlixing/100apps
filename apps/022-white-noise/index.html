@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎧 白噪音播放器 · White Noise</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.app{width:100%;max-width:520px;text-align:center}
+header{margin-bottom:18px}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
+
+/* 主控制 */
+.master{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.play-btn{width:84px;height:84px;border-radius:50%;background:var(--gold);border:none;color:#1a1a22;font-size:32px;cursor:pointer;outline:none;transition:.2s;box-shadow:0 6px 24px rgba(229,181,103,.4)}
+.play-btn:hover{transform:scale(1.06)}
+.play-btn:active{transform:scale(.95)}
+.play-btn.playing{background:var(--green);box-shadow:0 6px 28px rgba(78,201,176,.5)}
+.play-btn svg{width:34px;height:34px;display:block;margin:0 auto}
+.status{margin-top:12px;font-size:13px;color:var(--muted)}
+.status b{color:var(--green)}
+
+/* 主音量 */
+.vol-row{display:flex;align-items:center;gap:12px;margin-top:16px}
+.vol-row .icon{font-size:18px;color:var(--muted);width:22px}
+input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
+.vol-val{font-size:13px;color:var(--gold);font-weight:700;min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 声源卡片 */
+.sounds{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.snd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 14px;cursor:pointer;transition:.15s;position:relative;user-select:none;-webkit-user-select:none}
+.snd:hover{border-color:var(--dim);transform:translateY(-2px)}
+.snd .ico{font-size:32px;line-height:1;margin-bottom:8px}
+.snd .name{font-size:13px;font-weight:600}
+.snd .en{font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.snd.active{border-color:var(--gold);background:rgba(229,181,103,.08);box-shadow:0 0 16px rgba(229,181,103,.15)}
+.snd .mini-vol{width:100%;margin-top:10px;height:3px;display:none}
+.snd.active .mini-vol{display:block}
+
+/* 预设 */
+.presets{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.presets h3{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;text-align:left}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap}
+.pbtn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;transition:.15s;outline:none}
+.pbtn:hover{color:var(--gold);border-color:var(--gold)}
+.pbtn.on{color:var(--gold);border-color:var(--gold);background:rgba(229,181,103,.1)}
+
+/* 定时器 */
+.timer{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.timer h3{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;text-align:left}
+.timer-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.timer-row .pbtn.on{color:var(--green);border-color:var(--green);background:rgba(78,201,176,.1)}
+.timer-left{font-size:11px;color:var(--dim);margin-top:10px;font-variant-numeric:tabular-nums}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:16px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+
+@media(max-width:480px){
+  .sounds{grid-template-columns:repeat(2,1fr)}
+  .play-btn{width:72px;height:72px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>白噪音播放器</h1>
+    <div class="sub">Web Audio 实时合成 · 多声源混音 · 助眠专注</div>
+  </header>
+
+  <div class="master">
+    <button class="play-btn" id="playBtn" onclick="togglePlay()">
+      <svg id="playIco" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <div class="status" id="status">点上方按钮开始 · 下方点选声源</div>
+    <div class="vol-row">
+      <span class="icon">🔊</span>
+      <input type="range" id="masterVol" min="0" max="100" value="70" oninput="setMasterVol(this.value)">
+      <span class="vol-val" id="masterVolV">70%</span>
+    </div>
+  </div>
+
+  <div class="sounds" id="sounds"></div>
+
+  <div class="presets">
+    <h3>⭐ 场景预设</h3>
+    <div class="preset-row" id="presets"></div>
+  </div>
+
+  <div class="timer">
+    <h3>⏱ 定时关闭</h3>
+    <div class="timer-row">
+      <button class="pbtn on" data-min="0" onclick="setTimer(0,this)">关闭</button>
+      <button class="pbtn" data-min="15" onclick="setTimer(15,this)">15分钟</button>
+      <button class="pbtn" data-min="30" onclick="setTimer(30,this)">30分钟</button>
+      <button class="pbtn" data-min="60" onclick="setTimer(60,this)">60分钟</button>
+    </div>
+    <div class="timer-left" id="timerLeft"></div>
+  </div>
+
+  <footer>100 Apps Challenge · App #022 · <b>Web Audio 噪声合成</b>：白噪/粉噪/棕噪 + 滤波器调制<br>雨声=高频白噪+随机滴答 · 海浪=棕噪+LFO起伏 · 篝火=棕噪+随机爆裂</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：Web Audio 噪声合成（免音频文件的程序化音效）
+   - 噪声三种色：白噪(全频等能) 粉噪(1/f) 棕噪(1/f²，更闷)
+     合成方法：ScriptProcessor 逐样本生成随机数
+     粉噪=Voss-McCartney 算法，棕噪=白噪积分
+   - 声音塑形全靠滤波器链：
+     雨声 = 粉噪 + 高通(去闷) + 偶发"滴答"脉冲
+     海浪 = 棕噪 + 低通(隆隆) + LFO 调制音量(潮汐起伏)
+     森林 = 粉噪 + 带通(风吹叶) + 随机鸟鸣(振荡器滑音)
+     篝火 = 棕噪 + 低通 + 随机爆裂脉冲
+   - 每声源独立 GainNode，主音量 MasterGain 统一控制
+   ============================================================ */
+const $=id=>document.getElementById(id);
+let ctx=null,masterGain=null;
+let playing=false;
+let masterVol=0.7;
+
+/* 声源定义 */
+const SOUNDS=[
+  {id:"rain",ico:"🌧",name:"雨声",en:"RAIN",type:"rain",vol:0.6},
+  {id:"thunder",ico:"⛈",name:"雷雨",en:"THUNDER",type:"thunder",vol:0.5},
+  {id:"wave",ico:"🌊",name:"海浪",en:"OCEAN",type:"wave",vol:0.6},
+  {id:"stream",ico:"🏞",name:"溪流",en:"STREAM",type:"stream",vol:0.5},
+  {id:"forest",ico:"🌲",name:"森林",en:"FOREST",type:"forest",vol:0.4},
+  {id:"fire",ico:"🔥",name:"篝火",en:"CAMPFIRE",type:"fire",vol:0.5},
+  {id:"white",ico:"⬜",name:"白噪音",en:"WHITE",type:"white",vol:0.35},
+  {id:"pink",ico:"🌸",name:"粉噪音",en:"PINK",type:"pink",vol:0.4},
+  {id:"brown",ico:"🟤",name:"棕噪音",en:"BROWN",type:"brown",vol:0.5},
+  {id:"cafe",ico:"☕",name:"咖啡馆",en:"CAFE",type:"cafe",vol:0.45},
+];
+let active={};   /* id -> {gain, stop()} */
+
+/* 场景预设 */
+const PRESETS=[
+  {name:"🌙 助眠",mix:{rain:0.5,brown:0.35}},
+  {name:"📚 专注",mix:{pink:0.4,stream:0.3}},
+  {name:"🏖 海边",mix:{wave:0.6,seagull:0}},
+  {name:"🏕 露营",mix:{fire:0.55,forest:0.35}},
+  {name:"☕ 咖啡馆",mix:{cafe:0.5,pink:0.25}},
+];
+
+function initAudio(){
+  if(ctx)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  masterGain=ctx.createGain();
+  masterGain.gain.value=masterVol;
+  masterGain.connect(ctx.destination);
+}
+
+/* ---------- 噪声缓冲生成（2秒循环） ---------- */
+function makeNoise(color){
+  const len=ctx.sampleRate*2;
+  const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+  const d=buf.getChannelData(0);
+  if(color==="white"){
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }else if(color==="pink"){
+    /* Voss-McCartney 粉噪 */
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for(let i=0;i<len;i++){
+      const w=Math.random()*2-1;
+      b0=0.99886*b0+w*0.0555179;
+      b1=0.99332*b1+w*0.0750759;
+      b2=0.96900*b2+w*0.1538520;
+      b3=0.86650*b3+w*0.3104856;
+      b4=0.55000*b4+w*0.5329522;
+      b5=-0.7616*b5-w*0.0168980;
+      d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11;
+      b6=w*0.115926;
+    }
+  }else{ /* brown 棕噪 */
+    let last=0;
+    for(let i=0;i<len;i++){
+      const w=Math.random()*2-1;
+      last=(last+0.02*w)/1.02;
+      d[i]=last*3.5;
+    }
+  }
+  return buf;
+}
+
+/* ---------- 各声源构建 ---------- */
+function buildSource(type,vol){
+  const gain=ctx.createGain();
+  gain.gain.value=0;
+  gain.connect(masterGain);
+  const stops=[];
+
+  /* 基础噪声层 */
+  function noiseLayer(color,filterType,freq,q,volMul){
+    const src=ctx.createBufferSource();
+    src.buffer=makeNoise(color);
+    src.loop=true;
+    let node=src;
+    if(filterType){
+      const f=ctx.createBiquadFilter();
+      f.type=filterType;f.frequency.value=freq;
+      if(q)f.Q.value=q;
+      node.connect(f);node=f;
+    }
+    const g=ctx.createGain();g.gain.value=volMul;
+    node.connect(g);g.connect(gain);
+    src.start();
+    stops.push(()=>src.stop());
+    return {src,filter:filterType?node:null,gain:g};
+  }
+
+  if(type==="rain"){
+    noiseLayer("pink","highpass",900,0.7,0.9);
+    noiseLayer("white","bandpass",3000,0.5,0.25);
+    /* 随机雨滴打击感 */
+    scheduleRandom(()=>tick(2000+Math.random()*3000,0.06,0.05,gain),90,400,stops);
+  }else if(type==="thunder"){
+    noiseLayer("pink","highpass",700,0.7,0.7);
+    noiseLayer("brown","lowpass",350,0.5,0.5);
+    scheduleRandom(()=>{
+      /* 雷声：低频轰鸣包络 */
+      const src=ctx.createBufferSource();
+      src.buffer=makeNoise("brown");
+      const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=220;
+      const g=ctx.createGain();
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(1.4,ctx.currentTime+0.18);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2.8);
+      src.connect(f);f.connect(g);g.connect(gain);
+      src.start();src.stop(ctx.currentTime+3);
+    },4000,12000,stops);
+  }else if(type==="wave"){
+    const layer=noiseLayer("brown","lowpass",600,0.4,1.2);
+    /* LFO 潮汐起伏 */
+    const lfo=ctx.createOscillator();
+    lfo.frequency.value=0.11;   /* 约9秒一个潮汐周期 */
+    const lfoGain=ctx.createGain();
+    lfoGain.gain.value=0.55;
+    lfo.connect(lfoGain);lfoGain.connect(layer.gain.gain);
+    lfo.start();
+    stops.push(()=>lfo.stop());
+  }else if(type==="stream"){
+    noiseLayer("white","bandpass",1400,0.4,0.5);
+    noiseLayer("pink","highpass",1800,0.5,0.35);
+  }else if(type==="forest"){
+    noiseLayer("pink","bandpass",800,0.3,0.8);
+    /* 随机鸟鸣：振荡器滑音 */
+    scheduleRandom(()=>{
+      const o=ctx.createOscillator();
+      o.type="sine";
+      const base=2200+Math.random()*1800;
+      const t=ctx.currentTime;
+      o.frequency.setValueAtTime(base,t);
+      o.frequency.linearRampToValueAtTime(base*(0.7+Math.random()*0.5),t+0.12);
+      o.frequency.linearRampToValueAtTime(base*(0.9+Math.random()*0.3),t+0.22);
+      const g=ctx.createGain();
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.09,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      o.connect(g);g.connect(gain);
+      o.start(t);o.stop(t+0.35);
+    },1500,6000,stops);
+  }else if(type==="fire"){
+    noiseLayer("brown","lowpass",900,0.5,0.9);
+    /* 随机爆裂噼啪 */
+    scheduleRandom(()=>tick(1200+Math.random()*2500,0.1,0.12,gain),60,600,stops);
+    scheduleRandom(()=>tick(400+Math.random()*600,0.15,0.2,gain),300,2000,stops);
+  }else if(type==="white"){
+    noiseLayer("white",null,0,0,0.7);
+  }else if(type==="pink"){
+    noiseLayer("pink",null,0,0,0.9);
+  }else if(type==="brown"){
+    noiseLayer("brown",null,0,0,0.8);
+  }else if(type==="cafe"){
+    noiseLayer("pink","bandpass",500,0.3,0.55);
+    noiseLayer("brown","lowpass",300,0.4,0.25);
+    /* 偶尔杯碟碰撞声 */
+    scheduleRandom(()=>tick(3500+Math.random()*2000,0.04,0.06,gain),3000,9000,stops);
+  }
+
+  /* 渐入到目标音量 */
+  gain.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.8);
+  return {gain,stops};
+}
+
+/* 单个打击脉冲（雨滴/爆裂/杯碟） */
+function tick(freq,dur,amp,dest){
+  const o=ctx.createOscillator();
+  o.type="sine";
+  o.frequency.value=freq;
+  const g=ctx.createGain();
+  const t=ctx.currentTime;
+  g.gain.setValueAtTime(amp,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(dest);
+  o.start(t);o.stop(t+dur+0.02);
+}
+/* 随机事件调度器（min~max 毫秒间隔） */
+function scheduleRandom(fn,min,max,stops){
+  let alive=true;
+  (function next(){
+    if(!alive)return;
+    fn();
+    setTimeout(next,min+Math.random()*(max-min));
+  })();
+  stops.push(()=>alive=false);
+}
+
+/* ---------- 播放控制 ---------- */
+function togglePlay(){
+  if(playing){stopAll()}
+  else{
+    initAudio();
+    if(ctx.state==="suspended")ctx.resume();
+    playing=true;
+    updatePlayBtn();
+    /* 没选任何声源时默认开粉噪 */
+    if(!Object.keys(active).length)toggleSound("pink",true);
+  }
+}
+function stopAll(){
+  Object.keys(active).forEach(id=>removeSound(id));
+  playing=false;
+  updatePlayBtn();
+}
+function updatePlayBtn(){
+  $("playBtn").classList.toggle("playing",playing);
+  $("playIco").innerHTML=playing?'<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+  const n=Object.keys(active).length;
+  $("status").innerHTML=playing?(n?`播放中 · <b>${n} 个声源</b>`:"播放中 · 请点选声源"):"已暂停 · 点上方按钮开始";
+}
+function toggleSound(id,force){
+  if(!playing&&!force){
+    /* 未播放时点击声源：自动开始 */
+    togglePlay();
+  }
+  if(active[id]){removeSound(id)}
+  else{
+    const s=SOUNDS.find(x=>x.id===id);
+    active[id]=buildSource(s.type,s.vol);
+  }
+  renderSounds();
+  updatePlayBtn();
+}
+function removeSound(id){
+  const a=active[id];
+  if(!a)return;
+  a.gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.3);
+  setTimeout(()=>{a.stops.forEach(s=>s())},350);
+  delete active[id];
+}
+function setSoundVol(id,v){
+  const a=active[id];
+  if(a)a.gain.gain.linearRampToValueAtTime(v/100*0.9,ctx.currentTime+0.1);
+  const s=SOUNDS.find(x=>x.id===id);
+  if(s)s.vol=v/100;
+}
+function setMasterVol(v){
+  masterVol=v/100;
+  if(masterGain)masterGain.gain.linearRampToValueAtTime(masterVol,ctx.currentTime+0.1);
+  $("masterVolV").textContent=v+"%";
+}
+
+/* ---------- 渲染 ---------- */
+function renderSounds(){
+  $("sounds").innerHTML=SOUNDS.map(s=>`
+    <div class="snd ${active[s.id]?"active":""}" onclick="toggleSound('${s.id}')">
+      <div class="ico">${s.ico}</div>
+      <div class="name">${s.name}</div>
+      <div class="en">${s.en}</div>
+      <input type="range" class="mini-vol" min="0" max="100" value="${s.vol*100}" onclick="event.stopPropagation()" oninput="setSoundVol('${s.id}',this.value)" onpointerdown="event.stopPropagation()">
+    </div>`).join("");
+}
+function renderPresets(){
+  $("presets").innerHTML=PRESETS.map((p,i)=>`<button class="pbtn" onclick="applyPreset(${i})">${p.name}</button>`).join("");
+}
+function applyPreset(i){
+  const p=PRESETS[i];
+  if(!playing)togglePlay();
+  /* 清空现有 */
+  Object.keys(active).forEach(id=>removeSound(id));
+  /* 应用混音 */
+  setTimeout(()=>{
+    Object.keys(p.mix).forEach(id=>{
+      if(p.mix[id]>0){
+        const s=SOUNDS.find(x=>x.id===id);
+        if(s)active[id]=buildSource(s.type,p.mix[id]);
+      }
+    });
+    renderSounds();updatePlayBtn();
+  },380);
+}
+
+/* ---------- 定时器 ---------- */
+let timerMin=0,timerEnd=0,timerIv=null;
+function setTimer(min,btn){
+  document.querySelectorAll(".timer-row .pbtn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  timerMin=min;
+  clearInterval(timerIv);
+  if(min>0&&playing){
+    timerEnd=Date.now()+min*60000;
+    timerIv=setInterval(updateTimerLeft,1000);
+    updateTimerLeft();
+  }else{
+    $("timerLeft").textContent=min>0?"计时将在播放时开始":"";
+  }
+}
+function updateTimerLeft(){
+  const left=timerEnd-Date.now();
+  if(left<=0){
+    clearInterval(timerIv);
+    stopAll();
+    $("timerLeft").textContent="⏹ 定时结束，已停止播放";
+    document.querySelectorAll(".timer-row .pbtn").forEach((b,i)=>b.classList.toggle("on",i===0));
+    return;
+  }
+  const m=Math.floor(left/60000),s=Math.floor(left%60000/1000);
+  $("timerLeft").textContent=`⏳ ${m}分${String(s).padStart(2,"0")}秒后停止`;
+}
+
+renderSounds();
+renderPresets();
+</script>
+</body>
+</html>

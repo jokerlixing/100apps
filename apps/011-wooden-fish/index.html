@@ -19,7 +19,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var
 /* 木鱼舞台 */
 .stage{position:relative;height:320px;margin-bottom:10px;user-select:none;-webkit-user-select:none;perspective:600px}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}  /* 粒子层置顶，盖在木鱼上面 */
-.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1}
+.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;line-height:1}
 .muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px}
 
 /* 计数 */
@@ -54,7 +54,7 @@ footer b{color:var(--gold)}
 
   <div class="stage">
     <canvas id="cv"></canvas>
-    <div class="muyu" id="fish" title="敲我"><img src="assets/muyu.png?v=3" alt="木鱼" draggable="false"></div>
+    <div class="muyu" id="fish" title="敲我"><img src="assets/muyu.png?v=4" alt="木鱼" draggable="false" decoding="async" fetchpriority="high"></div>
   </div>
 
   <div class="counter">
@@ -103,7 +103,13 @@ fit();addEventListener("resize",fit);
 
 /* ---------- 粒子系统 ---------- */
 const particles=[];
+let rafId=null;
+function ensureLoop(){
+  /* 性能关键：空闲时渲染循环完全停止，有粒子才启动 */
+  if(rafId===null)rafId=requestAnimationFrame(loop);
+}
 function spawn(cx,cy){
+  ensureLoop();
   /* 金色光点 ×6 */
   for(let i=0;i<6;i++){
     particles.push({
@@ -145,7 +151,8 @@ function loop(){
     }
   }
   ctx.restore();
-  requestAnimationFrame(loop);
+  /* 粒子全部消亡 → 停止循环，空闲时零CPU占用 */
+  rafId=particles.length>0?requestAnimationFrame(loop):null;
 }
 requestAnimationFrame(loop);
 
@@ -236,6 +243,7 @@ function reset(){
   $("total").textContent="0";
   $("now").textContent="0";
   $("peak").textContent="0";
+  ensureLoop();
   particles.push({type:"text",x:cv.width/devicePixelRatio/2,y:180,vx:0,vy:-1,g:0,life:1,decay:.008,txt:"🙏 功德清零，重新修行"});
 }
 function toggleMute(){
@@ -246,6 +254,7 @@ function pray(){
   const msgs=["愿代码无bug","愿需求不改","愿上线不炸","愿数据库不锁","愿周报好写","愿薪资翻倍","愿头发浓密"];
   const m=msgs[Math.floor(Math.random()*msgs.length)];
   const r=$("fish").getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+  ensureLoop();
   particles.push({type:"text",x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2-20,vx:0,vy:-1.1,g:0,life:1,decay:.008,txt:"🙏 "+m});
 }
 function toggleAuto(){

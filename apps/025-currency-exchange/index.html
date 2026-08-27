@@ -32,7 +32,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .swap-btn:hover{transform:rotate(180deg);border-color:var(--gold)}
 .swap-btn svg{width:20px;height:20px}
 
-.rate-line{text-align:center;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.8}
+.rate-line{text-align:center;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.8;min-height:44px;display:flex;flex-direction:column;justify-content:center}
 .rate-line b{color:var(--gold);font-size:14px}
 
 /* 快捷金额 */
@@ -160,7 +160,7 @@ async function loadRates(force){
       }
     }catch(e){}
   }
-  $("rateLine").textContent="正在获取实时汇率…";
+  $("rateLine").innerHTML="正在获取实时汇率…<br><span style='font-size:10px;color:var(--dim)'>&nbsp;</span>";
   try{
     const r=await fetch("https://open.er-api.com/v6/latest/CNY");
     const d=await r.json();

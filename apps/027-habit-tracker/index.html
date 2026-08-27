@@ -35,6 +35,10 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .h-stats b{color:var(--gold);font-size:15px;font-variant-numeric:tabular-nums}
 .h-stats .st{display:flex;flex-direction:column;align-items:center;gap:1px}
 .h-ops{display:flex;gap:6px}
+/* 右上角悬浮删除按钮（桌面/移动端同位置） */
+.h-del{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.3);border:1px solid var(--line);color:var(--dim);font-size:12px;width:28px;height:28px;border-radius:8px;cursor:pointer;outline:none;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+@media(hover:hover){.h-del:hover{color:var(--red);border-color:var(--red)}}
+.h-del.armed{color:var(--red);border-color:var(--red);width:auto;padding:0 10px;font-size:11px}
 .h-op{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;outline:none}
 @media(hover:hover){.h-op:hover{color:var(--gold);border-color:var(--gold)}}
 .h-op.del.armed{color:var(--red);border-color:var(--red)}
@@ -59,8 +63,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .heat-legend .cell{cursor:default;width:11px;height:11px}
 
 /* 月份标签 */
-.months{display:flex;gap:3px;margin-bottom:5px;min-width:fit-content}
-.months span{width:13px;font-size:9px;color:var(--dim);white-space:nowrap}
+.months span{font-size:9px;color:var(--dim);white-space:nowrap}
 .month-gap{width:10px}
 
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:16px;padding:40px;text-align:center;color:var(--dim)}
@@ -174,16 +177,14 @@ function render(){
   $("habits").innerHTML=habits.map(h=>{
     const doneToday=!!h.days[todayIs];
     const sk=streak(h),tot=totalDays(h);
-    return `<div class="habit">
+    return `<div class="habit" style="position:relative">
+      <button class="h-del" onclick="delHabit(${h.id},this)" title="删除习惯">✕</button>
       <div class="h-top">
         <div class="h-name"><span class="ico">${h.ico}</span>${esc(h.name)}</div>
         <div class="h-stats">
           <div class="st"><b>${sk}</b>连续天数</div>
           <div class="st"><b>${tot}</b>累计打卡</div>
           <div class="st"><b>${Math.min(100,Math.round(tot/365*100))}%</b>全年完成</div>
-        </div>
-        <div class="h-ops">
-          <button class="h-op del" onclick="delHabit(${h.id},this)">删除</button>
         </div>
       </div>
       <button class="today-btn ${doneToday?"done":""}" onclick="today(${h.id})">
@@ -196,11 +197,13 @@ function render(){
 
 /* 热力图：近 26 周（半年）列式布局 */
 function heatHTML(h){
-  const W=26;   /* 周数 */
+  /* 53 周 = 完整 365 天 / 12 个月热力图（GitHub 全年样式） */
+  const W=53;
+  const CELL=13,GAP=3,STEP=CELL+GAP;   /* 16px/列 */
   const today=new Date();
-  /* 本周周日为终点，往回推 W 周 */
+  /* 本周日为终点，往前推 53 周 */
   const end=new Date(today);
-  end.setDate(today.getDate()+(7-today.getDay()===7?0:7-today.getDay()));
+  end.setDate(today.getDate()+(7-today.getDay()));
   const start=new Date(end);
   start.setDate(end.getDate()-W*7+1);
   const todayIs=dstr(today);
@@ -218,23 +221,22 @@ function heatHTML(h){
       }
       const ds=dstr(cur);
       const has=!!h.days[ds];
-      /* 色阶：以连续打卡密度模拟（这里单习惯只有有无，用时间衰减色阶装饰） */
       const lv=has?4:0;
       cells+=`<div class="cell ${lv?"l"+lv:""} ${ds===todayIs?"today-c":""}" onclick="toggle(${h.id},'${ds}')" title="${ds}${has?" ✓":" 点击补卡"}"></div>`;
     }
-    /* 月份标签：每周首日（周一）所在月变化时记一次 */
+    /* 月份标签：每月第一列出现时标注（绝对偏移定位，53 列跨度精确） */
     const wkStart=new Date(start);
     wkStart.setDate(start.getDate()+w*7);
     if(wkStart.getMonth()!==lastMonth){
-      monthTags+=`<span style="width:${w*16}px"></span><span>${wkStart.getMonth()+1}月</span>`;
+      monthTags+=`<span style="position:absolute;left:${w*STEP}px">${wkStart.getMonth()+1}月</span>`;
       lastMonth=wkStart.getMonth();
     }
     cols+=`<div class="week-col">${cells}</div>`;
   }
   return `<div class="heat-wrap">
-    <div class="months">${monthTags}</div>
+    <div class="months" style="position:relative;height:14px;margin-bottom:5px;min-width:fit-content">${monthTags}</div>
     <div class="heat">${cols}</div>
-    <div class="heat-legend">少 <div class="cell"></div><div class="cell l1"></div><div class="cell l2"></div><div class="cell l3"></div><div class="cell l4"></div> 多</div>
+    <div class="heat-legend">少 <div class="cell"></div><div class="cell l1"></div><div class="cell l2"></div><div class="cell l3"></div><div class="cell l4"></div> 多 · 共 ${W} 周 / 12 个月</div>
   </div>`;
 }
 

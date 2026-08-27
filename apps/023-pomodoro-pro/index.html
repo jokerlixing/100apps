@@ -271,12 +271,57 @@ function recordFocus(){
 }
 function notify(msg){
   if(navigator.vibrate)navigator.vibrate(200);
+  ringBell();   /* 到点铃声 10 秒 */
   /* 简单 toast */
   const t=document.createElement("div");
   t.textContent=msg;
   t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:12px 24px;border-radius:12px;font-size:14px;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.4)";
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2600);
+}
+/* ---------- 到点铃声：Web Audio 合成 10 秒渐弱叮铃 ---------- */
+let bellCtx=null,bellStopFn=null;
+function ringBell(){
+  try{
+    if(!bellCtx)bellCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(bellCtx.state==="suspended")bellCtx.resume();
+    if(bellStopFn)bellStopFn();   /* 上一轮还没完就先停 */
+    const ctx2=bellCtx;
+    /* 主增益：10秒总包络（渐弱） */
+    const master=ctx2.createGain();
+    master.gain.setValueAtTime(0.5,ctx2.currentTime);
+    master.gain.linearRampToValueAtTime(0.0001,ctx2.currentTime+10);
+    master.connect(ctx2.destination);
+    /* 双音叮铃（880Hz+1320Hz，像老式闹钟） */
+    const oscs=[];
+    [[880,"sine"],[1320,"sine"]].forEach(([f,type])=>{
+      const o=ctx2.createOscillator();
+      o.type=type;o.frequency.value=f;
+      const g=ctx2.createGain();
+      g.gain.value=f===880?0.6:0.35;
+      o.connect(g);g.connect(master);
+      o.start();
+      oscs.push(o);
+    });
+    /* 颤音调制：叮-铃-叮-铃 节奏（6Hz 方波开关） */
+    const trem=ctx2.createOscillator();
+    trem.type="square";trem.frequency.value=6;
+    const tremGain=ctx2.createGain();
+    tremGain.gain.value=0.45;
+    /* 用 trem 控制 master 的第二层开关：接一个 shaper 把方波变成 0/1 */
+    trem.connect(tremGain);
+    /* 简化：直接把 tremGain 接到 master.gain（AudioParam 调制） */
+    tremGain.connect(master.gain);
+    trem.start();
+    oscs.push(trem);
+    /* 10 秒后全停 */
+    const stopAt=ctx2.currentTime+10;
+    const stop=()=>{
+      oscs.forEach(o=>{try{o.stop()}catch(e){}});
+    };
+    const timer=setTimeout(stop,10000);
+    bellStopFn=()=>{clearTimeout(timer);stop()};
+  }catch(e){/* 音频不可用静默 */}
 }
 
 /* ---------- 任务 ---------- */
@@ -322,25 +367,30 @@ function renderStats(){
   $("minToday").textContent=h?h.minutes:0;
 }
 function renderChart(){
-  /* 近7天 */
+  /* 本周：周一开始 → 周日（今天在哪个位置就高亮哪，未来的天显示空） */
+  const now=new Date();
+  const dow=now.getDay()===0?7:now.getDay();          /* 周日=7 */
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-(dow-1));              /* 本周一 */
+  monday.setHours(0,0,0,0);
   const days=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date();
-    d.setDate(d.getDate()-i);
+  const labels=["一","二","三","四","五","六","日"];
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);
+    d.setDate(monday.getDate()+i);
     const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    days.push({ds,d,today:i===0});
+    days.push({ds,d,today:i===dow-1,future:d>now});
   }
   const vals=days.map(({ds})=>history.find(h=>h.date===ds)?.minutes||0);
   const max=Math.max(60,...vals);   /* 至少60分钟刻度 */
-  const today=new Date();
-  const mon=new Date(today);mon.setDate(today.getDate()-6);
-  $("weekRange").textContent=`${mon.getMonth()+1}/${mon.getDate()} - ${today.getMonth()+1}/${today.getDate()}`;
+  const sun=new Date(monday);sun.setDate(monday.getDate()+6);
+  $("weekRange").textContent=`${monday.getMonth()+1}/${monday.getDate()} - ${sun.getMonth()+1}/${sun.getDate()}`;
   $("chart").innerHTML=days.map((d,i)=>`
     <div class="bar-col">
-      <div class="bar ${d.today?"today":""}" style="height:${Math.max(3,vals[i]/max*100)}%">
-        ${vals[i]?`<span class="val">${vals[i]}</span>`:""}
+      <div class="bar ${d.today?"today":""}" style="height:${d.future?0:Math.max(3,vals[i]/max*100)}%;${d.future?"opacity:.15":""}">
+        ${vals[i]&&!d.future?`<span class="val">${vals[i]}</span>`:""}
       </div>
-      <div class="bar-label ${d.today?"today":""}">${d.today?"今天":dayCN(d.d)}</div>
+      <div class="bar-label ${d.today?"today":""}">${d.today?"今天":labels[i]}</div>
     </div>`).join("");
   const total=vals.reduce((a,b)=>a+b,0);
   const pomos=days.reduce((a,{ds})=>a+(history.find(h=>h.date===ds)?.pomos||0),0);

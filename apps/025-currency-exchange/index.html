@@ -98,7 +98,7 @@ footer b{color:var(--gold)}
         <select class="curr-sel" id="toCur" onchange="convert()"></select>
       </div>
     </div>
-    <div class="rate-line" id="rateLine">加载汇率中…</div>
+    <div class="rate-line" id="rateLine"><span id="rlMain">加载汇率中…</span><br><span style="font-size:10px;color:var(--dim)" id="rlSub">&nbsp;</span></div>
     <div class="quick" id="quick"></div>
   </div>
 
@@ -162,7 +162,8 @@ async function loadRates(force){
       }
     }catch(e){}
   }
-  $("rateLine").innerHTML="正在获取实时汇率…<br><span style='font-size:10px;color:var(--dim)'>&nbsp;</span>";
+  $("rlMain").textContent="正在获取实时汇率…";
+  $("rlSub").innerHTML="&nbsp;";
   try{
     const r=await fetch("https://open.er-api.com/v6/latest/CNY");
     const d=await r.json();
@@ -176,8 +177,8 @@ async function loadRates(force){
     try{
       const s=JSON.parse(localStorage.getItem(KEY));
       if(s){rates=s.rates;updAt=s.t;fromCache=true}
-      else{$("rateLine").textContent="汇率加载失败，请检查网络";return}
-    }catch(e2){$("rateLine").textContent="汇率加载失败";return}
+      else{$("rlMain").textContent="汇率加载失败，请检查网络";return}
+    }catch(e2){$("rlMain").textContent="汇率加载失败";return}
   }
   boot();
 }
@@ -197,7 +198,9 @@ function convert(){
   /* 大数缩写 */
   $("result").value=fmtNum(out);
   const unit=fx(from,to,1);
-  $("rateLine").innerHTML=`1 <b>${from}</b> = <b>${unit.toFixed(4)}</b> ${to}<br><span style="font-size:10px;color:var(--dim)">${fromCache?"📦 缓存数据":"🟢 实时"} · 更新于 ${new Date(updAt).toLocaleString("zh-CN")}</span>`;
+  /* 定点更新两个 span，结构永不变 */
+  $("rlMain").innerHTML=`1 <b>${from}</b> = <b>${unit.toFixed(4)}</b> ${to}`;
+  $("rlSub").textContent=(fromCache?"📦 缓存数据":"🟢 实时")+" · 更新于 "+new Date(updAt).toLocaleString("zh-CN");
   renderQuickActive();
   renderTable(from);
 }
@@ -237,20 +240,33 @@ function swap(){
   if(r&&!isNaN(+r))$("amount").value=r;
   convert();
 }
+const RATE_LIST=["USD","EUR","JPY","HKD","GBP","KRW","SGD","AUD"];
+let tableDomInited=false;
 function renderTable(base){
-  /* 1 base 兑各币 */
   $("updTime").textContent="基准 "+base+" · "+(fromCache?"缓存":"实时");
-  const list=["USD","EUR","JPY","HKD","GBP","KRW","SGD","AUD"];
-  $("rateTable").innerHTML=`<table>`+list.map(c=>{
-    const cur=CURRENCIES.find(x=>x.c===c);
+  if(!tableDomInited){
+    /* 骨架只建一次：固定行结构 + 独立 id，之后仅更新文本 */
+    $("rateTable").innerHTML=`<table>`+RATE_LIST.map((c,i)=>{
+      const cur=CURRENCIES.find(x=>x.c===c);
+      return `<tr id="rt-row-${i}">
+        <td class="cur"><span class="flag">${cur.f}</span><span>${cur.n}<span class="code">${c}</span></span></td>
+        <td class="val" id="rt-val-${i}"></td>
+        <td class="rev" id="rt-rev-${i}"></td>
+      </tr>`;
+    }).join("")+`</table>`;
+    tableDomInited=true;
+  }
+  /* 更新阶段：只改文本和 class，不触碰结构——零重排 */
+  RATE_LIST.forEach((c,i)=>{
     const v=fx(base,c,1);
     const rev=fx(c,base,1);
-    return `<tr class="${base===c?"hit":""}">
-      <td class="cur"><span class="flag">${cur.f}</span><span>${cur.n}<span class="code">${c}</span></span></td>
-      <td class="val">${v.toFixed(v<1?4:2)}</td>
-      <td class="rev">1 ${c} = ${rev.toFixed(rev<1?4:2)} ${base}</td>
-    </tr>`;
-  }).join("")+`</table>`;
+    const valEl=document.getElementById("rt-val-"+i);
+    const revEl=document.getElementById("rt-rev-"+i);
+    /* 定宽占位防数字变化引起的列宽跳动 */
+    valEl.textContent=v.toFixed(v<1?4:2);
+    revEl.textContent=`1 ${c} = ${rev.toFixed(rev<1?4:2)} ${base}`;
+    document.getElementById("rt-row-"+i).className=base===c?"hit":"";
+  });
 }
 
 loadRates();

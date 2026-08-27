@@ -11,8 +11,10 @@
   --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.app{width:100%;max-width:560px}
+html{overflow-anchor:none}   /* 关闭滚动锚定，防止内容变化时浏览器自动调整滚动位置 */
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:5vh 20px 40px;overflow-anchor:none}
+/* 注意：不用 flex 垂直居中——居中会把任何内容高度变化放大成整页上下抖动（CLS），顶部安全距近似居中观感且绝对稳定 */
+.app{width:100%;max-width:560px;margin:0 auto}   /* 水平居中用 margin，垂直交给文档流 */
 header{margin-bottom:16px;text-align:center}
 h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}

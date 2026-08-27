@@ -124,8 +124,8 @@ footer b{color:var(--gold)}
         <input type="text" id="newPrize" placeholder="新奖项名称…" maxlength="12" onkeydown="if(event.key==='Enter')addPrize()">
         <button class="add-btn" onclick="addPrize()">＋ 添加</button>
       </div>
-      <div class="stats-line"><span>共 <b id="stCount">0</b> 项</span><span>总权重 <b id="stWeight">0</b></span><span>已抽 <b id="stDraws">0</b> 次</span></div>
-      <div class="tip">· 中奖概率 = 权重 ÷ <b>剩余总权重</b>，抽中即扣库存，概率实时变化<br>· 库存归零的奖项自动出局（转盘变暗缝）· 改库存可随时补充 · crypto 加密随机</div>
+      <div class="stats-line"><span>共 <b id="stCount">0</b> 项</span><span>权重总和 <b id="stWeight">100</b>%</span><span>已抽 <b id="stDraws">0</b> 次</span></div>
+      <div class="tip">· 权重即百分比，<b>总和固定 100</b>——改一项其余项按比例自动补差<br>· 中奖概率 = 权重% ÷ 剩余项权重和 × 100（抽完出局后实时重算）· crypto 加密随机</div>
     </div>
   </div>
 
@@ -161,12 +161,12 @@ const PALETTE=["#e5b567","#4ec9b0","#569cd6","#c586c0","#e06c75","#7ec8e3","#a8d
 
 let prizes=[
   {name:"一等奖 🎉",weight:1,stock:1},
-  {name:"二等奖 🎊",weight:3,stock:2},
-  {name:"三等奖 🎁",weight:6,stock:5},
-  {name:"幸运奖 ⭐",weight:10,stock:10},
-  {name:"再来一次",weight:8,stock:8},
-  {name:"谢谢参与",weight:12,stock:15},
-];
+  {name:"二等奖 🎊",weight:4,stock:2},
+  {name:"三等奖 🎁",weight:10,stock:5},
+  {name:"幸运奖 ⭐",weight:15,stock:10},
+  {name:"再来一次",weight:30,stock:8},
+  {name:"谢谢参与",weight:40,stock:15},
+];   /* 权重=百分比，固定总和 100 */
 let history=[];
 let spinning=false;
 let rotation=0;   /* 累计旋转角 */
@@ -175,7 +175,16 @@ try{
   const s=JSON.parse(localStorage.getItem(KEY));
   if(s){
     prizes=s.prizes&&s.prizes.length?s.prizes:prizes;
-    prizes.forEach(p=>{if(typeof p.stock!=="number")p.stock=10});   /* 旧存档兼容：无库存字段补默认 */
+    prizes.forEach(p=>{if(typeof p.stock!=="number")p.stock=10});
+    /* 旧存档权重归一化：总和≠100 时等比缩放到 100（权重即百分比） */
+    const sum=prizes.reduce((a,p)=>a+p.weight,0);
+    if(sum>0&&Math.abs(sum-100)>0.5){
+      let acc=0;
+      prizes.forEach((p,i)=>{
+        if(i===prizes.length-1)p.weight=Math.max(0,100-acc);
+        else{p.weight=Math.max(0,Math.round(p.weight/sum*100));acc+=p.weight}
+      });
+    }
     history=s.history||[];
     rotation=s.rotation||0;
   }
@@ -299,8 +308,8 @@ function renderPrizes(){
       <span class="sw" style="background:${PALETTE[i%PALETTE.length]};${out?"opacity:.3":""}"></span>
       <input type="text" value="${esc(p.name)}" maxlength="12" onchange="renamePrize(${i},this.value)" ${out?"style='opacity:.5'":""}>
       <div class="wt">
-        <label>权重</label>
-        <input type="number" min="1" max="99" value="${p.weight}" onchange="setWeight(${i},this.value)">
+        <label>权重%</label>
+        <input type="number" min="0" max="100" value="${p.weight}" onchange="setWeight(${i},this.value)">
       </div>
       <div class="wt">
         <label>库存</label>
@@ -332,8 +341,25 @@ function renamePrize(i,v){
   save();renderPrizes();
 }
 function setWeight(i,v){
-  v=Math.max(1,Math.min(99,parseInt(v)||1));
+  /* 权重=百分比，总和固定100：改此项后差额由其他项按比例分摊 */
+  v=Math.max(0,Math.min(100,parseInt(v)||0));
+  const others=prizes.filter((_,j)=>j!==i);
+  const othersSum=others.reduce((a,p)=>a+p.weight,0);
+  let remain=100-v;
+  if(remain<0){v=100;remain=0}
   prizes[i].weight=v;
+  if(othersSum>0){
+    /* 按现有比例分摊余额，最后一项吃掉取整误差 */
+    let acc=0;
+    others.forEach((p,k)=>{
+      if(k===others.length-1){p.weight=Math.max(0,remain-acc)}
+      else{p.weight=Math.max(0,Math.round(p.weight/othersSum*remain));acc+=p.weight}
+    });
+  }else{
+    /* 其他全 0：余额给下一项（防死锁） */
+    const next=prizes[(i+1)%prizes.length];
+    if(next)next.weight=remain;
+  }
   save();renderPrizes();
 }
 function setStock(i,v){
@@ -438,11 +464,11 @@ function clearHistory(btn){
 /* ---------- 重置抽奖：库存/记录/转盘全回初始 ---------- */
 const DEFAULT_PRIZES=[
   {name:"一等奖 🎉",weight:1,stock:1},
-  {name:"二等奖 🎊",weight:3,stock:2},
-  {name:"三等奖 🎁",weight:6,stock:5},
-  {name:"幸运奖 ⭐",weight:10,stock:10},
-  {name:"再来一次",weight:8,stock:8},
-  {name:"谢谢参与",weight:12,stock:15},
+  {name:"二等奖 🎊",weight:4,stock:2},
+  {name:"三等奖 🎁",weight:10,stock:5},
+  {name:"幸运奖 ⭐",weight:15,stock:10},
+  {name:"再来一次",weight:30,stock:8},
+  {name:"谢谢参与",weight:40,stock:15},
 ];
 let resetArmed=false,resetTimer=null;
 function resetAll(btn){

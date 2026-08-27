@@ -11,8 +11,8 @@
   --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.app{width:100%;max-width:440px;text-align:center}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{width:100%;max-width:440px;text-align:center;margin:0 auto}
 h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:4px;color:var(--gold)}
 .sub{color:var(--muted);font-size:12px;margin-bottom:24px;letter-spacing:2px}
 
@@ -27,8 +27,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:4px;color:var
 .guess-input:focus{border-color:var(--gold)}
 .guess-input.shake-wrong{animation:shakeX .3s}
 @keyframes shakeX{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.btn{background:var(--gold);border:none;color:#1a1a22;font-size:16px;font-weight:700;padding:12px 28px;border-radius:12px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}
-.btn:hover{filter:brightness(1.1)}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:16px;font-weight:700;padding:12px 28px;border-radius:12px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}@media(hover:hover){
+.btn:hover{filter:brightness(1.1)}}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.ghost{background:var(--panel);color:var(--muted);border:1px solid var(--line);font-weight:400;font-size:14px;padding:12px 18px}
 

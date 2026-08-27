@@ -65,6 +65,9 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 /* 流水列表 */
 .list{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 18px 14px;margin-bottom:16px}
 .list h3{font-size:12px;color:var(--muted);letter-spacing:2px;margin:10px 0;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.list h3 .clear-btn{background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--dim);font-size:11px;cursor:pointer;padding:3px 10px;border-radius:8px;outline:none;transition:.15s;margin-left:auto;margin-right:10px;letter-spacing:0}
+.list h3 .clear-btn:hover{color:var(--red);border-color:var(--red);background:rgba(224,108,117,.08)}
+.list h3 .clear-btn.armed{color:var(--red);border-color:var(--red);background:rgba(224,108,117,.15)}
 .tx{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
 .tx:last-child{border-bottom:none}
 .tx .ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
@@ -129,7 +132,7 @@ footer b{color:var(--gold)}
   </div>
 
   <div class="list">
-    <h3>📒 流水明细 <span id="txCount" style="font-weight:400;color:var(--dim);font-size:11px"></span></h3>
+    <h3>📒 流水明细 <button class="clear-btn" id="clrAll" onclick="clearAllTx()">🗑 清空流水</button> <span id="txCount" style="font-weight:400;color:var(--dim);font-size:11px"></span></h3>
     <div id="txList"></div>
   </div>
 
@@ -246,6 +249,30 @@ function delTx(id,btn){
     return;
   }
   txs=txs.filter(t=>t.id!==id);
+  save();
+  render();
+}
+
+/* 一键清空流水（当前月份），二次确认 */
+let clrAllArmed=false,clrAllTimer=null;
+function clearAllTx(){
+  const btn=$("clrAll");
+  const list=monthTx();
+  if(!list.length)return;
+  if(!clrAllArmed){
+    clrAllArmed=true;
+    btn.textContent="⚠️ 确认清空本月"+list.length+"笔?";
+    btn.classList.add("armed");
+    clearTimeout(clrAllTimer);
+    clrAllTimer=setTimeout(()=>{
+      clrAllArmed=false;
+      btn.textContent="🗑 清空流水";btn.classList.remove("armed");
+    },3500);
+    return;
+  }
+  clrAllArmed=false;clearTimeout(clrAllTimer);
+  btn.textContent="🗑 清空流水";btn.classList.remove("armed");
+  txs=txs.filter(t=>t.date.slice(0,7)!==curYM);   /* 只清当前查看的月份 */
   save();
   render();
 }

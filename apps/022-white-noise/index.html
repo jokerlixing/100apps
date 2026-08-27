@@ -11,16 +11,16 @@
   --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.app{width:100%;max-width:520px;text-align:center}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{width:100%;max-width:520px;text-align:center;margin:0 auto}
 header{margin-bottom:18px}
 h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
 
 /* 主控制 */
 .master{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.play-btn{width:84px;height:84px;border-radius:50%;background:var(--gold);border:none;color:#1a1a22;font-size:32px;cursor:pointer;outline:none;transition:.2s;box-shadow:0 6px 24px rgba(229,181,103,.4)}
-.play-btn:hover{transform:scale(1.06)}
+.play-btn{width:84px;height:84px;border-radius:50%;background:var(--gold);border:none;color:#1a1a22;font-size:32px;cursor:pointer;outline:none;transition:.2s;box-shadow:0 6px 24px rgba(229,181,103,.4)}@media(hover:hover){
+.play-btn:hover{transform:scale(1.06)}}
 .play-btn:active{transform:scale(.95)}
 .play-btn.playing{background:var(--green);box-shadow:0 6px 28px rgba(78,201,176,.5)}
 .play-btn svg{width:34px;height:34px;display:block;margin:0 auto}
@@ -35,8 +35,8 @@ input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
 
 /* 声源卡片 */
 .sounds{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
-.snd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 14px;cursor:pointer;transition:.15s;position:relative;user-select:none;-webkit-user-select:none}
-.snd:hover{border-color:var(--dim);transform:translateY(-2px)}
+.snd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 14px;cursor:pointer;transition:.15s;position:relative;user-select:none;-webkit-user-select:none}@media(hover:hover){
+.snd:hover{border-color:var(--dim);transform:translateY(-2px)}}
 .snd .ico{font-size:32px;line-height:1;margin-bottom:8px}
 .snd .name{font-size:13px;font-weight:600}
 .snd .en{font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px}
@@ -48,8 +48,8 @@ input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
 .presets{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
 .presets h3{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;text-align:left}
 .preset-row{display:flex;gap:8px;flex-wrap:wrap}
-.pbtn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;transition:.15s;outline:none}
-.pbtn:hover{color:var(--gold);border-color:var(--gold)}
+.pbtn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:7px 14px;border-radius:18px;cursor:pointer;transition:.15s;outline:none}@media(hover:hover){
+.pbtn:hover{color:var(--gold);border-color:var(--gold)}}
 .pbtn.on{color:var(--gold);border-color:var(--gold);background:rgba(229,181,103,.1)}
 
 /* 定时器 */

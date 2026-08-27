@@ -83,7 +83,7 @@ footer b{color:var(--gold)}
     <div class="input-panel">
       <div class="fg">
         <label>贷款总额 <span class="v" id="amountV">100 万元</span></label>
-        <input type="range" id="amount" min="10" max="1000" step="5" value="100" oninput="calc()">
+        <input type="range" id="amount" min="1" max="1000" step="1" value="100" oninput="calc()">
         <div class="quick">
           <button class="qk" onclick="setVal('amount',10)">10万</button>
           <button class="qk" onclick="setVal('amount',20)">20万</button>
@@ -93,7 +93,7 @@ footer b{color:var(--gold)}
           <button class="qk" onclick="setVal('amount',300)">300万</button>
           <button class="qk" onclick="setVal('amount',500)">500万</button>
         </div>
-        <input type="number" class="custom-inp" id="amountInp" placeholder="自定义万元（10-1000）" min="10" max="1000" step="1" oninput="customSet('amount',this.value,10,1000)">
+        <input type="number" class="custom-inp" id="amountInp" placeholder="自定义万元（1-1000）" min="1" max="1000" step="1" oninput="customSet('amount',this.value,1,1000)">
       </div>
       <div class="fg">
         <label>年利率 <span class="v" id="rateV">3.60 %</span></label>
@@ -186,7 +186,7 @@ function customSet(id,raw,min,max,conv){
   let v=parseFloat(raw);
   if(isNaN(v))return;                     /* 输入中间态不打断 */
   /* 输入框业务范围：amount/years 直接值，rate 是百分比 */
-  if(id==="amount"){v=Math.min(1000,Math.max(10,v))}        /* 万元 */
+  if(id==="amount"){v=Math.min(1000,Math.max(1,v))}         /* 万元，最低1万 */
   else if(id==="rate"){v=Math.min(6,Math.max(1,v));v=Math.round(v*10)}  /* % → 滑杆×10 */
   else{v=Math.min(30,Math.max(5,v))}                        /* 年 */
   $(id).value=v;

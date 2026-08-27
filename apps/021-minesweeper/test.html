@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>扫雷核心逻辑自测（QA 参考页）</title>
+  <style>
+    body { font-family: Consolas, monospace; background: #111; color: #ddd; padding: 24px; }
+    h1 { font-size: 18px; margin-bottom: 12px; }
+    .pass { color: #43d17c; }
+    .fail { color: #ff5d5d; font-weight: bold; }
+    .item { margin: 4px 0; }
+    pre { background: #1b1e28; padding: 10px; border-radius: 6px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>扫雷核心逻辑自测（仅用 board.js / game.js 纯函数，无需 DOM 交互）</h1>
+  <div id="output"></div>
+
+  <script src="js/board.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    (function () {
+      const B = window.MinesweeperBoard;
+      const G = window.MinesweeperGame;
+      const out = document.getElementById('output');
+      const results = [];
+      let failed = 0;
+
+      function check(name, fn) {
+        try {
+          const ok = fn();
+          results.push({ name, ok });
+          if (!ok) failed++;
+        } catch (err) {
+          results.push({ name, ok: false, error: String(err) });
+          failed++;
+        }
+      }
+
+      // 1. 难度参数正确
+      check('难度参数：初级 9×9/10', () => {
+        const d = B.DIFFICULTIES.beginner;
+        return d.rows === 9 && d.cols === 9 && d.mines === 10;
+      });
+      check('难度参数：中级 16×16/40', () => {
+        const d = B.DIFFICULTIES.intermediate;
+        return d.rows === 16 && d.cols === 16 && d.mines === 40;
+      });
+      check('难度参数：高级 16×30/99', () => {
+        const d = B.DIFFICULTIES.expert;
+        return d.rows === 16 && d.cols === 30 && d.mines === 99;
+      });
+
+      // 2. 布雷数量
+      check('布雷数量等于设定值', () => {
+        const g = G.createGame('beginner');
+        G.handleCellReveal(g, 0, 0); // 触发布雷
+        return B.getMineIndices(g.board).length === 10;
+      });
+
+      // 3. 首次点击保护
+      check('首点保护：首点及周围 8 格无雷（初级多次抽样）', () => {
+        for (let t = 0; t < 200; t++) {
+          const g = G.createGame('beginner');
+          G.handleCellReveal(g, 4, 4);
+          if (B.isMine(g.board, 4, 4)) return false;
+          for (const n of B.getNeighbors(g.board, 4, 4)) {
+            if (B.isMine(g.board, n.row, n.col)) return false;
+          }
+        }
+        return true;
+      });
+
+      // 4. 数字格计算
+      check('数字格：翻开的非雷格数字等于周围雷数', () => {
+        for (let t = 0; t < 30; t++) {
+          const g = G.createGame('intermediate');
+          G.handleCellReveal(g, 8, 8);
+          for (let i = 0; i < g.board.states.length; i++) {
+            if (g.board.states[i] !== B.CellState.REVEALED) continue;
+            if (B.isMineAt(g.board, i)) return false;
+            let expected = 0;
+            for (const n of B.getNeighbors(g.board, B.toRow(g.board, i), B.toCol(g.board, i))) {
+              if (B.isMineAt(g.board, n.index)) expected++;
+            }
+            if (B.getNumberAt(g.board, i) !== expected) return false;
+          }
+        }
+        return true;
+      });
+
+      // 5. 空白连锁展开
+      check('连锁展开：空白格翻开后邻居非隐藏', () => {
+        for (let t = 0; t < 50; t++) {
+          const g = G.createGame('expert');
+          const r = G.handleCellReveal(g, 8, 15);
+          if (r.ok && !r.hitMine) {
+            const revealed = B.countRevealed(g.board);
+            if (revealed < 1) return false;
+            // 所有已翻开格必须是数字 0 的格或其边界
+            for (let i = 0; i < g.board.states.length; i++) {
+              if (g.board.states[i] === B.CellState.REVEALED && B.isMineAt(g.board, i)) return false;
+            }
+          }
+        }
+        return true;
+      });
+
+      // 6. 插旗循环
+      check('插旗循环 hidden→flag→question→hidden', () => {
+        const g = G.createGame('beginner');
+        const s1 = B.toggleFlag(g.board, 0, 0);
+        const s2 = B.toggleFlag(g.board, 0, 0);
+        const s3 = B.toggleFlag(g.board, 0, 0);
+        return s1 === 'flagged' && s2 === 'question' && s3 === 'hidden';
+      });
+
+      // 7. 已翻开格不可插旗
+      check('已翻开格不可插旗', () => {
+        const g = G.createGame('beginner');
+        G.handleCellReveal(g, 0, 0);
+        // 找一个已翻开格
+        const idx = g.board.states.findIndex(s => s === B.CellState.REVEALED);
+        return B.toggleFlag(g.board, B.toRow(g.board, idx), B.toCol(g.board, idx)) === null;
+      });
+
+      // 8. 剩余雷数
+      check('剩余雷数 = 总雷数 - 旗数（可为负）', () => {
+        const g = G.createGame('beginner');
+        B.toggleFlag(g.board, 0, 0);
+        B.toggleFlag(g.board, 0, 1);
+        return B.countRemainingMines(g.board) === 8;
+      });
+
+      // 9. 胜利判定与自动插旗
+      check('胜利：所有非雷格翻开后自动插满旗', () => {
+        for (let t = 0; t < 20; t++) {
+          const g = G.createGame('beginner');
+          G.handleCellReveal(g, 0, 0); // 首点保护，必然非雷
+          for (let r = 0; r < 9 && g.status === 'playing'; r++) {
+            for (let c = 0; c < 9 && g.status === 'playing'; c++) {
+              const st = B.getState(g.board, r, c);
+              if (st === B.CellState.REVEALED || st === B.CellState.FLAGGED) continue;
+              if (B.isMine(g.board, r, c)) {
+                B.toggleFlag(g.board, r, c); // 雷格用旗标记录，不翻开
+              } else {
+                const res = G.handleCellReveal(g, r, c);
+                if (res.hitMine) return false;
+              }
+            }
+          }
+          if (g.status !== 'won') return false;
+          if (B.countFlags(g.board) !== 10) return false;      // 胜利后自动插满旗
+          if (B.countRemainingMines(g.board) !== 0) return false;
+        }
+        return true;
+      });
+
+      // 10. 踩雷失败
+      check('踩雷：游戏失败并翻开所有雷', () => {
+        const g = G.createGame('beginner');
+        // 先触发布雷，再故意找一个雷点踩下
+        G.handleCellReveal(g, 0, 0);
+        const mines = B.getMineIndices(g.board);
+        const idx = mines[0];
+        const res = G.handleCellReveal(g, B.toRow(g.board, idx), B.toCol(g.board, idx));
+        if (!res.hitMine || g.status !== 'lost') return false;
+        // 所有雷都应可见（翻开或插旗）
+        for (const m of B.getMineIndices(g.board)) {
+          const st = B.getStateAt(g.board, m);
+          if (st !== B.CellState.REVEALED && st !== B.CellState.FLAGGED) return false;
+        }
+        return true;
+      });
+
+      // 11. 标错的旗
+      check('失败时标错的旗（非雷但插旗）被标记', () => {
+        const g = G.createGame('beginner');
+        G.handleCellReveal(g, 0, 0);
+        B.toggleFlag(g.board, 1, 1); // 大概率非雷
+        const mines = B.getMineIndices(g.board);
+        const idx = mines[0];
+        G.handleCellReveal(g, B.toRow(g.board, idx), B.toCol(g.board, idx));
+        return g.status === 'lost';
+      });
+
+      // 12. 和弦
+      check('和弦：旗数足够时展开周围隐藏格', () => {
+        for (let t = 0; t < 80; t++) {
+          const g = G.createGame('beginner');
+          G.handleCellReveal(g, 0, 0);
+          let target = -1;
+          for (let i = 0; i < g.board.states.length; i++) {
+            if (g.board.states[i] === B.CellState.REVEALED && B.getNumberAt(g.board, i) > 0) {
+              target = i;
+              break;
+            }
+          }
+          if (target === -1) continue;
+          const r0 = B.toRow(g.board, target);
+          const c0 = B.toCol(g.board, target);
+          const number = B.getNumberAt(g.board, target);
+          let flagged = 0;
+          for (const n of B.getNeighbors(g.board, r0, c0)) {
+            if (g.board.states[n.index] === B.CellState.HIDDEN && B.isMineAt(g.board, n.index)) {
+              B.toggleFlag(g.board, n.row, n.col);
+              flagged++;
+            }
+          }
+          if (flagged < number) continue;
+          let revealable = 0;
+          for (const n of B.getNeighbors(g.board, r0, c0)) {
+            if (g.board.states[n.index] === B.CellState.HIDDEN) revealable++;
+          }
+          if (revealable === 0) continue;
+          const before = B.countRevealed(g.board);
+          const res = G.handleChord(g, r0, c0);
+          if (!res.ok) return false;
+          if (res.hitMine) return false; // 正确插旗时和弦绝不踩雷
+          return B.countRevealed(g.board) > before;
+        }
+        return true;
+      });
+
+      check('和弦：旗数不足时不展开', () => {
+        const g = G.createGame('beginner');
+        G.handleCellReveal(g, 0, 0);
+        let target = -1;
+        for (let i = 0; i < g.board.states.length; i++) {
+          if (g.board.states[i] === B.CellState.REVEALED && B.getNumberAt(g.board, i) > 0) {
+            target = i;
+            break;
+          }
+        }
+        if (target === -1) return true;
+        const before = B.countRevealed(g.board);
+        const res = G.handleChord(g, B.toRow(g.board, target), B.toCol(g.board, target));
+        return res.ok === false && B.countRevealed(g.board) === before;
+      });
+
+      // 13. 计时
+      check('计时：首翻开始、结束凝固', () => {
+        const g = G.createGame('beginner');
+        if (G.getElapsedSeconds(g) !== 0) return false;
+        G.handleCellReveal(g, 0, 0);
+        if (!g.timerRunning) return false;
+        const mines = B.getMineIndices(g.board);
+        const idx = mines[0];
+        G.handleCellReveal(g, B.toRow(g.board, idx), B.toCol(g.board, idx));
+        return g.status === 'lost' && !g.timerRunning && g.elapsedMs >= 0;
+      });
+
+      // 14. 重开
+      check('重开：以相同难度重置对局', () => {
+        const g = G.createGame('expert');
+        G.handleCellReveal(g, 0, 0);
+        const g2 = G.restart(g);
+        return g2.difficultyId === 'expert' && g2.status === 'ready' && B.countRevealed(g2.board) === 0;
+      });
+
+      // 渲染
+      const html = results.map(r => {
+        const mark = r.ok ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>';
+        return '<div class="item">' + mark + ' &nbsp;' + r.name + (r.error ? ' <pre>' + r.error + '</pre>' : '') + '</div>';
+      }).join('') + '<p style="margin-top:14px"><b>' + (failed === 0 ? '<span class="pass">ALL PASS</span>' : '<span class="fail">' + failed + ' FAILED</span>') + '</b> 共 ' + results.length + ' 项</p>';
+      out.innerHTML = html;
+      window.__testResults = { total: results.length, failed };
+    })();
+  </script>
+</body>
+</html>

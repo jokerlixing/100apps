@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💱 汇率换算器 · Currency Exchange</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.app{width:100%;max-width:560px}
+header{margin-bottom:16px;text-align:center}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
+
+/* 换算主体卡 */
+.ex-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.row{display:flex;gap:10px;align-items:stretch}
+.field{flex:1;display:flex;flex-direction:column;gap:6px}
+.field label{font-size:10px;color:var(--dim);letter-spacing:2px}
+.big-inp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:26px;font-weight:800;padding:14px 16px;border-radius:12px;outline:none;font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text;transition:.15s}
+.big-inp:focus{border-color:var(--gold)}
+.big-inp.result{border-color:transparent;background:rgba(78,201,176,.06);color:var(--green)}
+.curr-sel{background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:14px;font-weight:600;padding:0 12px;border-radius:12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;min-width:110px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b8fa8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+.curr-sel:focus{border-color:var(--gold)}
+
+.swap-btn{align-self:flex-end;background:var(--panel2);border:1px solid var(--line);color:var(--gold);width:52px;height:52px;border-radius:50%;font-size:18px;cursor:pointer;outline:none;transition:.2s;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.swap-btn:hover{transform:rotate(180deg);border-color:var(--gold)}
+.swap-btn svg{width:20px;height:20px}
+
+.rate-line{text-align:center;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.8}
+.rate-line b{color:var(--gold);font-size:14px}
+
+/* 快捷金额 */
+.quick{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.qk{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:16px;cursor:pointer;transition:.15s;outline:none}
+.qk:hover{color:var(--gold);border-color:var(--gold)}
+.qk.on{color:var(--gold);border-color:var(--gold);background:rgba(229,181,103,.08)}
+
+/* 常用汇率表 */
+.table-panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+.table-panel h3{font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.table-panel h3 span{font-size:10px;color:var(--dim);font-weight:400;letter-spacing:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:9px 6px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+td.cur{color:var(--muted);display:flex;align-items:center;gap:8px}
+td.cur .flag{font-size:18px}
+td.cur .code{font-size:10px;color:var(--dim);display:block}
+td.val{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold)}
+td.rev{text-align:right;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+tr.hit td{background:rgba(229,181,103,.05)}
+
+.refresh-row{display:flex;justify-content:center;gap:10px;margin-top:12px}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:12px;font-weight:700;padding:8px 18px;border-radius:9px;cursor:pointer;outline:none;transition:.15s}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line);font-weight:400}
+.btn.ghost:hover{color:var(--gold);border-color:var(--gold)}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:16px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+.loading{text-align:center;padding:30px;color:var(--dim);font-size:13px}
+
+@media(max-width:480px){
+  .row{flex-wrap:wrap}
+  .swap-btn{align-self:center;transform:rotate(90deg)}
+  .swap-btn:hover{transform:rotate(270deg)}
+  .big-inp{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>汇率换算器</h1>
+    <div class="sub">实时汇率 · 多币种互转 · 离线缓存</div>
+  </header>
+
+  <div class="ex-card">
+    <div class="row">
+      <div class="field">
+        <label>FROM · 我有</label>
+        <input type="text" class="big-inp" id="amount" value="100" inputmode="decimal" oninput="convert()">
+        <select class="curr-sel" id="fromCur" onchange="convert()"></select>
+      </div>
+      <button class="swap-btn" onclick="swap()" title="交换币种">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg>
+      </button>
+      <div class="field">
+        <label>TO · 换成</label>
+        <input type="text" class="big-inp result" id="result" readonly>
+        <select class="curr-sel" id="toCur" onchange="convert()"></select>
+      </div>
+    </div>
+    <div class="rate-line" id="rateLine">加载汇率中…</div>
+    <div class="quick" id="quick"></div>
+  </div>
+
+  <div class="table-panel">
+    <h3>📊 人民币兑常用货币 <span id="updTime"></span></h3>
+    <div id="rateTable"><div class="loading">加载中…</div></div>
+    <div class="refresh-row">
+      <button class="btn ghost" onclick="loadRates(true)">↻ 刷新汇率</button>
+    </div>
+  </div>
+
+  <footer>100 Apps Challenge · App #025 · <b>汇率交叉计算</b>：任两币种经基准币换算<br>数据 open.er-api.com（每日更新，免费无密钥）· 本地缓存离线可用</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：汇率交叉计算 + 数据缓存策略
+   - API 返回以某币为基准的汇率表 rates{USD:0.14,...}
+   - 任两币种换算：amount × (rates[to] / rates[from])
+     ——只需一份基准表即可全币种互转（交叉汇率）
+   - 缓存策略：成功数据存 localStorage（含时间戳）
+     12h 内直接用缓存；超时或首次才请求 API
+     → 离线也能换算（显示"缓存数据"标识）
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const KEY="fx_rates_v1";
+const CACHE_H=12;   /* 缓存12小时 */
+
+/* 币种表（open.er-api 支持的常用币） */
+const CURRENCIES=[
+  {c:"CNY",n:"人民币",f:"🇨🇳"},
+  {c:"USD",n:"美元",f:"🇺🇸"},
+  {c:"EUR",n:"欧元",f:"🇪🇺"},
+  {c:"JPY",n:"日元",f:"🇯🇵"},
+  {c:"HKD",n:"港币",f:"🇭🇰"},
+  {c:"GBP",n:"英镑",f:"🇬🇧"},
+  {c:"KRW",n:"韩元",f:"🇰🇷"},
+  {c:"SGD",n:"新加坡元",f:"🇸🇬"},
+  {c:"AUD",n:"澳元",f:"🇦🇺"},
+  {c:"CAD",n:"加元",f:"🇨🇦"},
+  {c:"THB",n:"泰铢",f:"🇹🇭"},
+  {c:"MYR",n:"林吉特",f:"🇲🇾"},
+  {c:"CHF",n:"瑞士法郎",f:"🇨🇭"},
+  {c:"RUB",n:"卢布",f:"🇷🇺"},
+  {c:"TWD",n:"新台币",f:"🇨🇳"},
+  {c:"VND",n:"越南盾",f:"🇻🇳"},
+];
+const QUICK=[100,500,1000,5000,10000];
+
+let rates=null,updAt=0,fromCache=false;
+
+/* ---------- 汇率加载（缓存优先） ---------- */
+async function loadRates(force){
+  /* 先试缓存 */
+  if(!force){
+    try{
+      const s=JSON.parse(localStorage.getItem(KEY));
+      if(s&&Date.now()-s.t<CACHE_H*3600000){
+        rates=s.rates;updAt=s.t;fromCache=true;
+        boot();return;
+      }
+    }catch(e){}
+  }
+  $("rateLine").textContent="正在获取实时汇率…";
+  try{
+    const r=await fetch("https://open.er-api.com/v6/latest/CNY");
+    const d=await r.json();
+    if(d.result!=="success")throw new Error(d["error-type"]||"API错误");
+    rates=d.rates;
+    updAt=Date.now();
+    fromCache=false;
+    try{localStorage.setItem(KEY,JSON.stringify({t:updAt,rates}))}catch(e){}
+  }catch(e){
+    /* 失败回落：过期缓存也比没有强 */
+    try{
+      const s=JSON.parse(localStorage.getItem(KEY));
+      if(s){rates=s.rates;updAt=s.t;fromCache=true}
+      else{$("rateLine").textContent="汇率加载失败，请检查网络";return}
+    }catch(e2){$("rateLine").textContent="汇率加载失败";return}
+  }
+  boot();
+}
+
+/* ---------- 换算 ---------- */
+function fx(from,to,amt){
+  /* CNY 基准表：rates[X] = 1 CNY 兑 X */
+  const rFrom=from==="CNY"?1:rates[from];
+  const rTo=to==="CNY"?1:rates[to];
+  return amt/rFrom*rTo;
+}
+function convert(){
+  if(!rates)return;
+  const amt=parseFloat($("amount").value)||0;
+  const from=$("fromCur").value,to=$("toCur").value;
+  const out=fx(from,to,amt);
+  /* 大数缩写 */
+  $("result").value=fmtNum(out);
+  const unit=fx(from,to,1);
+  $("rateLine").innerHTML=`1 <b>${from}</b> = <b>${unit.toFixed(4)}</b> ${to}<br><span style="font-size:10px;color:var(--dim)">${fromCache?"📦 缓存数据":"🟢 实时"} · 更新于 ${new Date(updAt).toLocaleString("zh-CN")}</span>`;
+  renderQuickActive();
+  renderTable(from);
+}
+function fmtNum(n){
+  if(n>=1e8)return (n/1e8).toFixed(2)+" 亿";
+  if(n>=1e4)return (n/1e4).toFixed(2)+" 万";
+  if(n>=1)return n.toLocaleString("zh-CN",{maximumFractionDigits:2});
+  return n.toFixed(4);
+}
+
+/* ---------- 渲染 ---------- */
+function boot(){
+  /* 币种下拉 */
+  const opts=CURRENCIES.map(c=>`<option value="${c.c}">${c.f} ${c.c} ${c.n}</option>`).join("");
+  $("fromCur").innerHTML=opts;
+  $("toCur").innerHTML=opts;
+  $("fromCur").value="CNY";
+  $("toCur").value="USD";
+  /* 快捷金额 */
+  $("quick").innerHTML=QUICK.map(q=>`<button class="qk" onclick="setAmt(${q})">${q.toLocaleString()}</button>`).join("");
+  convert();
+}
+function setAmt(v){$("amount").value=v;convert()}
+function renderQuickActive(){
+  document.querySelectorAll(".qk").forEach((b,i)=>{
+    b.classList.toggle("on",+$("amount").value===QUICK[i]);
+  });
+}
+function swap(){
+  const f=$("fromCur").value,t=$("toCur").value;
+  $("fromCur").value=t;$("toCur").value=f;
+  /* 金额和结果也交换 */
+  const r=$("result").value.replace(/[ 万亿]/g,"");
+  if(r&&!isNaN(+r))$("amount").value=r;
+  convert();
+}
+function renderTable(base){
+  /* 1 base 兑各币 */
+  $("updTime").textContent="基准 "+base+" · "+(fromCache?"缓存":"实时");
+  const list=["USD","EUR","JPY","HKD","GBP","KRW","SGD","AUD"];
+  $("rateTable").innerHTML=`<table>`+list.map(c=>{
+    const cur=CURRENCIES.find(x=>x.c===c);
+    const v=fx(base,c,1);
+    const rev=fx(c,base,1);
+    return `<tr class="${base===c?"hit":""}">
+      <td class="cur"><span class="flag">${cur.f}</span><span>${cur.n}<span class="code">${c}</span></span></td>
+      <td class="val">${v.toFixed(v<1?4:2)}</td>
+      <td class="rev">1 ${c} = ${rev.toFixed(rev<1?4:2)} ${base}</td>
+    </tr>`;
+  }).join("")+`</table>`;
+}
+
+loadRates();
+</script>
+</body>
+</html>

@@ -64,6 +64,8 @@ h1{font-size:22px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 .prize .del.armed{color:var(--red);border:1px solid var(--red)}
 /* 中奖概率百分比（权重/总权重实时换算） */
 .prize .pct{font-size:10.5px;color:var(--green);font-weight:700;min-width:42px;text-align:right;font-variant-numeric:tabular-nums;background:rgba(78,201,176,.1);padding:3px 8px;border-radius:8px}
+.prize.soldout{opacity:.55}
+.prize.soldout .pct{color:var(--red);background:rgba(224,108,117,.1)}
 .add-row{display:flex;gap:8px}
 .add-row input{flex:1;background:rgba(0,0,0,.22);border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 12px;border-radius:9px;outline:none;-webkit-user-select:text;user-select:text}
 .add-row input:focus{border-color:var(--gold)}
@@ -113,7 +115,7 @@ footer b{color:var(--gold)}
         <button class="add-btn" onclick="addPrize()">＋ 添加</button>
       </div>
       <div class="stats-line"><span>共 <b id="stCount">0</b> 项</span><span>总权重 <b id="stWeight">0</b></span><span>已抽 <b id="stDraws">0</b> 次</span></div>
-      <div class="tip">· 中奖概率 = 权重 ÷ 总权重（绿色百分比实时换算），扇区大小同比例<br>· 指针精确停在扇形正中 · crypto.getRandomValues 加密级随机 · 配置自动保存</div>
+      <div class="tip">· 中奖概率 = 权重 ÷ <b>剩余总权重</b>，抽中即扣库存，概率实时变化<br>· 库存归零的奖项自动出局（转盘变暗缝）· 改库存可随时补充 · crypto 加密随机</div>
     </div>
   </div>
 
@@ -143,12 +145,12 @@ const KEY="wheel_v1";
 const PALETTE=["#e5b567","#4ec9b0","#569cd6","#c586c0","#e06c75","#7ec8e3","#a8d86a","#f0a35e"];
 
 let prizes=[
-  {name:"一等奖 🎉",weight:1},
-  {name:"二等奖 🎊",weight:3},
-  {name:"三等奖 🎁",weight:6},
-  {name:"幸运奖 ⭐",weight:10},
-  {name:"再来一次",weight:8},
-  {name:"谢谢参与",weight:12},
+  {name:"一等奖 🎉",weight:1,stock:1},
+  {name:"二等奖 🎊",weight:3,stock:2},
+  {name:"三等奖 🎁",weight:6,stock:5},
+  {name:"幸运奖 ⭐",weight:10,stock:10},
+  {name:"再来一次",weight:8,stock:8},
+  {name:"谢谢参与",weight:12,stock:15},
 ];
 let history=[];
 let spinning=false;
@@ -158,6 +160,7 @@ try{
   const s=JSON.parse(localStorage.getItem(KEY));
   if(s){
     prizes=s.prizes&&s.prizes.length?s.prizes:prizes;
+    prizes.forEach(p=>{if(typeof p.stock!=="number")p.stock=10});   /* 旧存档兼容：无库存字段补默认 */
     history=s.history||[];
     rotation=s.rotation||0;
   }
@@ -170,7 +173,10 @@ function secureRandom(){
   crypto.getRandomValues(buf);
   return buf[0]/4294967296;
 }
-function totalWeight(){return prizes.reduce((a,p)=>a+p.weight,0)}
+function totalWeight(){
+  /* 只统计还有库存的奖项（抽完出局） */
+  return prizes.reduce((a,p)=>a+(p.stock>0?p.weight:0),0);
+}
 
 /* ---------- 灯圈 ---------- */
 function buildRing(){
@@ -209,22 +215,32 @@ function drawWheel(){
   const total=totalWeight();
   let startAng=-Math.PI/2;   /* 12点方向起始 */
   prizes.forEach((p,i)=>{
-    const ang=p.weight/total*Math.PI*2;
+    const ang=(p.stock>0?p.weight:0)/total*Math.PI*2;
     const endAng=startAng+ang;
     /* 扇形 */
     ctx.beginPath();
     ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,R,startAng,endAng);
     ctx.closePath();
+    /* 抽完的奖项：暗灰窄缝显示（保留位置感） */
+    if(p.stock<=0){
+      ctx.fillStyle="rgba(60,64,79,.85)";
+      ctx.fill();
+      ctx.strokeStyle="rgba(0,0,0,.25)";
+      ctx.lineWidth=3;
+      ctx.stroke();
+      startAng=endAng;
+      return;
+    }
     ctx.fillStyle=PALETTE[i%PALETTE.length];
     ctx.fill();
     /* 扇区间隔线 */
     ctx.strokeStyle="rgba(0,0,0,.25)";
     ctx.lineWidth=3;
     ctx.stroke();
-    /* 文字：沿扇区中心角半径方向 */
+    /* 文字：沿扇区中心角半径方向（抽完项显示 0%） */
     const midAng=(startAng+endAng)/2;
-    const pct=(p.weight/total*100).toFixed(1);
+    const pct=(p.stock>0?(p.weight/total*100).toFixed(1):"0");
     ctx.save();
     ctx.translate(cx,cy);
     ctx.rotate(midAng);
@@ -232,10 +248,10 @@ function drawWheel(){
     ctx.fillStyle="rgba(0,0,0,.72)";
     ctx.font="bold 30px 'Segoe UI','Microsoft YaHei',sans-serif";
     ctx.fillText(p.name,R-26,8);
-    /* 概率百分比小字 */
+    /* 概率+剩余库存小字 */
     ctx.font="bold 19px sans-serif";
     ctx.fillStyle="rgba(0,0,0,.5)";
-    ctx.fillText(pct+"%",R-26,36);
+    ctx.fillText(pct+"% ×"+p.stock,R-26,36);
     ctx.restore();
     startAng=endAng;
   });
@@ -260,20 +276,26 @@ function drawWheel(){
 /* ---------- 奖项配置 ---------- */
 function renderPrizes(){
   const total=totalWeight()||1;
-  $("prizeList").innerHTML=prizes.map((p,i)=>
-    `<div class="prize">
+  $("prizeList").innerHTML=prizes.map((p,i)=>{
+    const out=p.stock<=0;   /* 已抽完 */
+    const pct=out?0:(p.weight/total*100).toFixed(1);
+    return `<div class="prize ${out?"soldout":""}">
       <span class="no">${i+1}</span>
-      <span class="sw" style="background:${PALETTE[i%PALETTE.length]}"></span>
-      <input type="text" value="${esc(p.name)}" maxlength="12" onchange="renamePrize(${i},this.value)">
+      <span class="sw" style="background:${PALETTE[i%PALETTE.length]};${out?"opacity:.3":""}"></span>
+      <input type="text" value="${esc(p.name)}" maxlength="12" onchange="renamePrize(${i},this.value)" ${out?"style='opacity:.5'":""}>
       <div class="wt">
         <label>权重</label>
         <input type="number" min="1" max="99" value="${p.weight}" onchange="setWeight(${i},this.value)">
       </div>
-      <span class="pct" title="中奖概率=权重/总权重">${(p.weight/total*100).toFixed(1)}%</span>
+      <div class="wt">
+        <label>库存</label>
+        <input type="number" min="0" max="999" value="${p.stock}" onchange="setStock(${i},this.value)">
+      </div>
+      <span class="pct" title="当前中奖概率=权重/剩余总权重">${out?"已抽完":pct+"%"}</span>
       <button class="del" onclick="delPrize(${i},this)">✕</button>
-    </div>`
-  ).join("");
-  $("stCount").textContent=prizes.length;
+    </div>`;
+  }).join("");
+  $("stCount").textContent=prizes.filter(p=>p.stock>0).length+" alive";
   $("stWeight").textContent=totalWeight();
   $("stDraws").textContent=history.length;
   drawWheel();
@@ -299,6 +321,11 @@ function setWeight(i,v){
   prizes[i].weight=v;
   save();renderPrizes();
 }
+function setStock(i,v){
+  v=Math.max(0,Math.min(999,parseInt(v)||0));
+  prizes[i].stock=v;
+  save();renderPrizes();
+}
 let delArmed=null,delTimer=null;
 function delPrize(i,btn){
   if(delArmed!==i){
@@ -317,32 +344,32 @@ function delPrize(i,btn){
 /* ---------- 抽奖核心 ---------- */
 function spin(){
   if(spinning)return;
-  if(prizes.length<2){toast("至少需要 2 个奖项");return}
+  const alive=prizes.filter(p=>p.stock>0);
+  if(alive.length<2){toast("奖项库存已抽完，请补充库存");return}
   spinning=true;
   $("goBtn").disabled=true;
   $("resultBar").innerHTML="";
   startBlink();
 
-  /* ① 先定果：加密随机选奖项 */
+  /* ① 先定果：只在有库存的奖项中加密随机（库存扣减→概率实时重算） */
   const total=totalWeight();
   let r=secureRandom()*total;
   let hitIdx=0;
   for(let i=0;i<prizes.length;i++){
+    if(prizes[i].stock<=0)continue;   /* 抽完的奖项跳过 */
     r-=prizes[i].weight;
     if(r<0){hitIdx=i;break}
   }
-  /* ② 反算该奖项扇区中心角（与绘制完全同基准：-π/2 起顺时针） */
+  /* ② 反算该奖项扇区中心角（跳过空库存项，与绘制同基准） */
   let acc=0;
-  for(let i=0;i<hitIdx;i++)acc+=prizes[i].weight;
+  for(let i=0;i<hitIdx;i++)if(prizes[i].stock>0)acc+=prizes[i].weight;
   const midFrac=(acc+prizes[hitIdx].weight/2)/total;      /* 0~1 圈占比 */
   const midAng=midFrac*Math.PI*2-Math.PI/2;               /* 扇区中心实际角 */
-  /* 指针固定在正上方(-π/2)。转盘转过 R 后扇区中心到指针处：
-     midAng + R ≡ -π/2 (mod 2π) → R = 1.5π - midAng (mod 2π) */
+  /* 指针固定在正上方(-π/2)。midAng + R ≡ -π/2 (mod 2π) → R = 1.5π - midAng */
   let targetRel=(1.5*Math.PI-midAng)%(Math.PI*2);
   if(targetRel<0)targetRel+=Math.PI*2;
   let curRel=rotation%(Math.PI*2);
   if(curRel<0)curRel+=Math.PI*2;
-  /* 计算需要转到的绝对角度：当前→对齐目标，外加 6~8 圈 */
   let delta=targetRel-curRel;
   if(delta<0)delta+=Math.PI*2;
   const extra=(6+Math.floor(secureRandom()*2))*Math.PI*2;
@@ -356,10 +383,12 @@ function spin(){
     $("goBtn").disabled=false;
     stopBlink();
     const winner=prizes[hitIdx].name;
+    prizes[hitIdx].stock--;   /* 中奖扣库存：后续概率实时重算 */
     history.unshift(winner);
     if(history.length>30)history.pop();
     save();
-    $("resultBar").innerHTML=`<span class="result-txt">🎉 ${esc(winner)}</span>`;
+    const left=prizes[hitIdx].stock;
+    $("resultBar").innerHTML=`<span class="result-txt">🎉 ${esc(winner)}${left>0?` <small style="font-size:13px;color:var(--muted)">剩${left}份</small>`:" <small style='font-size:13px;color:var(--red)'>已抽完</small>"}</span>`;
     renderPrizes();
     renderHistory();
     if(navigator.vibrate)navigator.vibrate([80,60,80]);

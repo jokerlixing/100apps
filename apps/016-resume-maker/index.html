@@ -50,9 +50,9 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .avatar-box img{width:100%;height:100%;object-fit:cover}
 .avatar-tip{font-size:10px;color:var(--dim);line-height:1.6}
 
-/* 预览区（纸张） */
-.paper-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-.paper{background:#fff;color:#2f2f33;padding:0;border-radius:6px;font-size:13px;line-height:1.75;box-shadow:0 6px 36px rgba(0,0,0,.45);min-height:820px;overflow:hidden;font-family:"Segoe UI","Microsoft YaHei",sans-serif;display:grid;grid-template-columns:236px 1fr}
+/* 预览区（纸张）：真 A4 规格 210mm × 297mm */
+.paper-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;overflow-x:auto}
+.paper{background:#fff;color:#2f2f33;padding:0;border-radius:6px;font-size:13px;line-height:1.75;box-shadow:0 6px 36px rgba(0,0,0,.45);width:210mm;min-height:297mm;overflow:hidden;font-family:"Segoe UI","Microsoft YaHei",sans-serif;display:grid;grid-template-columns:56mm 1fr}
 /* ---- 简历：左栏 ---- */
 .paper .side{background:var(--acc,#1e3a5f);color:#fff;padding:34px 24px;display:flex;flex-direction:column}
 .paper .side .avatar{width:96px;height:96px;border-radius:50%;margin:0 auto 18px;border:3px solid rgba(255,255,255,.55);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;background:rgba(255,255,255,.15);color:#fff}
@@ -91,11 +91,12 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 footer{text-align:center;color:var(--dim);font-size:11px;margin-top:20px;line-height:1.8;letter-spacing:1px}
 footer b{color:var(--gold)}
 
-/* 打印样式 */
+/* 打印样式：A4 满幅，所见即所得 */
+@page{size:A4;margin:0}
 @media print{
   body{background:#fff;padding:0}
   .app>header,.form-panel,.paper-wrap,footer{display:none!important}
-  .paper{box-shadow:none;min-height:auto}
+  .paper{box-shadow:none;min-height:auto;width:210mm}
 }
 </style>
 </head>
@@ -171,11 +172,15 @@ footer b{color:var(--gold)}
     </div>
 
     <div class="paper-wrap">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span id="pageBadge" style="font-size:11px;color:var(--dim);letter-spacing:1px">A4 · 1 页</span>
+        <span style="font-size:10px;color:var(--dim)">210mm × 297mm · 打印所见即所得</span>
+      </div>
       <div class="paper" id="paper"></div>
     </div>
   </div>
 
-  <footer>100 Apps Challenge · App #016 · <b>迷你 Markdown 解析器</b> + 双栏简历排版引擎<br>数据自动存 localStorage · 打印时只输出纸张</footer>
+  <footer>100 Apps Challenge · App #016 · <b>A4 规格</b> 210×297mm · <b>迷你 Markdown 解析器</b> + 双栏排版引擎<br>数据自动存 localStorage · 打印时只输出纸张（@page A4 无边距）</footer>
 </div>
 
 <script>
@@ -289,6 +294,14 @@ function render(){
   main+=`</div>`;
 
   $("paper").innerHTML=side+main;
+  /* A4 溢出检测：内容高度超过 297mm 时提示 */
+  requestAnimationFrame(()=>{
+    const h=$("paper").scrollHeight;
+    const a4px=297/25.4*96;  /* mm→px @96dpi ≈ 1123px */
+    const badge=document.getElementById("pageBadge");
+    if(badge)badge.textContent=h>a4px+4?`A4 · ${Math.ceil(h/a4px)} 页 ⚠ 超出一页`:"A4 · 1 页";
+    if(badge)badge.style.color=h>a4px+4?"var(--red)":"var(--dim)";
+  });
 }
 
 /* ---------- 主题色 ---------- */

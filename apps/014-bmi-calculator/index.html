@@ -98,8 +98,8 @@ footer b{color:var(--gold)}
     <div class="row">
       <div class="field">
         <label>📏 身高 <span class="val" id="hVal">170 cm</span></label>
-        <div class="slider-row"><input type="range" id="height" min="120" max="220" value="170" oninput="calc()"></div>
-        <input class="num-inp" type="number" id="hInp" min="120" max="220" value="170" inputmode="numeric" placeholder="cm" oninput="syncFromInput('h')">
+        <div class="slider-row"><input type="range" id="height" min="120" max="250" value="170" oninput="calc()"></div>
+        <input class="num-inp" type="number" id="hInp" min="120" max="250" value="170" inputmode="numeric" placeholder="cm" oninput="syncFromInput('h')">
       </div>
       <div class="field">
         <label>⚖️ 体重
@@ -222,7 +222,7 @@ function setWUnit(u){
 function syncFromInput(which){
   if(which==="h"){
     const v=+$("hInp").value;
-    if(!isNaN(v))$("height").value=Math.min(220,Math.max(120,v));
+    if(!isNaN(v))$("height").value=Math.min(250,Math.max(120,v));
     calc();
   }else{
     const v=+$("wInp").value;

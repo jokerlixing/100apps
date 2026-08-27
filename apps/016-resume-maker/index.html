@@ -50,9 +50,10 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .avatar-box img{width:100%;height:100%;object-fit:cover}
 .avatar-tip{font-size:10px;color:var(--dim);line-height:1.6}
 
-/* 预览区（纸张）：真 A4 规格 210mm × 297mm */
-.paper-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;overflow-x:auto}
-.paper{background:#fff;color:#2f2f33;padding:0;border-radius:6px;font-size:13px;line-height:1.75;box-shadow:0 6px 36px rgba(0,0,0,.45);width:210mm;min-height:297mm;overflow:hidden;font-family:"Segoe UI","Microsoft YaHei",sans-serif;display:grid;grid-template-columns:56mm 1fr}
+/* 预览区（纸张）：真 A4 规格 210mm × 297mm，屏幕自适应缩放 */
+.paper-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center}
+.fit-box{width:100%;display:flex;justify-content:center;overflow:hidden}
+.paper{background:#fff;color:#2f2f33;padding:0;border-radius:6px;font-size:13px;line-height:1.75;box-shadow:0 6px 36px rgba(0,0,0,.45);width:210mm;min-height:297mm;overflow:hidden;font-family:"Segoe UI","Microsoft YaHei",sans-serif;display:grid;grid-template-columns:56mm 1fr;transform-origin:top center;flex-shrink:0}
 /* ---- 简历：左栏 ---- */
 .paper .side{background:var(--acc,#1e3a5f);color:#fff;padding:34px 24px;display:flex;flex-direction:column}
 .paper .side .avatar{width:96px;height:96px;border-radius:50%;margin:0 auto 18px;border:3px solid rgba(255,255,255,.55);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;background:rgba(255,255,255,.15);color:#fff}
@@ -91,13 +92,15 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 footer{text-align:center;color:var(--dim);font-size:11px;margin-top:20px;line-height:1.8;letter-spacing:1px}
 footer b{color:var(--gold)}
 
-/* 打印样式：A4 满幅，所见即所得 */
+/* 打印样式：A4 满幅，所见即所得（打印前把屏幕缩放复位，保证真 A4） */
 @page{size:A4;margin:0}
 @media print{
   body{background:#fff;padding:0}
   .app>header,.form-panel,.paper-wrap,footer{display:none!important}
-  .paper{box-shadow:none;min-height:auto;width:210mm}
+  .paper{box-shadow:none;min-height:auto;width:210mm;transform:none!important;margin-bottom:0!important}
 }
+/* beforeprint 兜底复位（部分浏览器打印预览不重新应用 media query） */
+@media print{.fit-box{overflow:visible}}
 </style>
 </head>
 <body>
@@ -172,11 +175,19 @@ footer b{color:var(--gold)}
     </div>
 
     <div class="paper-wrap">
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
         <span id="pageBadge" style="font-size:11px;color:var(--dim);letter-spacing:1px">A4 · 1 页</span>
-        <span style="font-size:10px;color:var(--dim)">210mm × 297mm · 打印所见即所得</span>
+        <span style="font-size:10px;color:var(--dim)">屏幕预览自适应缩放 · 打印始终为 A4 实际尺寸</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="zoomStep(-10)">−</button>
+          <span id="zoomLab" style="font-size:11px;color:var(--dim);min-width:38px;text-align:center">自适应</span>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="zoomStep(10)">＋</button>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="setZoom(0)">↔ 自适应</button>
+        </div>
       </div>
-      <div class="paper" id="paper"></div>
+      <div class="fit-box" id="fitBox">
+        <div class="paper" id="paper"></div>
+      </div>
     </div>
   </div>
 
@@ -444,8 +455,36 @@ function dl(blob,name){
   URL.revokeObjectURL(a.href);
 }
 
+/* ---------- A4 自适应缩放引擎 ----------
+   屏幕：transform scale 缩放显示（布局不变，字随比例缩）
+   打印：@media print 里 scale 还原为 1，始终输出真 A4 */
+let zoomMode=0;   /* 0=自适应，其他=手动百分比(50-150) */
+function fitA4(){
+  const box=$("fitBox"),paper=$("paper");
+  const boxW=box.clientWidth-8;
+  const paperW=paper.offsetWidth||794;   /* 210mm≈794px */
+  let s;
+  if(zoomMode===0){
+    s=Math.min(1,boxW/paperW);          /* 自适应：不放大只缩小 */
+    $("zoomLab").textContent="自适应 "+Math.round(s*100)+"%";
+  }else{
+    s=zoomMode/100;
+    $("zoomLab").textContent=zoomMode+"%";
+  }
+  paper.style.transform="scale("+s+")";
+  /* 缩放后实际占位 = 原尺寸×比例（防止容器留大白边） */
+  paper.style.marginBottom=(paper.offsetHeight*(s-1))+"px";
+}
+function setZoom(v){zoomMode=v;fitA4()}
+function zoomStep(d){setZoom(Math.min(150,Math.max(50,(zoomMode||Math.round(Math.min(1,($("fitBox").clientWidth-8)/794)*100))+d)))}
+addEventListener("resize",fitA4);
+/* 打印兜底：打印前强制复位缩放，打印后恢复自适应 */
+addEventListener("beforeprint",()=>{$("paper").style.transform="none";$("paper").style.marginBottom="0"});
+addEventListener("afterprint",fitA4);
+
 load();
 render();
+fitA4();
 </script>
 </body>
 </html>

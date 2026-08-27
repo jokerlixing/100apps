@@ -18,20 +18,29 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 .sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:2px}
 
 /* 输入区 */
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}
+.panel{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .row{display:flex;gap:14px;margin-bottom:6px}
-.field{flex:1}
-.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:1px}
+.field{flex:1;background:rgba(0,0,0,.18);border:1px solid transparent;border-radius:12px;padding:12px 12px 10px;transition:.15s}
+.field:focus-within{border-color:rgba(229,181,103,.45)}
+.field label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:1px}
 .field .val{font-size:13px;color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
 .slider-row{display:flex;align-items:center;gap:10px}
 input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
+/* 数字输入框：在滑杆下方，输入自动定位滑杆 */
+.num-inp{width:100%;margin-top:9px;background:rgba(0,0,0,.3);border:1px solid var(--line);color:var(--text);font-size:15px;font-weight:600;padding:8px 10px;border-radius:9px;outline:none;font-variant-numeric:tabular-nums;text-align:center;transition:.15s;-webkit-user-select:text;user-select:text}
+.num-inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(229,181,103,.12)}
+.num-inp::-webkit-outer-spin-button,.num-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.num-inp[type=number]{-moz-appearance:textfield;appearance:textfield}
+.unit-sel{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:8px;cursor:pointer;outline:none;transition:.15s}
+.unit-sel:hover{color:var(--gold);border-color:var(--gold)}
+.unit-sel.on{background:rgba(229,181,103,.18);color:var(--gold);border-color:rgba(229,181,103,.5)}
 .seg{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:4px}
 .seg button{flex:1;background:var(--panel2);border:none;color:var(--muted);font-size:13px;padding:9px;cursor:pointer;transition:.15s;outline:none}
 .seg button.on{background:rgba(229,181,103,.15);color:var(--gold);font-weight:600}
 
 /* 结果区 */
-.result{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;margin-bottom:16px}
-.bmi-num{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;transition:color .3s}
+.result{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:24px;text-align:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.bmi-num{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;transition:color .3s;text-shadow:0 4px 24px rgba(0,0,0,.4)}
 .bmi-cat{font-size:16px;font-weight:600;margin-top:6px;transition:color .3s}
 .bmi-ideal{font-size:12px;color:var(--dim);margin-top:10px}
 
@@ -49,7 +58,7 @@ input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
 .pointer::after{content:"";position:absolute;top:-11px;left:-7px;width:14px;height:3px;background:#fff;border-radius:2px}
 
 /* 健康建议 */
-.advice{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px;font-size:13px;line-height:1.9;color:var(--text)}
+.advice{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px;font-size:13px;line-height:1.9;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.18)}
 .advice b{color:var(--gold)}
 .advice .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:10px;margin-right:6px}
 
@@ -88,12 +97,19 @@ footer b{color:var(--gold)}
     </div>
     <div class="row">
       <div class="field">
-        <label>身高 <span class="val" id="hVal">170 cm</span></label>
+        <label>📏 身高 <span class="val" id="hVal">170 cm</span></label>
         <div class="slider-row"><input type="range" id="height" min="120" max="220" value="170" oninput="calc()"></div>
+        <input class="num-inp" type="number" id="hInp" min="120" max="220" value="170" inputmode="numeric" placeholder="cm" oninput="syncFromInput('h')">
       </div>
       <div class="field">
-        <label>体重 <span class="val" id="wVal">65 kg</span></label>
-        <div class="slider-row"><input type="range" id="weight" min="30" max="150" value="65" oninput="calc()"></div>
+        <label>⚖️ 体重
+          <span style="display:flex;gap:4px;align-items:center">
+            <button class="unit-sel on" id="uJin" onclick="setWUnit('jin')">斤</button>
+            <button class="unit-sel" id="uKg" onclick="setWUnit('kg')">kg</button>
+          </span>
+        </label>
+        <div class="slider-row"><input type="range" id="weight" min="60" max="300" value="130" oninput="calc()"></div>
+        <input class="num-inp" type="number" id="wInp" min="60" max="300" value="130" inputmode="numeric" placeholder="斤" oninput="syncFromInput('w')">
       </div>
     </div>
   </div>
@@ -166,9 +182,11 @@ function catOf(bmi){
                   {i:3,n:n[3],color:"var(--red)"};
 }
 function calc(fromStd){
-  const h=+$("height").value,w=+$("weight").value;
+  const h=+$("height").value;
+  const wDisp=+$("weight").value;              /* 滑杆上的显示值（当前单位） */
+  const w=wUnit==="jin"?wDisp/2:wDisp;         /* 内部统一用 kg 计算 */
   $("hVal").textContent=h+" cm";
-  $("wVal").textContent=w+" kg";
+  $("wVal").textContent=wDisp+" "+wUnit;
   const m=h/100,bmi=w/(m*m);
   const cat=catOf(bmi);
   $("bmiNum").textContent=bmi.toFixed(1);
@@ -178,27 +196,60 @@ function calc(fromStd){
   /* 指针位置：15-35 线性映射，clamp */
   const pos=Math.min(100,Math.max(0,(bmi-15)/20*100));
   $("ptr").style.left=pos+"%";
-  /* 理想体重区间 */
-  const lo=(STDS[std].ideal[0]*m*m).toFixed(1),hi=(STDS[std].ideal[1]*m*m).toFixed(1);
-  $("bmiIdeal").textContent=`身高 ${h}cm 的理想体重：${lo} ~ ${hi} kg`;
-  renderAdvice(bmi,cat,w,lo,hi);
+  /* 理想体重区间（跟随当前单位显示） */
+  const u=wUnit==="jin"?"斤":"kg",k=wUnit==="jin"?2:1;
+  const lo=(STDS[std].ideal[0]*m*m*k).toFixed(1),hi=(STDS[std].ideal[1]*m*m*k).toFixed(1);
+  $("bmiIdeal").textContent=`身高 ${h}cm 的理想体重：${lo} ~ ${hi} ${u}`;
+  renderAdvice(bmi,cat,w);
 }
-function renderAdvice(bmi,cat,w,lo,hi){
+/* ---------- 单位与双向同步 ---------- */
+let wUnit="jin";   /* 体重默认斤 */
+function setWUnit(u){
+  if(wUnit===u)return;
+  const wOld=+$("weight").value;            /* 旧单位数值 */
+  wUnit=u;
+  $("uJin").classList.toggle("on",u==="jin");
+  $("uKg").classList.toggle("on",u==="kg");
+  /* 换算滑杆范围和数值 */
+  const nw=u==="jin"?wOld*2:wOld/2;
+  const range=u==="jin"?[60,300]:[30,150];
+  $("weight").min=range[0];$("weight").max=range[1];
+  $("weight").value=Math.round(Math.min(range[1],Math.max(range[0],nw)));
+  $("wInp").min=range[0];$("wInp").max=range[1];$("wInp").placeholder=u;
+  $("wInp").value=$("weight").value;
+  calc();
+}
+/* 输入框 → 滑杆自动定位 */
+function syncFromInput(which){
+  if(which==="h"){
+    const v=+$("hInp").value;
+    if(!isNaN(v))$("height").value=Math.min(220,Math.max(120,v));
+    calc();
+  }else{
+    const v=+$("wInp").value;
+    const min=+$("weight").min,max=+$("weight").max;
+    if(!isNaN(v))$("weight").value=Math.min(max,Math.max(min,v));
+    calc();
+  }
+}
+function renderAdvice(bmi,cat,w){
   let t="";
   if(cat.i===0)t=`体重偏轻。建议<b>适当增加热量摄入</b>，保证蛋白质（蛋/奶/肉/豆），配合<b>力量训练</b>增肌而非单纯囤脂肪。`;
   else if(cat.i===1)t=`体重在健康范围 👍 继续保持当前的生活方式：<b>均衡饮食 + 每周 150 分钟中等强度运动</b>。`;
-  else if(cat.i===2)t=`已属超重。建议<b>每月减重 2-4kg</b>：每日热量缺口 300-500 kcal，<b>有氧+抗阻结合</b>，从目前体重到 ${hi}kg 左右更健康。`;
+  else if(cat.i===2)t=`已属超重。建议<b>每月减重 2-4kg</b>：每日热量缺口 300-500 kcal，<b>有氧+抗阻结合</b>。`;
   else t=`属肥胖范围，健康风险升高。建议<b>循序渐进</b>：先设定小目标（减 5% 体重），饮食结构调整为高蛋白+高纤维，必要时咨询医生或营养师。`;
   $("advice").innerHTML=`<span class="tag" style="color:${cat.color};border:1px solid ${cat.color}">${cat.n}</span>${t}`;
 }
 /* 记录 */
 function saveRec(){
-  const h=+$("height").value,w=+$("weight").value;
+  const h=+$("height").value;
+  const wDisp=+$("weight").value;
+  const w=wUnit==="jin"?wDisp/2:wDisp;
   const bmi=+(w/Math.pow(h/100,2)).toFixed(1);
   const cat=catOf(bmi);
   const now=new Date();
   const d=`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-  hist.unshift({d,h,w,bmi,cat:cat.n,color:cat.color});
+  hist.unshift({d,h,w:(+w.toFixed(1)),bmi,cat:cat.n,color:cat.color});
   if(hist.length>20)hist.pop();
   save();renderHist();
 }
@@ -224,6 +275,9 @@ function clearHist(){
 renderMarks();
 calc();
 renderHist();
+/* 滑杆拖动时反向同步输入框显示 */
+$("height").addEventListener("input",()=>$("hInp").value=$("height").value);
+$("weight").addEventListener("input",()=>$("wInp").value=$("weight").value);
 </script>
 </body>
 </html>

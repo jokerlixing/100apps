@@ -67,7 +67,6 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
 .day{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;transition:.15s;cursor:pointer}
 .day:hover{border-color:var(--dim);transform:translateY(-2px)}
-.day.today{border-color:var(--gold);box-shadow:0 0 14px rgba(229,181,103,.15)}
 .day.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 20px rgba(229,181,103,.35);transform:translateY(-3px);background:rgba(229,181,103,.08)}
 .day .dw{font-size:11px;color:var(--dim)}
 .day .di{font-size:30px;margin:6px 0}
@@ -194,17 +193,23 @@ const windDir=d=>WDIR[Math.round(d/45)%8];
    两者都返回结构统一为 {name,adm,lat,lon,src} 列表 */
 const AMAP_KEY="460f29679e0f90aaf1e9f31a499be604";   /* 高德个人 key：国内县/乡/镇全地名库 */
 async function searchCity(q){
-  /* ① 高德输入提示（中国地名优先策略） */
+  /* ① 高德输入提示：只要行政区划地名（省/市/区县/乡镇），过滤地标/场馆/商铺 */
   if(typeof AMAP_KEY==="string"&&AMAP_KEY){
     try{
       const r=await fetch(`https://restapi.amap.com/v3/assistant/inputtips?keywords=${encodeURIComponent(q)}&key=${AMAP_KEY}&datatype=all`);
       const d=await r.json();
       if(d.status==="1"&&d.tips){
-        const list=d.tips.filter(t=>t.location&&t.location.length)
+        /* 只保留行政区划地名：地名本身必须出现在 省/市/区 归属链中
+           （机场/场馆/商铺等 POI 的名字不会出现在区划链里，被自然过滤） */
+        const isAdm=t=>{
+          const chain=[t.province,t.city,t.district].filter(x=>x&&x.length);
+          return chain.some(c=>c===t.name||c.indexOf(t.name)>=0||t.name.indexOf(c)>=0);
+        };
+        const list=d.tips.filter(t=>t.location&&t.location.length&&t.adcode&&t.adcode.length&&isAdm(t))
           .slice(0,8)
           .map(t=>({
             name:t.name,
-            adm:[t.district,t.city&&t.city!==t.name?t.city:"",t.province].filter(x=>x&&x.length&&x!==t.name).join(" · "),
+            adm:[t.district,t.city&&t.city.length&&t.city!==t.name?t.city:"",t.province].filter(x=>x&&x.length&&x!==t.name).join(" · "),
             lat:+t.location.split(",")[1],
             lon:+t.location.split(",")[0],
             src:"amap",
@@ -274,6 +279,19 @@ document.addEventListener("click",e=>{
 $("cityInp").addEventListener("keydown",e=>{if(e.key==="Enter")doSearch()});
 
 function remember(){try{localStorage.setItem(KEY,JSON.stringify(curCity))}catch(e){}}
+/* 主面板精简显示：只取 省 + 市 两级（从完整归属链解析） */
+function cityShort(){
+  const parts=String(curCity.adm||"").split(" · ").map(s=>s.trim()).filter(Boolean);
+  const prov=parts.find(p=>/省|自治区|北京市|上海市|天津市|重庆市|香港|澳门/.test(p))||parts[parts.length-1]||"";
+  let city=parts.find(p=>/市/.test(p)&&p!==prov)||"";
+  const nm=curCity.name||"";
+  /* 去重：name 与 city 完全同名才去掉（广州/广州市），部分同名保留（长沙县/长沙市） */
+  if(city&&nm===city)city="";
+  if(prov&&nm===prov)return nm;
+  if(prov&&city)return nm+" · "+city+" · "+prov;
+  if(prov)return nm+" · "+prov;
+  return nm;
+}
 function esc(s){return String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
 
 /* ---------- 天气加载 ---------- */
@@ -310,7 +328,7 @@ function render(d){
   <div class="now">
     <div class="w-ico">${dayIco}</div>
     <div class="w-main">
-      <div class="city">📍 ${esc(curCity.name)}${curCity.adm?" · "+esc(curCity.adm):""}</div>
+      <div class="city">📍 ${esc(cityShort())}</div>
       <div class="temp">${Math.round(c.temperature_2m)}<small>°C</small></div>
       <div class="desc">${txt} · 体感 ${Math.round(c.apparent_temperature)}°C</div>
     </div>
@@ -328,16 +346,22 @@ function render(d){
   const times=d.hourly.time.slice(nowH,nowH+24).map(t=>+t.slice(11,13));
   html+=chartHTML(temps,times);
 
-  /* 7 日预报：从今天起的 7 天序列（周一在最左的语义通过排序展示） */
-  const wd=["日","一","二","三","四","五","六"];
-  const today=new Date().getDay();
-  const selBar=selDay===0?"":`<div style="margin-top:12px;background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span style="font-size:26px">${wmo(d.daily.weather_code[selDay])[1]}</span><b style="color:var(--gold)">${dayFullLabel(d.daily.time[selDay],selDay,today)}</b><span>${wmo(d.daily.weather_code[selDay])[0]}</span><span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_max[selDay])}° / ${Math.round(d.daily.temperature_2m_min[selDay])}°</span></div>`;
+  /* 7 日预报：按周一→周日顺序排列（今天所在位置自动归位） */
+  const wd=["一","二","三","四","五","六","日"];
+  const days7=d.daily.time.map((t,i)=>({t,i,dt:new Date(t)}));
+  /* 排序键：周几（1=周一...7=周日），今天天然在正确位置 */
+  days7.sort((a,b)=>{
+    const ka=a.dt.getDay()===0?7:a.dt.getDay();
+    const kb=b.dt.getDay()===0?7:b.dt.getDay();
+    return ka-kb;
+  });
+  const selBar=selDay===0?"":`<div style="margin-top:12px;background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span style="font-size:26px">${wmo(d.daily.weather_code[selDay])[1]}</span><b style="color:var(--gold)">${dayFullLabel(d.daily.time[selDay])}</b><span>${wmo(d.daily.weather_code[selDay])[0]}</span><span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_max[selDay])}° / ${Math.round(d.daily.temperature_2m_min[selDay])}°</span></div>`;
   html+=`<div class="week"><h3>📅 未来 7 天预报${selDay!==0?'<span style="color:var(--gold);font-size:10px;margin-left:8px">● 已选中，10秒无操作自动回到今天</span>':''}</h3><div class="days">`+
-    d.daily.time.map((t,i)=>{
+    days7.map(({t,i,dt})=>{
       const [t2,i2]=wmo(d.daily.weather_code[i]);
-      const dt=new Date(t);
-      const dlabel=i===0?"今天":`${(dt.getMonth()+1)}/${dt.getDate()} 周${wd[dt.getDay()]}`;
-      return `<div class="day ${i===selDay?'sel':i===0?'today':''}" onclick="pickDay(${i})" title="点击查看">
+      const dow=dt.getDay()===0?7:dt.getDay();
+      const dlabel=i===0?`今天 ${dt.getMonth()+1}/${dt.getDate()}`:`${dt.getMonth()+1}/${dt.getDate()} 周${wd[dow-1]}`;
+      return `<div class="day ${i===selDay?'sel':''}" onclick="pickDay(${i})" title="点击查看">
         <div class="dw">${dlabel}</div>
         <div class="di">${i2}</div>
         <div class="dn">${t2}</div>
@@ -348,7 +372,7 @@ function render(d){
   $("main").innerHTML=html;
   renderQuick();
 }
-function dayFullLabel(t,i,today){
+function dayFullLabel(t){
   const wd=["日","一","二","三","四","五","六"];
   const dt=new Date(t);
   return `${dt.getMonth()+1}月${dt.getDate()}日 · 周${wd[dt.getDay()]}`;

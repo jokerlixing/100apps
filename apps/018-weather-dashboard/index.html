@@ -192,7 +192,7 @@ const windDir=d=>WDIR[Math.round(d/45)%8];
       —— 中国地名库最全：省/市/县/乡镇/村全层级，带行政区划归属
    ② Open-Meteo geocoding 回落 —— 国际城市 + 无高德 key 兜底
    两者都返回结构统一为 {name,adm,lat,lon,src} 列表 */
-const AMAP_KEY="";   /* 高德个人 key（留空则走免费公共代理模式，建议申请：https://console.amap.com） */
+const AMAP_KEY="460f29679e0f90aaf1e9f31a499be604";   /* 高德个人 key：国内县/乡/镇全地名库 */
 async function searchCity(q){
   /* ① 高德输入提示（中国地名优先策略） */
   if(typeof AMAP_KEY==="string"&&AMAP_KEY){

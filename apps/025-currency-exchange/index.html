@@ -207,16 +207,19 @@ function fmtNum(n){
 }
 
 /* ---------- 渲染 ---------- */
+let domInited=false;
 function boot(){
-  /* 币种下拉 */
-  const opts=CURRENCIES.map(c=>`<option value="${c.c}">${c.f} ${c.c} ${c.n}</option>`).join("");
-  $("fromCur").innerHTML=opts;
-  $("toCur").innerHTML=opts;
-  $("fromCur").value="CNY";
-  $("toCur").value="USD";
-  /* 快捷金额 */
-  $("quick").innerHTML=QUICK.map(q=>`<button class="qk" onclick="setAmt(${q})">${q.toLocaleString()}</button>`).join("");
-  convert();
+  /* DOM 只构建一次：刷新数据时不再重建下拉/按钮，防止选择被重置和页面抖动 */
+  if(!domInited){
+    const opts=CURRENCIES.map(c=>`<option value="${c.c}">${c.f} ${c.c} ${c.n}</option>`).join("");
+    $("fromCur").innerHTML=opts;
+    $("toCur").innerHTML=opts;
+    $("fromCur").value="CNY";
+    $("toCur").value="USD";
+    $("quick").innerHTML=QUICK.map(q=>`<button class="qk" onclick="setAmt(${q})">${q.toLocaleString()}</button>`).join("");
+    domInited=true;
+  }
+  convert();   /* 数据更新后仅重算，保留用户当前币种选择 */
 }
 function setAmt(v){$("amount").value=v;convert()}
 function renderQuickActive(){

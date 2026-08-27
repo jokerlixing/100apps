@@ -101,7 +101,7 @@ footer b{color:var(--gold)}
 
   <div class="search-bar">
     <div class="sug-wrap">
-      <input type="text" id="cityInp" placeholder="🔍 输入城市名搜索，如：深圳 / Beijing / 上海" autocomplete="off" oninput="onSearch()">
+      <input type="text" id="cityInp" placeholder="🔍 搜索全国任意城市/县/乡镇，如：广州 / 宝安 / 桂林 / 丽江古镇" autocomplete="off" oninput="onSearch()">
       <div class="sug" id="sug"></div>
     </div>
     <button class="btn" onclick="doSearch()">查询</button>
@@ -137,11 +137,35 @@ const QUICK=[
   {n:"上海",lat:31.2304,lon:121.4737},
   {n:"广州",lat:23.1291,lon:113.2644},
   {n:"深圳",lat:22.5431,lon:114.0579},
-  {n:"杭州",lat:30.2741,lon:120.1551},
-  {n:"成都",lat:30.5728,lon:104.0668},
-  {n:"武汉",lat:30.5928,lon:114.3055},
-  {n:"西安",lat:34.3416,lon:108.9398},
 ];
+/* 全国 34 省级行政区省会/首府 */
+const CAPITALS=[
+  {n:"哈尔滨",a:"黑龙江"},{n:"长春",a:"吉林"},{n:"沈阳",a:"辽宁"},
+  {n:"呼和浩特",a:"内蒙古"},{n:"石家庄",a:"河北"},{n:"太原",a:"山西"},
+  {n:"济南",a:"山东"},{n:"郑州",a:"河南"},{n:"西安",a:"陕西"},
+  {n:"兰州",a:"甘肃"},{n:"银川",a:"宁夏"},{n:"西宁",a:"青海"},
+  {n:"乌鲁木齐",a:"新疆"},{n:"成都",a:"四川"},{n:"重庆",a:"重庆"},
+  {n:"贵阳",a:"贵州"},{n:"昆明",a:"云南"},{n:"南宁",a:"广西"},
+  {n:"海口",a:"海南"},{n:"武汉",a:"湖北"},{n:"长沙",a:"湖南"},
+  {n:"南昌",a:"江西"},{n:"合肥",a:"安徽"},{n:"南京",a:"江苏"},
+  {n:"杭州",a:"浙江"},{n:"福州",a:"福建"},{n:"台北",a:"台湾"},
+  {n:"香港",a:"香港"},{n:"澳门",a:"澳门"},{n:"天津",a:"天津"},
+  {n:"拉萨",a:"西藏"},{n:"天津",a:"天津"},
+];
+/* 省会坐标表（用城市名查 geocoding 缓存，首次点按走搜索） */
+const CAP_POS={
+  "哈尔滨":[45.8038,126.5349],"长春":[43.8171,125.3235],"沈阳":[41.8057,123.4315],
+  "呼和浩特":[40.8414,111.7519],"石家庄":[38.0428,114.5149],"太原":[37.8706,112.5489],
+  "济南":[36.6512,117.1201],"郑州":[34.7466,113.6254],"西安":[34.3416,108.9398],
+  "兰州":[36.0611,103.8343],"银川":[38.4872,106.2309],"西宁":[36.6171,101.7782],
+  "乌鲁木齐":[43.8256,87.6168],"成都":[30.5728,104.0668],"重庆":[29.5630,106.5516],
+  "贵阳":[26.6470,106.6302],"昆明":[24.8801,102.8329],"南宁":[22.8170,108.3665],
+  "海口":[20.0442,110.1999],"武汉":[30.5928,114.3055],"长沙":[28.2282,112.9388],
+  "南昌":[28.6820,115.8579],"合肥":[31.8206,117.2272],"南京":[32.0603,118.7969],
+  "杭州":[30.2741,120.1551],"福州":[26.0745,119.2965],"台北":[25.0330,121.5654],
+  "香港":[22.3193,114.1694],"澳门":[22.1987,113.5439],"天津":[39.3434,117.3616],
+  "拉萨":[29.6520,91.1721],
+};
 /* WMO 天气码映射 */
 const WMO={
   0:["晴","☀️"],1:["大致晴朗","🌤"],2:["多云","⛅"],3:["阴","☁️"],
@@ -171,7 +195,7 @@ function onSearch(){
 async function sugFetch(q){
   const my=++reqSeq;
   try{
-    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=zh&format=json`);
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=zh&format=json`);
     const d=await r.json();
     if(my!==reqSeq)return;   /* 过期响应丢弃 */
     const list=d.results||[];
@@ -321,11 +345,41 @@ function chartHTML(temps,hours){
   </svg></div></div>`;
 }
 
-/* 快捷城市按钮高亮 */
+/* 快捷城市按钮：常用4城 + 全国省会可展开 */
+let capOpen=false;
 function renderQuick(){
-  $("quick").innerHTML=QUICK.map((q,i)=>
+  let html=QUICK.map((q,i)=>
     `<button class="qbtn ${curCity&&curCity.name===q.n?'on':''}" onclick="quickPick(${i})">${q.n}</button>`
   ).join("");
+  html+=`<button class="qbtn ${capOpen?'on':''}" onclick="toggleCap()">🌐 全国省会 ${capOpen?"▲":"▼"}</button>`;
+  if(capOpen){
+    /* 去重（天津在列表里出现两次保护） */
+    const seen=new Set();
+    html+=CAPITALS.filter(c=>!seen.has(c.n)&&seen.add(c.n)).map(c=>
+      `<button class="qbtn cap ${curCity&&curCity.name===c.n?'on':''}" onclick="capPick('${c.n}','${c.a}')" title="${c.a}">${c.n}</button>`
+    ).join("");
+  }
+  $("quick").innerHTML=html;
+}
+function toggleCap(){capOpen=!capOpen;renderQuick()}
+function capPick(name,adm){
+  const pos=CAP_POS[name];
+  if(!pos){doSearchName(name);return}
+  curCity={name,adm,lat:pos[0],lon:pos[1]};
+  $("cityInp").value=name;
+  remember();loadWeather();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+/* 兜底：坐标表没有的城市走搜索 */
+async function doSearchName(q){
+  const my=++reqSeq;
+  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=zh&format=json`);
+  const d=await r.json();
+  if(my!==reqSeq||!d.results||!d.results.length)return;
+  const c=d.results[0];
+  curCity={name:c.name,adm:c.admin1||"",lat:c.latitude,lon:c.longitude};
+  remember();loadWeather();
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function quickPick(i){
   const q=QUICK[i];

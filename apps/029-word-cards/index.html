@@ -218,11 +218,13 @@ function load(){
     const s=JSON.parse(localStorage.getItem(KEY));
     if(s&&s.dict===curDict){
       queue=s.queue;stats=s.stats;
+      if(s.totalCount)totalCount=s.totalCount;
+      if(s.seenCount)seenCount=Math.min(s.seenCount,totalCount||s.seenCount);
     }
   }catch(e){}
 }
 function save(){
-  try{localStorage.setItem(KEY,JSON.stringify({dict:curDict,queue,stats}))}catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify({dict:curDict,queue,stats,seenCount,totalCount}))}catch(e){}
 }
 function initQueue(){
   queue=DICTS[curDict].map((w,i)=>({word:i,lv:0}));
@@ -239,9 +241,16 @@ function renderDicts(){
   ).join("");
 }
 function switchDict(d){
-  curDict=d;load();
-  if(!queue.length)initQueue();
-  idx=0;renderCard();
+  curDict=d;
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(saved&&saved.dict===curDict&&saved.queue&&saved.queue.length){
+      queue=saved.queue;stats=saved.stats||{know:0,forgot:0};
+      totalCount=Math.max(saved.totalCount||0,queue.length+(stats.know||0));
+    }else initQueue();
+  }catch(e){initQueue()}
+  seenCount=1;idx=0;
+  renderDicts();renderCard();
 }
 function renderCard(){
   /* 队列完成检查 */
@@ -260,8 +269,8 @@ function renderCard(){
   /* 换卡自动朗读原声（可静音） */
   if(autoSay)setTimeout(()=>speak(w[0]),260);
   /* 进度条 */
-  const done=stats.know+stats.forgot;
-  const total=done+queue.length-idx;
+  const done=Math.min(seenCount-1,totalCount);
+  const total=totalCount;
   $("pFill").style.width=(total?done/total*100:0)+"%";
   $("pTxt").textContent=`${done} / ${total}（掌握 ${stats.know}）`;
   /* 统计 */
@@ -336,10 +345,9 @@ function speak(txt){
   u.pitch=1;
   u.volume=1;       /* 音量拉满（0~1 上限，部分浏览器默认偏低） */
   /* 按钮反馈 */
-  document.querySelectorAll(".say-btn").forEach(b=>{
-    b.classList.add("playing");
-    u.onend=u.onerror=()=>b.classList.remove("playing");
-  });
+  const btns=document.querySelectorAll(".say-btn");
+  btns.forEach(b=>b.classList.add("playing"));
+  u.onend=u.onerror=()=>btns.forEach(b=>b.classList.remove("playing"));
   speechSynthesis.speak(u);
 }
 /* 增响技巧：同一词连续朗读两遍间隔极短，听感响度明显提升（TTS 天生音量偏低的补偿） */
@@ -415,7 +423,6 @@ renderDicts();
 load();
 if(!queue.length)initQueue();
 totalCount=Math.max(totalCount,queue.length+stats.know);
-seenCount=1;
 renderCard();
 </script>
 </body>

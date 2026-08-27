@@ -39,7 +39,7 @@ h1{font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 
 /* ===== 月格精修 ===== */
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:76px;padding:9px;cursor:pointer;position:relative;transition:border-color .15s;display:flex;flex-direction:column;overflow:hidden}
+.cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:76px;padding:9px;cursor:pointer;position:relative;transition:border-color .15s;display:flex;flex-direction:column;align-items:center;overflow:hidden}
 @media(hover:hover){.cell:hover{border-color:var(--dim);background:var(--panel2)}}
 .cell.other{opacity:.3;background:transparent}
 .cell.other .d{color:var(--dim)}
@@ -52,8 +52,8 @@ h1{font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 .cell .d{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%}
 .cell .d.wknd{color:var(--red)}
 .cell.today .d.wknd{color:#1a1a22}
-.cell .evs{margin-top:6px;display:flex;flex-direction:column;gap:2.5px;overflow:hidden}
-.dot-ev{font-size:9.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:2px 7px;border-radius:6px;background:rgba(86,156,214,.16);color:var(--blue);border-left:2px solid currentColor}
+.cell .evs{margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:2.5px;overflow:hidden;width:100%}
+.dot-ev{font-size:9.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:2px 7px;border-radius:6px;background:rgba(86,156,214,.16);color:var(--blue);border-left:2px solid currentColor}
 .dot-ev.more{background:transparent;color:var(--dim);border-left-color:transparent}
 
 /* ===== 事件面板 ===== */

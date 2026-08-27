@@ -334,12 +334,12 @@ function quickPick(i){
   remember();loadWeather();
 }
 
-/* ---------- 启动：记忆上次城市，否则默认深圳 ---------- */
+/* ---------- 启动：记忆上次城市，否则默认广州 ---------- */
 try{
   const s=JSON.parse(localStorage.getItem(KEY));
   if(s&&s.lat)curCity=s;
 }catch(e){}
-if(!curCity)curCity={name:"深圳",adm:"广东",lat:22.5431,lon:114.0579};
+if(!curCity)curCity={name:"广州",adm:"广东",lat:23.1291,lon:113.2644};
 $("cityInp").value=curCity.name;
 renderQuick();
 loadWeather();

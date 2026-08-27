@@ -217,11 +217,14 @@ function renderCatSel(){
   $("fCat").innerHTML=CATS[formType].map(c=>`<option value="${c.id}" ${c.id===curCat?"selected":""}>${c.ico} ${c.name}</option>`).join("");
   curCat=$("fCat").value;
 }
+/* 关键修复：下拉框换分类时同步 curCat（之前漏了这行导致记账永远用旧分类） */
+$("fCat").addEventListener("change",()=>{curCat=$("fCat").value});
 function addTx(){
   const amt=parseFloat($("fAmt").value);
   const note=$("fNote").value.trim();
   const date=$("fDate").value||todayStr();
   if(isNaN(amt)||amt<=0){$("fAmt").focus();flash($("fAmt"));return}
+  curCat=$("fCat").value;   /* 双保险：记账瞬间再读一次下拉框真实值 */
   txs.push({id:Date.now(),type:formType,cat:curCat,amt:+amt.toFixed(2),note,date});
   save();
   $("fAmt").value="";$("fNote").value="";

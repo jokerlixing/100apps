@@ -173,8 +173,8 @@ const IDEAS=[
 ["随机点名器","导入名单随机抽取，已点不重复","1","https://jokerlixing.github.io/100apps/apps/008-random-picker/"],
 ["打字速度测试","中英文WPM测试，统计准确率","1","https://jokerlixing.github.io/100apps/apps/009-typing-test/"],
 ["记忆翻牌游戏","翻牌配对小游戏，计步计时","1","https://jokerlixing.github.io/100apps/apps/010-memory-game/"],
-["猜数字游戏","1-100猜数，二分提示太大/太小","1"],
 ["电子木鱼","点击敲木鱼计数，带音效禅意UI","1","https://jokerlixing.github.io/100apps/apps/011-wooden-fish/"],
+["猜数字游戏","1-100猜数，二分提示太大/太小","1"],
 ["节日倒计时卡片","春节/国庆/生日倒计时精美卡片","1"],
 ["BMI计算器","体重身高计算+健康区间建议","1"],
 ["配色方案生成器","随机生成和谐配色，一键复制色值","1"],
@@ -313,7 +313,7 @@ function render(){
       <div class="top">
         <div class="idx-lv">
           <span class="idx">#${String(a.id).padStart(3,"0")}${a.custom?" ✏️":""}</span>
-          ${a.link?`<a class="go" href="${a.link}" target="_blank">访问 ↗</a>`:""}
+          ${a.link?`<a class="go" href="${a.link}${a.link.includes("?")?"&":"?"}_ts=${Date.now()}" target="_blank">访问 ↗</a>`:""}
         </div>
         <span class="lv lv${a.lv}">${LV_NAMES[a.lv]}</span>
       </div>

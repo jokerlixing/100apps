@@ -56,8 +56,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 
 /* 网格卡片 */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:22px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;transition:.15s}
-.card:hover{border-color:var(--dim);transform:translateY(-2px)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;transition:.15s}@media(hover:hover){
+.card:hover{border-color:var(--dim);transform:translateY(-2px)}}
 .card .emoji{font-size:28px;margin-bottom:6px}
 .card .name{font-size:14px;font-weight:600;margin-bottom:2px;padding-right:44px}
 .card .date{font-size:11px;color:var(--dim);margin-bottom:10px}
@@ -66,8 +66,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 .card .dd.soon{color:var(--red)}
 .card .dd.far{color:var(--green)}
 /* 删除按钮：常显（所有卡片都有，含预置） */
-.card .del{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.45);border:1px solid var(--line);color:var(--muted);font-size:11px;cursor:pointer;padding:3px 9px;border-radius:10px;opacity:.85;line-height:1.4}
-.card .del:hover{color:var(--red);border-color:var(--red);opacity:1}
+.card .del{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.45);border:1px solid var(--line);color:var(--muted);font-size:11px;cursor:pointer;padding:3px 9px;border-radius:10px;opacity:.85;line-height:1.4}@media(hover:hover){
+.card .del:hover{color:var(--red);border-color:var(--red);opacity:1}}
 .card.today{border-color:var(--gold);box-shadow:0 0 18px rgba(229,181,103,.2)}
 
 /* 添加节日 + 工具行 */
@@ -77,8 +77,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 .add-card input[type=text]{flex:1;min-width:0}
 .add-card input[type=date]{color-scheme:dark}
 .add-card .emoji-inp{width:52px;text-align:center;font-size:16px}
-.btn{background:var(--gold);border:none;color:#1a1a22;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;transition:.15s;outline:none;white-space:nowrap}
-.btn:hover{filter:brightness(1.1)}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;transition:.15s;outline:none;white-space:nowrap}@media(hover:hover){
+.btn:hover{filter:brightness(1.1)}}
 .tools{display:flex;gap:8px;justify-content:center;margin-top:14px}
 .btn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line);font-weight:400;font-size:12px;padding:7px 14px}
 

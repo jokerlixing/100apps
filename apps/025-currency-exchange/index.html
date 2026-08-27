@@ -31,8 +31,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .curr-sel{background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:14px;font-weight:600;padding:0 12px;border-radius:12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;min-width:110px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b8fa8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
 .curr-sel:focus{border-color:var(--gold)}
 
-.swap-btn{align-self:flex-end;background:var(--panel2);border:1px solid var(--line);color:var(--gold);width:52px;height:52px;border-radius:50%;font-size:18px;cursor:pointer;outline:none;transition:.2s;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.swap-btn:hover{transform:rotate(180deg);border-color:var(--gold)}
+.swap-btn{align-self:flex-end;background:var(--panel2);border:1px solid var(--line);color:var(--gold);width:52px;height:52px;border-radius:50%;font-size:18px;cursor:pointer;outline:none;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+@media(hover:hover){.swap-btn:hover{transform:rotate(180deg);border-color:var(--gold)}}
 .swap-btn svg{width:20px;height:20px}
 
 .rate-line{text-align:center;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.8;min-height:44px;display:flex;flex-direction:column;justify-content:center}
@@ -41,7 +41,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 /* 快捷金额 */
 .quick{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 .qk{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:16px;cursor:pointer;transition:.15s;outline:none}
-.qk:hover{color:var(--gold);border-color:var(--gold)}
+@media(hover:hover){.qk:hover{color:var(--gold);border-color:var(--gold)}}
 .qk.on{color:var(--gold);border-color:var(--gold);background:rgba(229,181,103,.08)}
 
 /* 常用汇率表 */
@@ -59,10 +59,12 @@ td.rev{text-align:right;font-size:11px;color:var(--dim);font-variant-numeric:tab
 tr.hit td{background:rgba(229,181,103,.05)}
 
 .refresh-row{display:flex;justify-content:center;gap:10px;margin-top:12px}
-.btn{background:var(--gold);border:none;color:#1a1a22;font-size:12px;font-weight:700;padding:8px 18px;border-radius:9px;cursor:pointer;outline:none;transition:.15s}
-.btn:hover{filter:brightness(1.1)}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:12px;font-weight:700;padding:8px 18px;border-radius:9px;cursor:pointer;outline:none}
+/* hover 只在真支持悬停的设备生效（触屏触摸后 hover 会永久卡住不熄灭） */
+@media(hover:hover){.btn:hover{filter:brightness(1.1)}}
+.btn:active{filter:brightness(1.2)}
 .btn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line);font-weight:400}
-.btn.ghost:hover{color:var(--gold);border-color:var(--gold)}
+@media(hover:hover){.btn.ghost:hover{color:var(--gold);border-color:var(--gold)}}
 
 footer{text-align:center;color:var(--dim);font-size:11px;margin-top:16px;line-height:1.8;letter-spacing:1px}
 footer b{color:var(--gold)}
@@ -71,7 +73,7 @@ footer b{color:var(--gold)}
 @media(max-width:480px){
   .row{flex-wrap:wrap}
   .swap-btn{align-self:center;transform:rotate(90deg)}
-  .swap-btn:hover{transform:rotate(270deg)}
+  @media(hover:hover){.swap-btn:hover{transform:rotate(270deg)}}
   .big-inp{font-size:20px}
 }
 </style>

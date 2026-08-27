@@ -123,7 +123,7 @@ footer b{color:var(--gold)}
     </div>
   </div>
 
-  <footer>100 Apps Challenge · App #029 · <b>艾宾浩斯间隔重复</b>：记错 lv-1 立即重排，记对 lv+1 延后 2^lv 张<br>🔊 原声播放 Web Speech API · <a href="javascript:void(0)" onclick="autoSay=!autoSay;toast(autoSay?'已开启自动朗读':'已静音');if(autoSay)speak()" style="color:var(--gold)">自动朗读：开/关</a> · lv≥4 掌握 · 数据存 localStorage</footer>
+  <footer>100 Apps Challenge · App #029 · <b>艾宾浩斯间隔重复</b>：记错 lv-1 立即重排，记对 lv+1 延后 2^lv 张<br>🔊 原声播放 Web Speech API · <a href="javascript:void(0)" onclick="toggleAutoSay()" style="color:var(--gold)">自动朗读：<b id="autoSayState">开</b></a> · lv≥4 掌握 · 数据存 localStorage</footer>
 </div>
 
 <script>
@@ -211,6 +211,7 @@ let queue=[];      /* 待复习 [{word,lv}] */
 let stats={know:0,forgot:0};
 let idx=0;
 let flipped=false;
+let seenCount=1,totalCount=0;   /* 已见计数与总词数 */
 
 function load(){
   try{
@@ -227,6 +228,7 @@ function initQueue(){
   queue=DICTS[curDict].map((w,i)=>({word:i,lv:0}));
   stats={know:0,forgot:0};
   idx=0;
+  totalCount=queue.length;seenCount=1;
   save();
 }
 
@@ -248,7 +250,8 @@ function renderCard(){
   const w=DICTS[curDict][item.word];
   flipped=false;
   $("fcard").classList.remove("flipped");
-  $("fTag").textContent=`CARD ${idx+1}/${queue.length}`;
+  /* 计数=已见张数：初始总数-队列剩余已出队的，重插卡不重复计数 */
+  $("fTag").textContent=`CARD ${seenCount}/${totalCount}`;
   $("fLv").textContent="Lv."+item.lv;
   $("wWord").textContent=w[0];
   $("wPhon").textContent="";
@@ -282,7 +285,7 @@ function showDone(){
 function restart(){
   /* 重排：lv 高的排后面（掌握的少见面），lv 低的先来 */
   queue.sort((a,b)=>a.lv-b.lv);
-  idx=0;
+  idx=0;seenCount=1;
   $("stage").innerHTML=stageHTML;
   renderCard();
 }
@@ -307,7 +310,18 @@ function pickVoice(){
 }
 if(window.speechSynthesis){
   pickVoice();
-  speechSynthesis.onvoiceschanged=pickVoice;   /* 声音列表异步加载 */
+  speechSynthesis.onvoiceschanged=pickVoice;
+  /* iOS/移动端：TTS 必须在首次用户手势中解锁——静默空朗读预热 */
+  let unlocked=false;
+  document.addEventListener("touchstart",function unlockTts(){
+    if(unlocked)return;unlocked=true;
+    try{
+      const u=new SpeechSynthesisUtterance(" ");
+      u.volume=0.01;
+      speechSynthesis.speak(u);
+    }catch(e){}
+    document.removeEventListener("touchstart",unlockTts);
+  },{once:true,passive:true});
 }
 let autoSay=true;
 function speak(txt){
@@ -332,6 +346,14 @@ function speak(txt){
 function speakLoud(){
   speak();
   setTimeout(()=>speak(),450);
+}
+
+function toggleAutoSay(){
+  autoSay=!autoSay;
+  const el=document.getElementById("autoSayState");
+  if(el)el.textContent=autoSay?"开":"关";
+  toast(autoSay?"已开启自动朗读":"已静音");
+  if(autoSay)speak();
 }
 
 function flip(){
@@ -362,6 +384,7 @@ function mark(known){
     queue.splice(idx+back,0,item);
   }
   save();
+  seenCount++;   /* 每次操作推进已见计数 */
   renderCard();
 }
 function nextCard(){
@@ -369,12 +392,30 @@ function nextCard(){
   const item=queue[idx];
   queue.splice(idx,1);
   queue.push(item);   /* 跳过→排到队尾 */
+  seenCount++;
   save();renderCard();
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg){
+  let t=document.getElementById('toastBox');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toastBox';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:10px 22px;border-radius:11px;font-size:13px;z-index:99';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{const el=document.getElementById('toastBox');if(el)el.remove()},1800);
 }
 
 renderDicts();
 load();
 if(!queue.length)initQueue();
+totalCount=Math.max(totalCount,queue.length+stats.know);
+seenCount=1;
 renderCard();
 </script>
 </body>

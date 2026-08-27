@@ -80,8 +80,12 @@ h1{font-size:22px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 /* 历史 */
 .history{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 18px;margin-top:16px}
 .history h3{font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;display:flex;justify-content:space-between}
-.history h3 button{background:none;border:none;color:var(--dim);font-size:10px;cursor:pointer;outline:none}
-@media(hover:hover){.history h3 button:hover{color:var(--red)}}
+.history h3 button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:5px 14px;border-radius:14px;cursor:pointer;outline:none;letter-spacing:1px;display:flex;align-items:center;gap:5px;transition:border-color .15s,color .15s}
+.history h3 button::before{content:"🗑";font-size:11px}
+@media(hover:hover){.history h3 button:hover{color:var(--red);border-color:var(--red);background:rgba(224,108,117,.08)}}
+.history h3 button:active{transform:scale(.93)}
+.history h3 button.armed{color:var(--red);border-color:var(--red);background:rgba(224,108,117,.14);font-weight:700}
+.history h3 button.armed::before{content:"⚠"}
 .h-list{display:flex;gap:8px;flex-wrap:wrap}
 .h-item{font-size:11px;background:var(--panel2);border-radius:8px;padding:5px 12px;color:var(--muted)}
 .h-item b{color:var(--gold)}
@@ -120,7 +124,7 @@ footer b{color:var(--gold)}
   </div>
 
   <div class="history">
-    <h3>📜 抽奖记录 <button onclick="clearHistory()">清空</button></h3>
+    <h3>📜 抽奖记录 <button id="clearBtn" onclick="clearHistory(this)">清空</button></h3>
     <div class="h-list" id="hList"></div>
   </div>
 
@@ -401,9 +405,23 @@ function renderHistory(){
     ?history.map(h=>`<span class="h-item">${esc(h)}</span>`).join("")
     :`<span class="h-item" style="color:var(--dim)">暂无记录</span>`;
 }
-function clearHistory(){
+let clearArmed=false,clearTimer=null;
+function clearHistory(btn){
+  if(!clearArmed){
+    clearArmed=true;
+    if(btn){btn.classList.add("armed");btn.textContent="确认清空?"}
+    clearTimeout(clearTimer);
+    clearTimer=setTimeout(()=>{
+      clearArmed=false;
+      if(btn){btn.classList.remove("armed");btn.textContent="清空"}
+    },2500);
+    return;
+  }
+  clearTimeout(clearTimer);clearArmed=false;
+  if(btn){btn.classList.remove("armed");btn.textContent="清空"}
   history=[];
   save();renderHistory();renderPrizes();
+  toast("记录已清空");
 }
 
 /* ---------- toast ---------- */

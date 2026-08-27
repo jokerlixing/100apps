@@ -10,7 +10,7 @@
   --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
   --gold:#e5b567; --green:#4ec9b0; --red:#e06c75;
 }
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
 .app{width:100%;max-width:460px;text-align:center;position:relative}
 h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var(--gold)}
@@ -19,8 +19,9 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var
 /* 木鱼舞台 */
 .stage{position:relative;height:320px;margin-bottom:10px;user-select:none;-webkit-user-select:none;perspective:600px}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}  /* 粒子层置顶，盖在木鱼上面 */
-.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;line-height:1}
-.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px}
+.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;line-height:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;outline:none}
+.muyu:focus-visible{outline:none}
+.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
 /* 计数 */
 .counter{margin-bottom:8px}
@@ -31,7 +32,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-in
 
 /* 功用区 */
 .tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.tbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:18px;cursor:pointer;transition:.15s}
+.tbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:18px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}
 .tbtn:hover{border-color:var(--gold);color:var(--gold)}
 
 /* 自动敲击设置 */

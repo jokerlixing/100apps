@@ -18,15 +18,15 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
 
 /* 密码展示区 */
-.pw-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;cursor:pointer;transition:.15s;position:relative}
-.pw-box:hover{border-color:var(--green)}
+.pw-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;cursor:pointer;transition:.15s;position:relative}@media(hover:hover){
+.pw-box:hover{border-color:var(--green)}}
 .pw{font-family:Consolas,"Courier New",monospace;font-size:22px;letter-spacing:1px;word-break:break-all;line-height:1.6;min-height:36px;color:var(--green)}
 .pw.hint{color:var(--dim);font-size:15px}
 .pw-acts{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .pw-meta{font-size:12px;color:var(--dim)}
 .pw-btns{display:flex;gap:6px}
-.mini{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:.15s}
-.mini:hover{border-color:var(--blue);color:var(--blue)}
+.mini{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:.15s}@media(hover:hover){
+.mini:hover{border-color:var(--blue);color:var(--blue)}}
 
 /* 强度条 */
 .strength{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
@@ -45,14 +45,14 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 input[type=range]{width:100%;accent-color:var(--green);cursor:pointer;margin-bottom:16px}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:480px){.opts{grid-template-columns:1fr}}
-.opt{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;cursor:pointer;font-size:13px;transition:.15s;user-select:none}
-.opt:hover{border-color:var(--dim)}
+.opt{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;cursor:pointer;font-size:13px;transition:.15s;user-select:none}@media(hover:hover){
+.opt:hover{border-color:var(--dim)}}
 .opt.on{border-color:var(--green)}
 .opt .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--dim);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#12211d;transition:.15s}
 .opt.on .box{background:var(--green);border-color:var(--green)}
 .opt .set{color:var(--dim);font-size:12px;margin-left:auto;font-family:Consolas,monospace}
-.gen{width:100%;margin-top:16px;background:var(--green);border:none;border-radius:10px;padding:14px;color:#12211d;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
-.gen:hover{filter:brightness(1.1)}
+.gen{width:100%;margin-top:16px;background:var(--green);border:none;border-radius:10px;padding:14px;color:#12211d;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}@media(hover:hover){
+.gen:hover{filter:brightness(1.1)}}
 
 /* 说明 */
 .why{background:rgba(86,156,214,.08);border:1px solid rgba(86,156,214,.3);border-radius:14px;padding:16px 18px;margin-top:14px;font-size:12px;line-height:1.8;color:var(--muted)}

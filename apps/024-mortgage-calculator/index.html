@@ -29,6 +29,9 @@ input[type=range]{width:100%;accent-color:var(--gold);height:4px;cursor:pointer}
 .fg .quick{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 .qk{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:10px;padding:3px 9px;border-radius:11px;cursor:pointer;transition:.12s;outline:none}
 .qk:hover{color:var(--gold);border-color:var(--gold)}
+.custom-inp{width:100%;margin-top:7px;background:rgba(0,0,0,.22);border:1px solid var(--line);color:var(--text);font-size:12px;padding:7px 10px;border-radius:8px;outline:none;-webkit-user-select:text;user-select:text;font-variant-numeric:tabular-nums}
+.custom-inp:focus{border-color:var(--gold)}
+.custom-inp::-webkit-inner-spin-button{opacity:.4}
 .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{flex:1;background:var(--panel2);border:none;color:var(--muted);font-size:13px;padding:9px;cursor:pointer;transition:.15s;outline:none}
 .seg button.on{background:rgba(229,181,103,.15);color:var(--gold);font-weight:700}
@@ -80,33 +83,42 @@ footer b{color:var(--gold)}
     <div class="input-panel">
       <div class="fg">
         <label>贷款总额 <span class="v" id="amountV">100 万元</span></label>
-        <input type="range" id="amount" min="10" max="1000" step="10" value="100" oninput="calc()">
+        <input type="range" id="amount" min="10" max="1000" step="5" value="100" oninput="calc()">
         <div class="quick">
+          <button class="qk" onclick="setVal('amount',10)">10万</button>
+          <button class="qk" onclick="setVal('amount',20)">20万</button>
+          <button class="qk" onclick="setVal('amount',25)">25万</button>
+          <button class="qk" onclick="setVal('amount',50)">50万</button>
           <button class="qk" onclick="setVal('amount',100)">100万</button>
-          <button class="qk" onclick="setVal('amount',200)">200万</button>
           <button class="qk" onclick="setVal('amount',300)">300万</button>
           <button class="qk" onclick="setVal('amount',500)">500万</button>
         </div>
+        <input type="number" class="custom-inp" id="amountInp" placeholder="自定义万元（10-1000）" min="10" max="1000" step="1" oninput="customSet('amount',this.value,10,1000)">
       </div>
       <div class="fg">
         <label>年利率 <span class="v" id="rateV">3.60 %</span></label>
-        <input type="range" id="rate" min="10" max="60" step="5" value="36" oninput="calc()">
+        <input type="range" id="rate" min="10" max="60" step="1" value="36" oninput="calc()">
         <div class="quick">
+          <button class="qk" onclick="setVal('rate',25)">2.5%</button>
           <button class="qk" onclick="setVal('rate',30)">3.0%</button>
           <button class="qk" onclick="setVal('rate',36)">3.6%</button>
           <button class="qk" onclick="setVal('rate',41)">4.1%</button>
           <button class="qk" onclick="setVal('rate',49)">4.9%</button>
         </div>
+        <input type="number" class="custom-inp" id="rateInp" placeholder="自定义利率%（1.0-6.0）" min="1" max="6" step="0.01" oninput="customSet('rate',this.value,10,60,x=>Math.round(x*10))">
       </div>
       <div class="fg">
         <label>贷款年限 <span class="v" id="yearsV">30 年</span></label>
-        <input type="range" id="years" min="5" max="30" step="5" value="30" oninput="calc()">
+        <input type="range" id="years" min="5" max="30" step="1" value="30" oninput="calc()">
         <div class="quick">
+          <button class="qk" onclick="setVal('years',5)">5年</button>
           <button class="qk" onclick="setVal('years',10)">10年</button>
+          <button class="qk" onclick="setVal('years',15)">15年</button>
           <button class="qk" onclick="setVal('years',20)">20年</button>
           <button class="qk" onclick="setVal('years',25)">25年</button>
           <button class="qk" onclick="setVal('years',30)">30年</button>
         </div>
+        <input type="number" class="custom-inp" id="yearsInp" placeholder="自定义年限（5-30）" min="5" max="30" step="1" oninput="customSet('years',this.value,5,30)">
       </div>
       <div class="fg" style="margin-bottom:0">
         <label>还款方式</label>
@@ -168,12 +180,30 @@ footer b{color:var(--gold)}
 const $=id=>document.getElementById(id);
 let mode="benxi";
 
-function setVal(id,v){$(id).value=v;calc()}
+function setVal(id,v){$(id).value=v;calc();syncCustomInputs()}
+/* 自定义输入 → 滑杆自动对位（含 clamp + 精度换算） */
+function customSet(id,raw,min,max,conv){
+  let v=parseFloat(raw);
+  if(isNaN(v))return;                     /* 输入中间态不打断 */
+  /* 输入框业务范围：amount/years 直接值，rate 是百分比 */
+  if(id==="amount"){v=Math.min(1000,Math.max(10,v))}        /* 万元 */
+  else if(id==="rate"){v=Math.min(6,Math.max(1,v));v=Math.round(v*10)}  /* % → 滑杆×10 */
+  else{v=Math.min(30,Math.max(5,v))}                        /* 年 */
+  $(id).value=v;
+  calc();syncCustomInputs();
+}
+/* 滑杆变动时反向同步输入框显示 */
+function syncCustomInputs(){
+  $("amountInp").value=$("amount").value;
+  $("rateInp").value=($("rate").value/10).toFixed(1);
+  $("yearsInp").value=$("years").value;
+}
 function setMode(m){
   mode=m;
   $("btnBenxi").classList.toggle("on",m==="benxi");
   $("btnBenjin").classList.toggle("on",m==="benjin");
   calc();
+  syncCustomInputs();
 }
 
 /* ---------- 核心计算 ---------- */
@@ -301,6 +331,7 @@ function drawChart(bx,bjB,years){
 }
 
 calc();
+syncCustomInputs();
 </script>
 </body>
 </html>

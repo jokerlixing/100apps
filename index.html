@@ -91,6 +91,15 @@ h1 .grad{background:linear-gradient(90deg,var(--green),var(--blue),var(--purple)
 /* toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* 链接编辑弹层（替代 prompt，内置浏览器兼容） */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-mask.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h3{font-size:14px;margin-bottom:12px}
+.modal input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;-webkit-user-select:text;user-select:text;font-family:Consolas,monospace}
+.modal input:focus{border-color:var(--blue)}
+.modal .tip{font-size:11px;color:var(--dim);margin-top:8px}
+.modal .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 footer{text-align:center;color:var(--dim);font-size:12px;margin-top:24px;line-height:1.8}
 </style>
 </head>
@@ -151,6 +160,18 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:24px;line-he
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-mask" id="linkMask" onclick="if(event.target===this)closeLinkModal()">
+  <div class="modal">
+    <h3 id="linkTitle">🔗 设置访问链接</h3>
+    <input type="text" id="linkInput" placeholder="https://your-app-url.example.com/" onkeydown="if(event.key==='Enter')saveLink()">
+    <div class="tip">留空则清除链接 · Enter 快速保存</div>
+    <div class="btns">
+      <button class="btn" onclick="closeLinkModal()">取消</button>
+      <button class="btn primary" onclick="saveLink()">保存</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const LV_NAMES={1:"L1 入门",2:"L2 进阶",3:"L3 前后端",4:"L4 全栈AI",5:"L5 综合"};
@@ -308,7 +329,7 @@ function render(){
       <div class="top">
         <div class="idx-lv">
           <span class="idx">#${String(a.id).padStart(3,"0")}${a.custom?" ✏️":""}</span>
-          ${a.link?`<a class="go" href="${a.link}${a.link.includes("?")?"&":"?"}_ts=${Date.now()}" target="_blank">访问 ↗</a>`:""}
+          ${a.link?`<a class="go" href="${esc(a.link)}${a.link.includes("?")?"&":"?"}_ts=${Date.now()}" target="_blank">访问 ↗</a>`:""}
         </div>
         <span class="lv lv${a.lv}">${LV_NAMES[a.lv]}</span>
       </div>
@@ -317,12 +338,12 @@ function render(){
       <div class="bottom">
         <button class="status-btn ${a.st}" onclick="cycle(${a.id})">${ST_NAMES[a.st]} →</button>
         <button class="link-edit" onclick="setLink(${a.id})" title="填写部署链接">🔗</button>
-        ${a.custom?`<button class="link-edit" onclick="delCustom(${a.id})" title="删除">🗑</button>`:""}
+        ${a.custom?`<button class="link-edit" onclick="delCustom(${a.id},this)" title="删除">🗑</button>`:""}
       </div>
     </div>`).join("");
   updateDash();
 }
-function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 
 function cycle(id){
   const a=apps.find(x=>x.id===id);if(!a)return;
@@ -334,14 +355,43 @@ function cycle(id){
   } else if(a.st==="todo"&&from==="done"){toast(`↩️ 已撤销完成状态`)}
   render();
 }
+/* 链接编辑：弹层代替 prompt（内置浏览器不拦截） */
+let linkEditId=null;
 function setLink(id){
-  const a=apps.find(x=>x.id===id);
-  const v=prompt("填写应用的访问链接（留空清除）：",a.link||"");
-  if(v===null)return;a.link=v.trim();save();render();
+  const a=apps.find(x=>x.id===id);if(!a)return;
+  linkEditId=id;
+  document.getElementById("linkTitle").textContent=`🔗 #${String(id).padStart(3,"0")} ${a.name} 的链接`;
+  document.getElementById("linkInput").value=a.link||"";
+  document.getElementById("linkMask").classList.add("show");
+  setTimeout(()=>document.getElementById("linkInput").focus(),50);
 }
-function delCustom(id){
-  if(!confirm("确定删除这个自定义点子吗？"))return;
+function saveLink(){
+  const a=apps.find(x=>x.id===linkEditId);if(!a)return closeLinkModal();
+  const v=document.getElementById("linkInput").value.trim();
+  /* 简单校验：要么空，要么像 URL */
+  if(v&&!/^(https?:\/\/|\/|\.\/)/.test(v)){toast("链接需以 http(s):// 开头");return}
+  a.link=v;save();render();
+  closeLinkModal();
+  toast(v?"🔗 链接已保存":"🔗 链接已清除");
+}
+function closeLinkModal(){
+  document.getElementById("linkMask").classList.remove("show");
+  linkEditId=null;
+}
+/* 删除自定义点子：内联二次确认（替代 confirm） */
+let delCusArmed=0,delCusTimer=null;
+function delCustom(id,btn){
+  if(delCusArmed!==id){
+    delCusArmed=id;
+    if(btn)btn.textContent="确认?⚠";
+    document.querySelectorAll(".link-edit").forEach(b=>{if(b!==btn&&b.textContent==="确认?⚠")b.textContent="🗑"});
+    clearTimeout(delCusTimer);
+    delCusTimer=setTimeout(()=>{delCusArmed=0;if(btn&&btn.textContent==="确认?⚠")btn.textContent="🗑"},3000);
+    return;
+  }
+  clearTimeout(delCusTimer);delCusArmed=0;
   apps=apps.filter(x=>x.id!==id);save();render();
+  toast("🗑 已删除自定义点子");
 }
 function addCustom(){
   const n=document.getElementById("addName").value.trim();

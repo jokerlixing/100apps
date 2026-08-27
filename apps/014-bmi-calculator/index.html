@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚖️ BMI 计算器 · Body Mass Index</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0; --orange:#d19a66;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.app{width:100%;max-width:480px}
+header{text-align:center;margin-bottom:22px}
+h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:2px}
+
+/* 输入区 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}
+.row{display:flex;gap:14px;margin-bottom:6px}
+.field{flex:1}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:1px}
+.field .val{font-size:13px;color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+.slider-row{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--gold);height:4px;cursor:pointer}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:4px}
+.seg button{flex:1;background:var(--panel2);border:none;color:var(--muted);font-size:13px;padding:9px;cursor:pointer;transition:.15s;outline:none}
+.seg button.on{background:rgba(229,181,103,.15);color:var(--gold);font-weight:600}
+
+/* 结果区 */
+.result{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;margin-bottom:16px}
+.bmi-num{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;transition:color .3s}
+.bmi-cat{font-size:16px;font-weight:600;margin-top:6px;transition:color .3s}
+.bmi-ideal{font-size:12px;color:var(--dim);margin-top:10px}
+
+/* 彩色标尺 */
+.scale{position:relative;height:56px;margin:8px 4px 0}
+.scale-bar{display:flex;height:14px;border-radius:7px;overflow:hidden}
+.scale-bar div{height:100%}
+/* 中国标准：偏瘦<18.5 | 正常18.5-23.9 | 超重24-27.9 | 肥胖≥28 → 按比例 15-35 映射 */
+.seg1{width:17.5%;background:var(--blue)}
+.seg2{width:27%;background:var(--green)}
+.seg3{width:19.5%;background:var(--orange)}
+.seg4{width:36%;background:var(--red)}
+.scale-marks{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums}
+.pointer{position:absolute;top:-8px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #fff;transform:translateX(-7px);transition:left .25s ease-out;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.pointer::after{content:"";position:absolute;top:-11px;left:-7px;width:14px;height:3px;background:#fff;border-radius:2px}
+
+/* 健康建议 */
+.advice{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px;font-size:13px;line-height:1.9;color:var(--text)}
+.advice b{color:var(--gold)}
+.advice .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:10px;margin-right:6px}
+
+/* 历史记录 */
+.history{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.history h3{font-size:13px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.history h3 button{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:3px 8px;border-radius:8px;outline:none}
+.history h3 button:hover{color:var(--red)}
+.hrow{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line);font-size:12px}
+.hrow:last-child{border-bottom:none}
+.hrow .d{color:var(--dim)}
+.hrow .v{font-weight:700;font-variant-numeric:tabular-nums}
+.hrow .c{font-size:11px}
+.empty{color:var(--dim);font-size:12px;text-align:center;padding:8px}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:20px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+
+@media(max-width:420px){
+  .bmi-num{font-size:52px}
+  .row{flex-direction:column;gap:10px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>BMI 计算器</h1>
+    <div class="sub">中国成人标准 · 实时计算 · 滑杆输入</div>
+  </header>
+
+  <div class="panel">
+    <div class="seg" style="margin:0 0 16px">
+      <button class="on" onclick="setStd(this,'CN')">中国标准</button>
+      <button onclick="setStd(this,'WHO')">WHO 国际标准</button>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>身高 <span class="val" id="hVal">170 cm</span></label>
+        <div class="slider-row"><input type="range" id="height" min="120" max="220" value="170" oninput="calc()"></div>
+      </div>
+      <div class="field">
+        <label>体重 <span class="val" id="wVal">65 kg</span></label>
+        <div class="slider-row"><input type="range" id="weight" min="30" max="150" value="65" oninput="calc()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="bmi-num" id="bmiNum">22.5</div>
+    <div class="bmi-cat" id="bmiCat">✅ 正常</div>
+    <div class="bmi-ideal" id="bmiIdeal"></div>
+    <div class="scale">
+      <div class="pointer" id="ptr" style="left:50%"></div>
+      <div class="scale-bar"><div class="seg1"></div><div class="seg2"></div><div class="seg3"></div><div class="seg4"></div></div>
+      <div class="scale-marks" id="marks"><span>15</span><span>18.5</span><span>24</span><span>28</span><span>35</span></div>
+    </div>
+  </div>
+
+  <div class="advice" id="advice"></div>
+
+  <div class="history">
+    <h3>📏 历史记录 <button onclick="clearHist()">清空</button></h3>
+    <div id="histList"><div class="empty">暂无记录，点击下方保存</div></div>
+    <button class="seg-btn" id="saveBtn" onclick="saveRec()" style="width:100%;margin-top:10px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:9px;border-radius:10px;cursor:pointer;outline:none">💾 保存本次记录</button>
+  </div>
+
+  <footer>100 Apps Challenge · App #014 · <b>BMI = 体重(kg) ÷ 身高²(m²)</b><br>BMI 只反映总体重，不区分肌肉与脂肪，仅供参考</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：公式计算 + 分级可视化
+   - BMI = kg / m²（核心就一行，难点在交互与可视化）
+   - 中国标准：18.5 / 24 / 28 三条线（比 WHO 的 25/30 更严）
+   - 标尺指针 = 数值线性映射到百分比位置
+   - 理想体重区间 = 18.5~23.9 × 身高²（反向用公式）
+   ============================================================ */
+const KEY="bmi_v1";
+const $=id=>document.getElementById(id);
+/* 标准：[偏瘦上限, 正常上限, 超重上限] */
+const STDS={
+  CN:{cuts:[18.5,24,28],names:["偏瘦","正常","超重","肥胖"],ideal:[18.5,23.9]},
+  WHO:{cuts:[18.5,25,30],names:["偏瘦","正常","超重","肥胖"],ideal:[18.5,24.9]},
+};
+let std="CN";
+let hist=[];
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s){hist=s.hist||[];if(s.std)std=s.std}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({hist,std}))}catch(e){}}
+
+function setStd(btn,s){
+  document.querySelectorAll(".seg button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  std=s;
+  renderMarks();
+  calc(true);
+  save();
+}
+function renderMarks(){
+  const c=STDS[std].cuts;
+  $("marks").innerHTML=`<span>15</span><span>${c[0]}</span><span>${c[1]}</span><span>${c[2]}</span><span>35</span>`;
+  /* 重算色段宽度（15-35 映射） */
+  const pct=v=>((v-15)/20*100);
+  document.querySelector(".seg1").style.width=pct(c[0])+"%";
+  document.querySelector(".seg2").style.width=(pct(c[1])-pct(c[0]))+"%";
+  document.querySelector(".seg3").style.width=(pct(c[2])-pct(c[1]))+"%";
+  document.querySelector(".seg4").style.width=(100-pct(c[2]))+"%";
+}
+function catOf(bmi){
+  const c=STDS[std].cuts,n=STDS[std].names;
+  return bmi<c[0]?{i:0,n:n[0],color:"var(--blue)"}:
+         bmi<c[1]?{i:1,n:n[1],color:"var(--green)"}:
+         bmi<c[2]?{i:2,n:n[2],color:"var(--orange)"}:
+                  {i:3,n:n[3],color:"var(--red)"};
+}
+function calc(fromStd){
+  const h=+$("height").value,w=+$("weight").value;
+  $("hVal").textContent=h+" cm";
+  $("wVal").textContent=w+" kg";
+  const m=h/100,bmi=w/(m*m);
+  const cat=catOf(bmi);
+  $("bmiNum").textContent=bmi.toFixed(1);
+  $("bmiNum").style.color=cat.color;
+  $("bmiCat").textContent=["⬇️ ","✅ ","⚠️ ","🚫 "][cat.i]+cat.n;
+  $("bmiCat").style.color=cat.color;
+  /* 指针位置：15-35 线性映射，clamp */
+  const pos=Math.min(100,Math.max(0,(bmi-15)/20*100));
+  $("ptr").style.left=pos+"%";
+  /* 理想体重区间 */
+  const lo=(STDS[std].ideal[0]*m*m).toFixed(1),hi=(STDS[std].ideal[1]*m*m).toFixed(1);
+  $("bmiIdeal").textContent=`身高 ${h}cm 的理想体重：${lo} ~ ${hi} kg`;
+  renderAdvice(bmi,cat,w,lo,hi);
+}
+function renderAdvice(bmi,cat,w,lo,hi){
+  let t="";
+  if(cat.i===0)t=`体重偏轻。建议<b>适当增加热量摄入</b>，保证蛋白质（蛋/奶/肉/豆），配合<b>力量训练</b>增肌而非单纯囤脂肪。`;
+  else if(cat.i===1)t=`体重在健康范围 👍 继续保持当前的生活方式：<b>均衡饮食 + 每周 150 分钟中等强度运动</b>。`;
+  else if(cat.i===2)t=`已属超重。建议<b>每月减重 2-4kg</b>：每日热量缺口 300-500 kcal，<b>有氧+抗阻结合</b>，从目前体重到 ${hi}kg 左右更健康。`;
+  else t=`属肥胖范围，健康风险升高。建议<b>循序渐进</b>：先设定小目标（减 5% 体重），饮食结构调整为高蛋白+高纤维，必要时咨询医生或营养师。`;
+  $("advice").innerHTML=`<span class="tag" style="color:${cat.color};border:1px solid ${cat.color}">${cat.n}</span>${t}`;
+}
+/* 记录 */
+function saveRec(){
+  const h=+$("height").value,w=+$("weight").value;
+  const bmi=+(w/Math.pow(h/100,2)).toFixed(1);
+  const cat=catOf(bmi);
+  const now=new Date();
+  const d=`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  hist.unshift({d,h,w,bmi,cat:cat.n,color:cat.color});
+  if(hist.length>20)hist.pop();
+  save();renderHist();
+}
+function renderHist(){
+  $("histList").innerHTML=hist.length?hist.map(r=>
+    `<div class="hrow"><span class="d">${r.d}</span><span>${r.h}cm · ${r.w}kg</span><span class="v">${r.bmi}</span><span class="c" style="color:${r.color}">${r.cat}</span></div>`
+  ).join(""):`<div class="empty">暂无记录，点击下方保存</div>`;
+}
+let clrArmed=false,clrTimer=null;
+function clearHist(){
+  const btn=document.querySelector(".history h3 button");
+  if(!clrArmed){
+    clrArmed=true;
+    btn.textContent="确认清空?";btn.style.color="var(--red)";
+    clearTimeout(clrTimer);
+    clrTimer=setTimeout(()=>{clrArmed=false;btn.textContent="清空";btn.style.color=""},3000);
+    return;
+  }
+  clrArmed=false;clearTimeout(clrTimer);
+  btn.textContent="清空";btn.style.color="";
+  hist=[];save();renderHist();
+}
+renderMarks();
+calc();
+renderHist();
+</script>
+</body>
+</html>

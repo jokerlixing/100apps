@@ -39,7 +39,7 @@ h1{font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 
 /* ===== 月格精修 ===== */
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:76px;padding:9px;cursor:pointer;position:relative;transition:border-color .15s;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+.cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:76px;padding:9px;cursor:pointer;position:relative;transition:border-color .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
 @media(hover:hover){.cell:hover{border-color:var(--dim);background:var(--panel2)}}
 .cell.other{opacity:.3;background:transparent}
 .cell.other .d{color:var(--dim)}

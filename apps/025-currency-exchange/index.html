@@ -11,9 +11,10 @@
   --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{overflow-anchor:none}   /* 关闭滚动锚定，防止内容变化时浏览器自动调整滚动位置 */
-body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:5vh 20px 40px;overflow-anchor:none}
-/* 注意：不用 flex 垂直居中——居中会把任何内容高度变化放大成整页上下抖动（CLS），顶部安全距近似居中观感且绝对稳定 */
+html{overflow-anchor:none;background:#16181f}  /* 背景钉在 html 上：body 内容重绘不牵连背景层 */
+body{color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px;overflow-anchor:none}  /* 顶对齐文档流，无任何居中锁定 */
+/* 整页零动画零过渡：杜绝重绘残影 */
+*,*::before,*::after{transition:none!important;animation:none!important}
 .app{width:100%;max-width:560px;margin:0 auto}   /* 水平居中用 margin，垂直交给文档流 */
 header{margin-bottom:16px;text-align:center}
 h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
@@ -86,7 +87,7 @@ footer b{color:var(--gold)}
     <div class="row">
       <div class="field">
         <label>FROM · 我有</label>
-        <input type="text" class="big-inp" id="amount" value="100" inputmode="decimal" oninput="convert()">
+        <input type="text" class="big-inp" id="amount" value="1" inputmode="decimal" oninput="convert()">
         <select class="curr-sel" id="fromCur" onchange="convert()"></select>
       </div>
       <button class="swap-btn" onclick="swap()" title="交换币种">
@@ -103,7 +104,7 @@ footer b{color:var(--gold)}
   </div>
 
   <div class="table-panel">
-    <h3>📊 人民币兑常用货币 <span id="updTime"></span></h3>
+    <h3>📊 汇率速查表（随左上基准币联动） <span id="updTime"></span></h3>
     <div id="rateTable"><div class="loading">加载中…</div></div>
     <div class="refresh-row">
       <button class="btn ghost" onclick="loadRates(true)">↻ 刷新汇率</button>
@@ -219,8 +220,9 @@ function boot(){
     const opts=CURRENCIES.map(c=>`<option value="${c.c}">${c.f} ${c.c} ${c.n}</option>`).join("");
     $("fromCur").innerHTML=opts;
     $("toCur").innerHTML=opts;
-    $("fromCur").value="CNY";
-    $("toCur").value="USD";
+    $("fromCur").value="USD";   /* 默认：1 美元兑人民币 */
+    $("toCur").value="CNY";
+    $("amount").value="1";
     $("quick").innerHTML=QUICK.map(q=>`<button class="qk" onclick="setAmt(${q})">${q.toLocaleString()}</button>`).join("");
     domInited=true;
   }

@@ -65,9 +65,10 @@ h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
 .week{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
 .week h3{font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:12px}
 .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
-.day{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;transition:.15s}
+.day{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;transition:.15s;cursor:pointer}
 .day:hover{border-color:var(--dim);transform:translateY(-2px)}
 .day.today{border-color:var(--gold);box-shadow:0 0 14px rgba(229,181,103,.15)}
+.day.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 20px rgba(229,181,103,.35);transform:translateY(-3px);background:rgba(229,181,103,.08)}
 .day .dw{font-size:11px;color:var(--dim)}
 .day .di{font-size:30px;margin:6px 0}
 .day .dn{font-size:10.5px;color:var(--muted);line-height:1.4}
@@ -112,7 +113,7 @@ footer b{color:var(--gold)}
     <div class="loading"><span class="spin">🌀</span><div style="margin-top:12px">加载天气数据中…</div></div>
   </div>
 
-  <footer>100 Apps Challenge · App #018 · <b>fetch 异步 API 调用</b>：geocoding 定位 + 天气查询<br>数据来源 Open-Meteo（免费无密钥）· 最后查询城市自动记忆</footer>
+  <footer>100 Apps Challenge · App #018 · <b>双引擎搜索</b>：高德（国内县乡镇全）+ Open-Meteo（国际）<br>天气数据 Open-Meteo · 7日卡片可点击查看 · 10秒自动回今天 · 城市自动记忆</footer>
 </div>
 
 <script>
@@ -128,6 +129,7 @@ footer b{color:var(--gold)}
 const KEY="weather_city_v1";
 const $=id=>document.getElementById(id);
 let curCity=null;       /* {name,adm,lat,lon} */
+let lastData=null;      /* 最近一次天气数据（pickDay 重渲染用） */
 let reqSeq=0;           /* 竞态防护 */
 let sugTimer=null;
 
@@ -184,35 +186,67 @@ const WDIR=["北","东北","东","东南","南","西南","西","西北"];
 const windDir=d=>WDIR[Math.round(d/45)%8];
 
 /* ---------- 城市搜索（geocoding + 竞态防护） ---------- */
+/* ---------- 城市搜索 ----------
+   双引擎策略（按国内地图 API 优先，全面提升县级市/乡镇覆盖）：
+   ① 高德 Web 服务 API（key 可选填，无 key 时走 ②）
+      —— 中国地名库最全：省/市/县/乡镇/村全层级，带行政区划归属
+   ② Open-Meteo geocoding 回落 —— 国际城市 + 无高德 key 兜底
+   两者都返回结构统一为 {name,adm,lat,lon,src} 列表 */
+const AMAP_KEY="";   /* 高德个人 key（留空则走免费公共代理模式，建议申请：https://console.amap.com） */
+async function searchCity(q){
+  /* ① 高德输入提示（中国地名优先策略） */
+  if(typeof AMAP_KEY==="string"&&AMAP_KEY){
+    try{
+      const r=await fetch(`https://restapi.amap.com/v3/assistant/inputtips?keywords=${encodeURIComponent(q)}&key=${AMAP_KEY}&datatype=all`);
+      const d=await r.json();
+      if(d.status==="1"&&d.tips){
+        const list=d.tips.filter(t=>t.location&&t.location.length)
+          .slice(0,8)
+          .map(t=>({
+            name:t.name,
+            adm:[t.district,t.city&&t.city!==t.name?t.city:"",t.province].filter(x=>x&&x.length&&x!==t.name).join(" · "),
+            lat:+t.location.split(",")[1],
+            lon:+t.location.split(",")[0],
+            src:"amap",
+          }));
+        if(list.length)return list;
+      }
+    }catch(e){/* 高德失败静默回落 */}
+  }
+  /* ② Open-Meteo 回落 */
+  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=zh&format=json`);
+  const d=await r.json();
+  return (d.results||[]).map(c=>({
+    name:c.name,
+    adm:[c.admin2&&c.admin2!==c.name?c.admin2:"",c.admin1&&c.admin1!==c.name?c.admin1:"",c.country].filter(Boolean).join(" · "),
+    lat:c.latitude,lon:c.longitude,src:"om",
+  }));
+}
 function onSearch(){
   clearTimeout(sugTimer);
-  sugTimer=setTimeout(()=>{
+  sugTimer=setTimeout(async()=>{
     const q=$("cityInp").value.trim();
     if(q.length<1){$("sug").classList.remove("show");return}
-    sugFetch(q);
-  },300);   /* 300ms 防抖 */
-}
-async function sugFetch(q){
-  const my=++reqSeq;
-  try{
-    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=zh&format=json`);
-    const d=await r.json();
-    if(my!==reqSeq)return;   /* 过期响应丢弃 */
-    const list=d.results||[];
-    if(!list.length){$("sug").classList.remove("show");return}
-    $("sug").innerHTML=list.map((c,i)=>`
-      <div class="sug-item" onclick="pickCity(${i})" data-i="${i}">
-        <span>${c.name}</span><span class="adm">${[c.admin1,c.country].filter(Boolean).join(" · ")}</span>
-      </div>`).join("");
-    $("sug")._data=list;
-    $("sug").classList.add("show");
-  }catch(e){/* 静默：搜索失败不打断 */}
+    const my=++reqSeq;
+    try{
+      const list=await searchCity(q);
+      if(my!==reqSeq)return;
+      if(!list.length){$("sug").classList.remove("show");return}
+      $("sug").innerHTML=list.map((c,i)=>`
+        <div class="sug-item" onclick="pickCity(${i})">
+          <span>${esc(c.name)}${c.src==="amap"?' <span style="font-size:9px;color:var(--green)">📍</span>':""}</span>
+          <span class="adm">${esc(c.adm)}</span>
+        </div>`).join("");
+      $("sug")._data=list;
+      $("sug").classList.add("show");
+    }catch(e){/* 静默 */}
+  },300);
 }
 function pickCity(i){
   const c=$("sug")._data[i];
   $("sug").classList.remove("show");
   $("cityInp").value=c.name;
-  curCity={name:c.name,adm:c.admin1||"",lat:c.latitude,lon:c.longitude};
+  curCity={name:c.name,adm:c.adm,lat:c.lat,lon:c.lon};
   remember();loadWeather();
 }
 async function doSearch(){
@@ -220,16 +254,19 @@ async function doSearch(){
   if(!q)return;
   $("sug").classList.remove("show");
   const my=++reqSeq;
-  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=zh&format=json`);
-  const d=await r.json();
-  if(my!==reqSeq)return;
-  if(!d.results||!d.results.length){
-    $("main").innerHTML=`<div class="err">找不到「${esc(q)}」，试试其他名称 🤔</div>`;
-    return;
+  try{
+    const list=await searchCity(q);
+    if(my!==reqSeq)return;
+    if(!list.length){
+      $("main").innerHTML=`<div class="err">找不到「${esc(q)}」，试试其他名称 🤔</div>`;
+      return;
+    }
+    const c=list[0];
+    curCity={name:c.name,adm:c.adm,lat:c.lat,lon:c.lon};
+    remember();loadWeather();
+  }catch(e){
+    $("main").innerHTML=`<div class="err">搜索失败：${esc(e.message)}</div>`;
   }
-  const c=d.results[0];
-  curCity={name:c.name,adm:c.admin1||"",lat:c.latitude,lon:c.longitude};
-  remember();loadWeather();
 }
 document.addEventListener("click",e=>{
   if(!e.target.closest(".sug-wrap"))$("sug").classList.remove("show");
@@ -252,6 +289,8 @@ async function loadWeather(){
     if(!r.ok)throw new Error("API "+r.status);
     const d=await r.json();
     if(my!==reqSeq)return;
+    lastData=d;          /* 缓存：pickDay 局部重渲染用 */
+    selDay=0;            /* 新城市重置选中 */
     render(d);
   }catch(e){
     if(my!==reqSeq)return;
@@ -289,23 +328,40 @@ function render(d){
   const times=d.hourly.time.slice(nowH,nowH+24).map(t=>+t.slice(11,13));
   html+=chartHTML(temps,times);
 
-  /* 7 日预报 */
+  /* 7 日预报：从今天起的 7 天序列（周一在最左的语义通过排序展示） */
   const wd=["日","一","二","三","四","五","六"];
   const today=new Date().getDay();
-  html+=`<div class="week"><h3>📅 未来 7 天预报</h3><div class="days">`+
+  const selBar=selDay===0?"":`<div style="margin-top:12px;background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><span style="font-size:26px">${wmo(d.daily.weather_code[selDay])[1]}</span><b style="color:var(--gold)">${dayFullLabel(d.daily.time[selDay],selDay,today)}</b><span>${wmo(d.daily.weather_code[selDay])[0]}</span><span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_max[selDay])}° / ${Math.round(d.daily.temperature_2m_min[selDay])}°</span></div>`;
+  html+=`<div class="week"><h3>📅 未来 7 天预报${selDay!==0?'<span style="color:var(--gold);font-size:10px;margin-left:8px">● 已选中，10秒无操作自动回到今天</span>':''}</h3><div class="days">`+
     d.daily.time.map((t,i)=>{
       const [t2,i2]=wmo(d.daily.weather_code[i]);
-      const dlabel=i===0?"今天":`周${wd[(today+i)%7]}`;
-      return `<div class="day ${i===0?'today':''}">
+      const dt=new Date(t);
+      const dlabel=i===0?"今天":`${(dt.getMonth()+1)}/${dt.getDate()} 周${wd[dt.getDay()]}`;
+      return `<div class="day ${i===selDay?'sel':i===0?'today':''}" onclick="pickDay(${i})" title="点击查看">
         <div class="dw">${dlabel}</div>
-        <div class="di">${i===0&&hour>=18?i2:i2}</div>
+        <div class="di">${i2}</div>
         <div class="dn">${t2}</div>
         <div class="dt"><b>${Math.round(d.daily.temperature_2m_max[i])}°</b> <span>/ ${Math.round(d.daily.temperature_2m_min[i])}°</span></div>
       </div>`;
-    }).join("")+`</div></div>`;
+    }).join("")+`</div>${selBar}</div>`;
 
   $("main").innerHTML=html;
   renderQuick();
+}
+function dayFullLabel(t,i,today){
+  const wd=["日","一","二","三","四","五","六"];
+  const dt=new Date(t);
+  return `${dt.getMonth()+1}月${dt.getDate()}日 · 周${wd[dt.getDay()]}`;
+}
+/* 选中日交互：pickDay 高亮卡片；10 秒无操作自动回今天 */
+let selDay=0,selTimer=null;
+function pickDay(i){
+  selDay=i;
+  clearTimeout(selTimer);
+  render(lastData);
+  selTimer=setTimeout(()=>{
+    if(selDay!==0){selDay=0;render(lastData)}   /* 自动跳回今天 */
+  },10000);
 }
 
 /* SVG 温度曲线 */
@@ -370,16 +426,17 @@ function capPick(name,adm){
   remember();loadWeather();
   window.scrollTo({top:0,behavior:"smooth"});
 }
-/* 兜底：坐标表没有的城市走搜索 */
+/* 兜底：坐标表没有的城市走统一搜索 */
 async function doSearchName(q){
   const my=++reqSeq;
-  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=zh&format=json`);
-  const d=await r.json();
-  if(my!==reqSeq||!d.results||!d.results.length)return;
-  const c=d.results[0];
-  curCity={name:c.name,adm:c.admin1||"",lat:c.latitude,lon:c.longitude};
-  remember();loadWeather();
-  window.scrollTo({top:0,behavior:"smooth"});
+  try{
+    const list=await searchCity(q);
+    if(my!==reqSeq||!list.length)return;
+    const c=list[0];
+    curCity={name:c.name,adm:c.adm,lat:c.lat,lon:c.lon};
+    remember();loadWeather();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }catch(e){}
 }
 function quickPick(i){
   const q=QUICK[i];

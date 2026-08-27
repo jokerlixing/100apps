@@ -19,43 +19,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var
 /* 木鱼舞台 */
 .stage{position:relative;height:320px;margin-bottom:10px;user-select:none;-webkit-user-select:none;perspective:600px}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}  /* 粒子层置顶，盖在木鱼上面 */
-/* 落地阴影（随跳跃高度变化） */
-.shadow{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:120px;height:20px;background:radial-gradient(ellipse,rgba(0,0,0,.35) 0%,transparent 70%);border-radius:50%;transition:all .15s ease-out;pointer-events:none}
-.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1;animation:idle 3s ease-in-out infinite;transform-origin:center bottom;will-change:transform}
+.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1}
 .muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px}
-
-/* ====== 敲击跳跃动画（核心特效）====== */
-.muyu.knocking{animation:jump .5s cubic-bezier(.25,.46,.45,.94) forwards}
-@keyframes jump{
-  0%   {transform:translate(-50%,-50%) scale(1,1) rotate(0deg)}           /* 起点 */
-  12%  {transform:translate(-50%,-50%) scale(1.15,0.85) rotate(-4deg)}      /* 蓄力压缩 */
-  28%  {transform:translate(-50%,-120%) scale(0.92,1.08) rotate(2deg)}     /* 跳到最高点 */
-  42%  {transform:translate(-50%,-50%) scale(1.2,0.8) rotate(-3deg)}        /* 落地压扁 */
-  54%  {transform:translate(-50%,-50%) scale(0.9,1.1) rotate(1.5deg)}       /* 第一次回弹 */
-  66%  {transform:translate(-50%,-20%) scale(0.95,1.05) rotate(-1deg)}      /* 小跳 */
-  78%  {transform:translate(-50%,-50%) scale(1.05,0.95) rotate(.5deg)}       /* 再落地 */
-  90%  {transform:translate(-50%,-50%) scale(0.98,1.02) rotate(0)}          /* 收敛 */
-  100% {transform:translate(-50%,-50%) scale(1,1) rotate(0deg)}             /* 稳定 */
-}
-
-/* 待机呼吸：轻微上下浮动+微光 */
-@keyframes idle{
-  0%,100%{transform:translate(-50%,-50%) translateY(0) scale(1);filter:drop-shadow(0 14px 22px rgba(0,0,0,.5))}
-  50%{transform:translate(-50%,-52%) translateY(-6px) scale(1.02);filter:drop-shadow(0 18px 28px rgba(229,181,103,.15))}
-}
-
-/* 敲击时屏幕震动 */
-.shake{animation:screenShake .35s ease-out}
-@keyframes screenShake{
-  0%,100%{transform:translate(0,0)}
-  10%{transform:translate(-3px,2px)}
-  20%{transform:translate(4px,-1px)}
-  30%{transform:translate(-2px,3px)}
-  40%{transform:translate(3px,-2px)}
-  50%{transform:translate(-1px,1px)}
-  60%{transform:translate(1px,0)}
-  80%{transform:translate(0,0)}
-}
 
 /* 计数 */
 .counter{margin-bottom:8px}
@@ -89,7 +54,6 @@ footer b{color:var(--gold)}
 
   <div class="stage">
     <canvas id="cv"></canvas>
-    <div class="shadow" id="shadow"></div>
     <div class="muyu" id="fish" title="敲我"><img src="assets/muyu.png?v=3" alt="木鱼" draggable="false"></div>
   </div>
 
@@ -186,8 +150,7 @@ function loop(){
 requestAnimationFrame(loop);
 
 /* ---------- 敲击 ---------- */
-const fish=$("fish"),shadow=$("shadow"),app=$(".app");
-let knockLock=false,combo=0,comboTimer=null;
+const fish=$("fish");
 function knock(e){
   /* e 可以是 PointerEvent（点击）或 undefined（自动/键盘） */
   total++;
@@ -210,41 +173,6 @@ function knock(e){
   }
   spawn(cx,cy);
   knockSound();
-
-  /* 连击计数（300ms内算连击） */
-  combo++;
-  clearTimeout(comboTimer);
-  comboTimer=setTimeout(()=>{combo=0},300);
-
-  /* ====== 触发全套视觉特效 ====== */
-  if(!knockLock){
-    knockLock=true;
-
-    /* 1. 屏幕震动 */
-    app.classList.remove("shake");
-    void app.offsetWidth;
-    app.classList.add("shake");
-    setTimeout(()=>app.classList.remove("shake"),350);
-
-    /* 2. 阴影：跳跃时缩小，落地时放大 */
-    shadow.style.transform="translateX(-50%) scale(0.3)";
-    shadow.style.opacity="0.4";
-    setTimeout(()=>{shadow.style.transform="translateX(-50%) scale(1.3)";shadow.style.opacity="0.7"},200);
-    setTimeout(()=>{shadow.style.transform="translateX(-50%) scale(1)";shadow.style.opacity="1"},350);
-
-    /* 3. 木鱼跳跃动画 */
-    fish.classList.remove("knocking","idle");
-    void fish.offsetWidth;
-    fish.classList.add("knocking");
-
-    /* 动画结束后恢复待机 */
-    const duration=combo>3?Math.max(300,500-combo*30):500; /* 连击越快动画越短 */
-    setTimeout(()=>{
-      fish.classList.remove("knocking");
-      fish.classList.add("idle");
-      knockLock=false;
-    },duration);
-  }
 }
 fish.addEventListener("pointerdown",e=>knock(e));
 document.addEventListener("keydown",e=>{

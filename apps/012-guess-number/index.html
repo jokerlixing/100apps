@@ -214,7 +214,9 @@ function clearRecords(){
   clrArmed=false;clearTimeout(clrTimer);
   btn.textContent="🗑 清空记录";btn.style.borderColor="";btn.style.color="";
   best={100:null,500:null,1000:null};playeds=0;
-  save();renderStats();
+  save();
+  newGame();  /* 本局也重置：次数归零+新答案+历史清空 */
+  renderStats();
   setFB("🧹","所有记录已清空","开始全新的一局吧");
 }
 $("inp").addEventListener("keydown",e=>{if(e.key==="Enter")guess()});

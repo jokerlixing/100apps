@@ -24,15 +24,22 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 .hero .date{color:var(--muted);font-size:13px;margin-bottom:18px}
 .hero .clock{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
 .hero .cell{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:12px 10px;min-width:74px}
-.hero .num{font-size:32px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1.1}
+.hero .num{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .hero .unit{font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:2px}
+/* 四色数字：天=金(主) 时=蓝 分=绿 秒=紫，天最大号 */
+#cD{color:var(--gold);font-size:38px;text-shadow:0 0 16px rgba(229,181,103,.35)}
+#cH{color:var(--blue);text-shadow:0 0 12px rgba(86,156,214,.3)}
+#cM{color:var(--green);text-shadow:0 0 12px rgba(78,201,176,.3)}
+#cS{color:var(--purple);text-shadow:0 0 12px rgba(197,134,192,.3)}
 .hero .tip{color:var(--dim);font-size:12px}
 
-/* 进度条 */
+/* 立体长方体进度条：凹槽+刻度+填充体顶高光，每秒平滑推进 */
 .hero .prog-wrap{margin:0 6px}
-.hero .prog{height:6px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;margin-bottom:6px}
-.hero .prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:3px;transition:width .5s}
-.hero .prog-lab{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
+.hero .prog{height:22px;background:linear-gradient(180deg,#111318 0%,#1a1d26 100%);border:1px solid var(--line);border-radius:6px;overflow:hidden;position:relative;box-shadow:inset 0 2px 6px rgba(0,0,0,.6),inset 0 -1px 0 rgba(255,255,255,.04)}
+.hero .prog-fill{height:100%;background:linear-gradient(180deg,#6fd7c0 0%,var(--green) 45%,#2e9a82 100%);border-radius:5px 0 0 5px;transition:width 1s linear;position:relative;box-shadow:0 0 12px rgba(78,201,176,.45)}
+.hero .prog-fill::after{content:"";position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0));border-radius:5px 0 0 0}
+.hero .prog::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(255,255,255,.07) calc(10% - 1px),rgba(255,255,255,.07) 10%);pointer-events:none;z-index:2}
+.hero .prog-lab{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:6px}
 
 /* 网格卡片 */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:22px}
@@ -45,9 +52,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 .card .dd small{font-size:11px;color:var(--muted);font-weight:400;margin-left:2px}
 .card .dd.soon{color:var(--red)}
 .card .dd.far{color:var(--green)}
-.card .del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:4px;display:none}
-.card:hover .del{display:block}
-.card .del:hover{color:var(--red)}
+.card .del{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--dim);font-size:12px;cursor:pointer;padding:2px 8px;border-radius:10px;opacity:.65}
+.card .del:hover{color:var(--red);border-color:var(--red);opacity:1}
 .card.today{border-color:var(--gold);box-shadow:0 0 18px rgba(229,181,103,.2)}
 
 /* 添加节日 */
@@ -201,7 +207,7 @@ function render(){
     const cls=days<=7?"soon":days<=60?"":"far";
     const today=days===0;
     return `<div class="card ${today?'today':''}">
-      ${it.custom?`<button class="del" onclick="delFest(${it.idx})" title="删除">✕</button>`:""}
+      ${it.custom?`<button class="del" onclick="delFest(${it.idx},this)" title="删除">✕</button>`:""}
       <div class="emoji">${it.emoji}</div>
       <div class="name">${esc(it.name)}</div>
       <div class="date">${fmt(it.next)}</div>
@@ -255,10 +261,22 @@ function addFest(){
   $("nName").value="";$("nDate").value="";$("nEmoji").value="";
   render();
 }
-function delFest(i){
+/* 删除自定义节日：内联二次确认（3秒超时），确认后全页重渲染（焦点卡接力） */
+let delArmed=-1,delTimer=null;
+function delFest(i,btn){
+  if(delArmed!==i){
+    delArmed=i;
+    document.querySelectorAll(".card .del").forEach(b=>{b.textContent="✕";b.style.color="";b.style.borderColor=""});
+    if(btn){btn.textContent="确认?";btn.style.color="var(--red)";btn.style.borderColor="var(--red)"}
+    clearTimeout(delTimer);
+    delTimer=setTimeout(()=>{delArmed=-1;if(btn){btn.textContent="✕";btn.style.color="";btn.style.borderColor=""}},3000);
+    return;
+  }
+  clearTimeout(delTimer);delArmed=-1;
   customs.splice(i,1);
   save();
-  render();
+  render();   /* 重建全部卡片+焦点卡（若删的是最近的节日，下一个自动顶上） */
+  tick();     /* 立即刷新倒计时数字 */
 }
 $("nName").addEventListener("keydown",e=>{if(e.key==="Enter")addFest()});
 

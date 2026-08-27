@@ -279,49 +279,50 @@ function notify(msg){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2600);
 }
-/* ---------- 到点铃声：Web Audio 合成 10 秒渐弱叮铃 ---------- */
+/* ---------- 到点铃声：风铃琶音（空灵五声音阶，10秒自然消散） ---------- */
 let bellCtx=null,bellStopFn=null;
 function ringBell(){
   try{
     if(!bellCtx)bellCtx=new (window.AudioContext||window.webkitAudioContext)();
     if(bellCtx.state==="suspended")bellCtx.resume();
-    if(bellStopFn)bellStopFn();   /* 上一轮还没完就先停 */
-    const ctx2=bellCtx;
-    /* 主增益：10秒总包络（渐弱） */
+    if(bellStopFn)bellStopFn();
+    const ctx2=bellCtx,t0=ctx2.currentTime;
+    /* 总线：柔和上限 + 10秒整体淡出 */
     const master=ctx2.createGain();
-    master.gain.setValueAtTime(0.5,ctx2.currentTime);
-    master.gain.linearRampToValueAtTime(0.0001,ctx2.currentTime+10);
+    master.gain.setValueAtTime(0.9,t0);
+    master.gain.setValueAtTime(0.9,t0+7);
+    master.gain.linearRampToValueAtTime(0.0001,t0+10);
     master.connect(ctx2.destination);
-    /* 双音叮铃（880Hz+1320Hz，像老式闹钟） */
     const oscs=[];
-    [[880,"sine"],[1320,"sine"]].forEach(([f,type])=>{
+    /* 单音敲击：正弦 + 高八度泛音 + 长衰减（风铃质感） */
+    function chime(freq,at,amp){
       const o=ctx2.createOscillator();
-      o.type=type;o.frequency.value=f;
-      const g=ctx2.createGain();
-      g.gain.value=f===880?0.6:0.35;
-      o.connect(g);g.connect(master);
-      o.start();
-      oscs.push(o);
-    });
-    /* 颤音调制：叮-铃-叮-铃 节奏（6Hz 方波开关） */
-    const trem=ctx2.createOscillator();
-    trem.type="square";trem.frequency.value=6;
-    const tremGain=ctx2.createGain();
-    tremGain.gain.value=0.45;
-    /* 用 trem 控制 master 的第二层开关：接一个 shaper 把方波变成 0/1 */
-    trem.connect(tremGain);
-    /* 简化：直接把 tremGain 接到 master.gain（AudioParam 调制） */
-    tremGain.connect(master.gain);
-    trem.start();
-    oscs.push(trem);
-    /* 10 秒后全停 */
-    const stopAt=ctx2.currentTime+10;
-    const stop=()=>{
-      oscs.forEach(o=>{try{o.stop()}catch(e){}});
-    };
+      o.type="sine";o.frequency.value=freq;
+      const o2=ctx2.createOscillator();
+      o2.type="sine";o2.frequency.value=freq*2.756;   /* 非整数倍泛音=金属风铃 */
+      const g=ctx2.createGain(),g2=ctx2.createGain();
+      g.gain.setValueAtTime(0,t0+at);
+      g.gain.linearRampToValueAtTime(amp,t0+at+0.012);      /* 快起 */
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+at+4.5); /* 4.5秒长尾 */
+      g2.gain.setValueAtTime(0,t0+at);
+      g2.gain.linearRampToValueAtTime(amp*0.18,t0+at+0.008);
+      g2.gain.exponentialRampToValueAtTime(0.0001,t0+at+1.8);
+      o.connect(g);o2.connect(g2);
+      g.connect(master);g2.connect(master);
+      o.start(t0+at);o.stop(t0+at+4.6);
+      o2.start(t0+at);o2.stop(t0+at+1.9);
+      oscs.push(o,o2);
+    }
+    /* C 大调五声音阶琶音（C5 E5 G5 A5 C6 D6）——空灵上扬 */
+    const scale=[523.25,659.25,783.99,880,1046.5,1174.7];
+    scale.forEach((f,i)=>chime(f,i*0.45,0.32-i*0.03));
+    /* 尾声：高音轻点两下收束 */
+    chime(1568,3.4,0.1);
+    chime(2093,4.1,0.06);
+    const stop=()=>oscs.forEach(o=>{try{o.stop()}catch(e){}});
     const timer=setTimeout(stop,10000);
     bellStopFn=()=>{clearTimeout(timer);stop()};
-  }catch(e){/* 音频不可用静默 */}
+  }catch(e){}
 }
 
 /* ---------- 任务 ---------- */

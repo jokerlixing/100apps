@@ -23,20 +23,20 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 .add input:focus{border-color:var(--green)}
 .add .name{flex:2;min-width:140px}
 .add .date{flex:1;min-width:140px;color-scheme:dark}
-.add button{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
-.add button:hover{filter:brightness(1.1)}
+.add button{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}@media(hover:hover){
+.add button:hover{filter:brightness(1.1)}}
 
 /* 预设 */
 .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .presets span{font-size:12px;color:var(--dim);align-self:center}
-.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;transition:.15s}
-.chip:hover{border-color:var(--blue);color:var(--blue)}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;transition:.15s}@media(hover:hover){
+.chip:hover{border-color:var(--blue);color:var(--blue)}}
 
 /* 列表 */
 .list{display:flex;flex-direction:column;gap:10px}
 .item{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:.15s;animation:pop .18s ease}
-@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.item:hover{border-color:var(--dim)}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@media(hover:hover){
+.item:hover{border-color:var(--dim)}}
 .item.soon{border-left:3px solid var(--red)}
 .item.near{border-left:3px solid var(--orange)}
 .item.far{border-left:3px solid var(--green)}
@@ -56,8 +56,8 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 .emoji{font-size:22px;flex-shrink:0}
 
 .del{background:transparent;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:4px 7px;border-radius:6px;opacity:0;transition:.15s}
-.item:hover .del{opacity:1}
-.del:hover{color:var(--red);background:rgba(224,108,117,.12)}
+.item:hover .del{opacity:1}@media(hover:hover){
+.del:hover{color:var(--red);background:rgba(224,108,117,.12)}}
 
 .empty{text-align:center;padding:48px 0;color:var(--dim);font-size:14px}
 .empty .big{font-size:38px;margin-bottom:10px}

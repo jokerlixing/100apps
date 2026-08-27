@@ -186,7 +186,6 @@ function calc(fromStd){
   const wDisp=+$("weight").value;              /* 滑杆上的显示值（当前单位） */
   const w=wUnit==="jin"?wDisp/2:wDisp;         /* 内部统一用 kg 计算 */
   $("hVal").textContent=h+" cm";
-  $("wVal").textContent=wDisp+" "+wUnit;
   const m=h/100,bmi=w/(m*m);
   const cat=catOf(bmi);
   $("bmiNum").textContent=bmi.toFixed(1);

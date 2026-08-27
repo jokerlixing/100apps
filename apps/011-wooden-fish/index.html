@@ -19,9 +19,23 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var
 /* 木鱼舞台 */
 .stage{position:relative;height:300px;margin-bottom:10px;user-select:none;-webkit-user-select:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.muyu{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:220px;height:220px;cursor:pointer;transition:transform .08s ease-out;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1}
-.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none}
-.muyu:active{transform:translate(-50%,-50%) scale(.93) rotate(-3deg)}
+.muyu{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:220px;height:220px;cursor:pointer;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1;animation:idle 3s ease-in-out infinite}
+.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px}
+/* 敲击动画：压下→快速回弹→超调摇摆→稳定 */
+.muyu.knocking{animation:knock .4s ease-out forwards}
+@keyframes knock{
+  0%{transform:translate(-50%,-50%) scale(1) rotate(0deg)}
+  15%{transform:translate(-50%,-48%) scale(.88) rotate(-5deg)}        /* 压下去 */
+  30%{transform:translate(-50%,-52%) scale(1.06) rotate(3deg)}       /* 弹起超调 */
+  50%{transform:translate(-50%,-50%) scale(.97) rotate(-2deg)}        /* 回摆 */
+  70%{transform:translate(-50%,-50%) scale(1.02) rotate(1deg)}         /* 微调 */
+  85%{transform:translate(-50%,-50%) scale(.99) rotate(-.5deg)}        /* 收敛 */
+  100%{transform:translate(-50%,-50%) scale(1) rotate(0deg)}           /* 稳定 */
+}
+/* 待机呼吸：轻微上下浮动+微光 */
+@keyframes idle{
+  0%,100%{transform:translate(-50%,-50%) translateY(0) scale(1);filter:drop-shadow(0 14px 22px rgba(0,0,0,.5))}
+  50%{transform:translate(-50%,-52%) translateY(-6px) scale(1.02);filter:drop-shadow(0 18px 28px rgba(229,181,103,.15))}
 
 /* 计数 */
 .counter{margin-bottom:8px}
@@ -151,6 +165,8 @@ function loop(){
 requestAnimationFrame(loop);
 
 /* ---------- 敲击 ---------- */
+const fish=$("fish");
+let knockLock=false;  /* 防止动画期间重复触发 */
 function knock(){
   total++;
   if(total>peak)peak=total;
@@ -158,11 +174,19 @@ function knock(){
   $("total").textContent=total.toLocaleString();
   $("now").textContent=total.toLocaleString();
   $("peak").textContent=peak.toLocaleString();
-  const r=$("fish").getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+  const r=fish.getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
   spawn(r.left-s.left+r.width/2,r.top-s.top+r.height/2);
   knockSound();
+  /* 触发敲击动画 */
+  if(!knockLock){
+    knockLock=true;
+    fish.classList.remove("knocking");   /* 重置以允许重新触发 */
+    void fish.offsetWidth;               /* 强制 reflow */
+    fish.classList.add("knocking");
+    setTimeout(()=>{fish.classList.remove("knocking");fish.classList.add("");knockLock=false},400);
+  }
 }
-$("fish").addEventListener("pointerdown",knock);
+fish.addEventListener("pointerdown",knock);
 document.addEventListener("keydown",e=>{
   if(e.code==="Space"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();knock()}
 });

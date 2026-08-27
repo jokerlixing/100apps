@@ -11,14 +11,14 @@
   --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.app{width:100%;max-width:520px}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{width:100%;max-width:520px;margin:0 auto}
 
 /* mode tabs */
 .tabs{display:flex;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:16px}
 .tab{flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
-.tab.on{color:#12131a}
-.tab:not(.on):hover{color:var(--text)}
+.tab.on{color:#12131a}@media(hover:hover){
+.tab:not(.on):hover{color:var(--text)}}
 
 /* timer card */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px;text-align:center;margin-bottom:16px}
@@ -32,10 +32,10 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft Ya
 
 /* controls */
 .ctrl{display:flex;gap:10px;justify-content:center}
-.btn{padding:12px 26px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
-.btn:hover{border-color:var(--dim)}
-.btn.main{background:var(--green);border-color:var(--green);color:#12211d;min-width:120px}
-.btn.main:hover{filter:brightness(1.1)}
+.btn{padding:12px 26px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:.15s}@media(hover:hover){
+.btn:hover{border-color:var(--dim)}}
+.btn.main{background:var(--green);border-color:var(--green);color:#12211d;min-width:120px}@media(hover:hover){
+.btn.main:hover{filter:brightness(1.1)}}
 .btn.main.paused{background:var(--orange);border-color:var(--orange);color:#2a1c0d}
 
 /* presets */

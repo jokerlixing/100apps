@@ -43,9 +43,10 @@ h1{font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 @media(hover:hover){.cell:hover{border-color:var(--dim);background:var(--panel2)}}
 .cell.other{opacity:.3;background:transparent}
 .cell.other .d{color:var(--dim)}
-/* 今天：金色徽章 + 边框光晕 */
-.cell.today{border-color:var(--gold);box-shadow:0 0 14px rgba(229,181,103,.18),inset 0 0 20px rgba(229,181,103,.05)}
-.cell.today .d{background:linear-gradient(135deg,#e5b567,#d49a3e);color:#1a1a22;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800}
+/* 今天：粉色徽章 + 粉色边框光晕 */
+.cell.today{border-color:#e87fd0;box-shadow:0 0 14px rgba(232,127,208,.22),inset 0 0 20px rgba(232,127,208,.06)}
+.cell.today .d{background:linear-gradient(135deg,#f09bd8,#d662b4);color:#2b1023;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800}
+.cell.today .d.wknd{color:#2b1023}
 /* 选中：蓝框 */
 .cell.sel{border-color:var(--blue);box-shadow:0 0 14px rgba(86,156,214,.22)}
 .cell.sel .d::after{content:"";position:absolute}
@@ -54,7 +55,6 @@ h1{font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 .cell .ln{font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:.5px;white-space:nowrap}
 .cell .ln.mn{color:var(--gold);font-weight:700}
 .cell .d.wknd{color:var(--red)}
-.cell.today .d.wknd{color:#1a1a22}
 .cell .evs{margin-top:6px;display:flex;flex-direction:column;align-items:center;gap:2.5px;overflow:hidden;width:100%}
 .dot-ev{font-size:9.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:2px 7px;border-radius:6px;background:rgba(86,156,214,.16);color:var(--blue);border-left:2px solid currentColor}
 .dot-ev.more{background:transparent;color:var(--dim);border-left-color:transparent}
@@ -87,9 +87,15 @@ footer b{color:var(--gold)}
   .nav{width:100%;justify-content:space-between}
   .cell{min-height:56px;padding:6px}
   .cell .d,.cell.today .d{font-size:14px;width:24px;height:24px}
+  /* 移动端事件显示：改用色点行（每个事件一个色点，颜色即事件色） */
   .dot-ev{display:none}
-  .cell .evs{flex-direction:row;gap:3px;margin-top:4px}
-  .evdot{width:5px;height:5px;border-radius:50%;background:var(--blue);flex-shrink:0}
+  .cell .evs{flex-direction:row;gap:3px;margin-top:4px;justify-content:center}
+  .cell .evs::before{content:""}
+}
+/* 移动端事件色点：由 JS 按事件数生成 */
+.m-evdot{display:none}
+@media(max-width:560px){
+  .m-evdot{display:block;width:6px;height:6px;border-radius:50%;flex-shrink:0}
 }
 </style>
 </head>
@@ -274,12 +280,18 @@ function render(){
     const isWknd=cur.getDay()===0||cur.getDay()===6;
     const evs=events[ds]||[];
     let evHtml="";
+    let evBorderStyle="";
     if(evs.length){
       evHtml=evs.slice(0,2).map(e=>
         `<span class="dot-ev" style="background:${COLORS[e.color]}1f;color:${COLORS[e.color]}">${esc(e.text)}</span>`
       ).join("");
       if(evs.length>2)evHtml+=`<span class="dot-ev more">+${evs.length-2} 更多</span>`;
-      evHtml+=`<span class="evdot" style="background:${COLORS[evs[0].color]};display:none"></span>`;
+      /* 有事件：边框突出第一件事件的颜色 */
+      evBorderStyle=`border-color:${COLORS[evs[0].color]};box-shadow:0 0 10px ${COLORS[evs[0].color]}33`;
+    }
+    /* 移动端事件色点：每事件一个（颜色对应事件色），桌面端隐藏 */
+    if(evs.length){
+      evHtml+=`<span class="m-evdot" style="background:${COLORS[evs[0].color]}"></span>`;
     }
     /* 农历：初一显示月名（含闰月），其余显示日名 */
     let lunarTxt="";
@@ -287,7 +299,8 @@ function render(){
       const lu=solar2lunar(cur.getFullYear(),cur.getMonth()+1,cur.getDate());
       lunarTxt=lu.day==="初一"?(lu.isLeap?"闰":"")+lu.monthCN:lu.dayCN;
     }catch(e){}
-    html+=`<div class="cell ${inMonth?"":"other"} ${isToday?"today":""} ${isSel?"sel":""}" onclick="pick('${ds}')">
+    /* 事件边框色优先于普通边框；today/sel 的样式类仍在，事件色内联覆盖 */
+    html+=`<div class="cell ${inMonth?"":"other"} ${isToday?"today":""} ${isSel?"sel":""}" style="${evBorderStyle}" onclick="pick('${ds}')">
       <div class="d ${isWknd?"wknd":""}">${cur.getDate()}</div>
       <div class="ln ${lunarTxt&&lunarTxt.endsWith("月")?"mn":""}">${lunarTxt}</div>
       <div class="evs">${evHtml}</div>

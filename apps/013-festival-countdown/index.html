@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎉 节日倒计时 · Festival Countdown</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{max-width:760px;margin:0 auto}
+header{text-align:center;margin-bottom:22px}
+h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:2px}
+
+/* 主焦点卡：最近的节日 */
+.hero{background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:28px 24px;text-align:center;margin-bottom:22px;position:relative;overflow:hidden}
+.hero .emoji{font-size:56px;line-height:1;margin-bottom:8px}
+.hero .name{font-size:20px;font-weight:700;margin-bottom:4px}
+.hero .date{color:var(--muted);font-size:13px;margin-bottom:18px}
+.hero .clock{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.hero .cell{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:12px 10px;min-width:74px}
+.hero .num{font-size:32px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1.1}
+.hero .unit{font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:2px}
+.hero .tip{color:var(--dim);font-size:12px}
+
+/* 进度条 */
+.hero .prog-wrap{margin:0 6px}
+.hero .prog{height:6px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.hero .prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:3px;transition:width .5s}
+.hero .prog-lab{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
+
+/* 网格卡片 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;transition:.15s}
+.card:hover{border-color:var(--dim);transform:translateY(-2px)}
+.card .emoji{font-size:28px;margin-bottom:6px}
+.card .name{font-size:14px;font-weight:600;margin-bottom:2px}
+.card .date{font-size:11px;color:var(--dim);margin-bottom:10px}
+.card .dd{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .dd small{font-size:11px;color:var(--muted);font-weight:400;margin-left:2px}
+.card .dd.soon{color:var(--red)}
+.card .dd.far{color:var(--green)}
+.card .del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:4px;display:none}
+.card:hover .del{display:block}
+.card .del:hover{color:var(--red)}
+.card.today{border-color:var(--gold);box-shadow:0 0 18px rgba(229,181,103,.2)}
+
+/* 添加节日 */
+.add-card{display:flex;gap:8px;background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:14px;align-items:center}
+.add-card input,.add-card select{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:9px;font-size:13px;outline:none;-webkit-user-select:text;user-select:text}
+.add-card input:focus,.add-card select:focus{border-color:var(--gold)}
+.add-card input[type=text]{flex:1;min-width:0}
+.add-card input[type=date]{color-scheme:dark}
+.add-card input[type=emoji],.add-card .emoji-inp{width:52px;text-align:center;font-size:16px}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;transition:.15s;outline:none;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line);font-weight:400}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:22px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+
+@media(max-width:520px){
+  .hero .clock{gap:6px}
+  .hero .cell{min-width:60px;padding:10px 6px}
+  .hero .num{font-size:24px}
+  .add-card{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>节日倒计时</h1>
+    <div class="sub">重要日子 · 实时 countdown · 支持自定义</div>
+  </header>
+
+  <div class="hero" id="hero">
+    <div class="emoji" id="hEmoji">🎉</div>
+    <div class="name" id="hName">—</div>
+    <div class="date" id="hDate">—</div>
+    <div class="clock">
+      <div class="cell"><div class="num" id="cD">0</div><div class="unit">天</div></div>
+      <div class="cell"><div class="num" id="cH">0</div><div class="unit">时</div></div>
+      <div class="cell"><div class="num" id="cM">0</div><div class="unit">分</div></div>
+      <div class="cell"><div class="num" id="cS">0</div><div class="unit">秒</div></div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
+      <div class="prog-lab"><span id="pFrom">—</span><span id="pTo">—</span></div>
+    </div>
+    <div class="tip" id="hTip" style="margin-top:10px"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="add-card">
+    <input type="text" class="emoji-inp" id="nEmoji" placeholder="🎉" maxlength="4">
+    <input type="text" id="nName" placeholder="节日名称" maxlength="16">
+    <input type="date" id="nDate">
+    <button class="btn" onclick="addFest()">＋ 添加</button>
+  </div>
+
+  <footer>100 Apps Challenge · App #013 · <b>Date 时间计算</b>：本地时区/毫秒差/农历硬编码<br>自定义节日存于 localStorage</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：Date 对象与时间计算
+   - 时间差 = 目标时间.getTime() - Date.now()（毫秒级）
+   - 天/时/分/秒 = 逐级整除取余
+   - 农历节日（春节/中秋）无法用公式简单推算 → 硬编码表
+   - 过期节日自动 +1 年滚动（元旦/国庆等公历节日安全，
+     农历节日滚动会错——所以农历表按年给足）
+   ============================================================ */
+const KEY="fest_v1";
+const $=id=>document.getElementById(id);
+const DAY=86400000;
+
+/* 预置节日：农历节日硬编码到 2028 */
+const PRESETS=[
+  {emoji:"🎊",name:"元旦",type:"solar",md:"01-01"},
+  {emoji:"❤️",name:"情人节",type:"solar",md:"02-14"},
+  {emoji:"🌸",name:"春节(2027)",type:"fixed",date:"2027-02-06"},
+  {emoji:"🌼",name:"清明节",type:"solar",md:"04-05"},
+  {emoji:"💪",name:"劳动节",type:"solar",md:"05-01"},
+  {emoji:"🐉",name:"端午节",type:"fixed",date:"2027-06-09"},
+  {emoji:"🌕",name:"中秋节(2026)",type:"fixed",date:"2026-09-25"},
+  {emoji:"🇨🇳",name:"国庆节",type:"solar",md:"10-01"},
+  {emoji:"🎄",name:"圣诞节",type:"solar",md:"12-25"},
+  {emoji:"✨",name:"跨年夜",type:"solar",md:"12-31"},
+];
+/* 农历新年：2027=2/6, 2028=1/26（往后需要再补表） */
+
+let customs=[];
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s)customs=s.customs||[]}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({customs}))}catch(e){}}
+
+/* 把节日解析为"下一个发生时刻"（当天 00:00） */
+function nextDate(item,now){
+  let y=now.getFullYear();
+  let d;
+  if(item.type==="fixed"){
+    d=new Date(item.date+"T00:00:00");
+    if(d.getTime()+DAY<=now.getTime())return null; /* 固定日期过期即过期 */
+    return d;
+  }
+  /* solar：每年同月日，过期自动滚到明年 */
+  d=new Date(y+"-"+item.md+"T00:00:00");
+  if(d.getTime()+DAY<=now.getTime())d=new Date((y+1)+"-"+item.md+"T00:00:00");
+  return d;
+}
+function lastDate(item,now){
+  /* 上一次发生：用于进度条起点 */
+  const y=now.getFullYear();
+  if(item.type==="fixed"){
+    return new Date(new Date(item.date+"T00:00:00").getTime()-365*DAY);
+  }
+  let d=new Date(y+"-"+item.md+"T00:00:00");
+  if(d.getTime()>now.getTime())d=new Date((y-1)+"-"+item.md+"T00:00:00");
+  return d;
+}
+function allItems(){
+  const now=new Date();
+  const list=[
+    ...PRESETS.map(p=>({...p,custom:false})),
+    ...customs.map((c,i)=>({...c,custom:true,idx:i})),
+  ].map(it=>({...it,next:nextDate(it,now)}))
+   .filter(it=>it.next)
+   .sort((a,b)=>a.next-b.next);
+  return {list,now};
+}
+function fmt(d){
+  const w=["日","一","二","三","四","五","六"];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${w[d.getDay()]}`;
+}
+function pad(n){return String(n).padStart(2,"0")}
+
+/* 主渲染 */
+let heroItem=null;
+function render(){
+  const {list,now}=allItems();
+  if(!list.length)return;
+
+  /* 焦点卡 = 最近节日 */
+  heroItem=list[0];
+  $("hEmoji").textContent=heroItem.emoji;
+  $("hName").textContent=heroItem.name;
+  $("hDate").textContent=fmt(heroItem.next);
+  const prev=lastDate(heroItem,now);
+  $("pFrom").textContent=`${prev.getMonth()+1}/${prev.getDate()}`;
+  $("pTo").textContent=`${heroItem.next.getMonth()+1}/${heroItem.next.getDate()}`;
+
+  /* 小卡片（跳过焦点那个） */
+  $("grid").innerHTML=list.slice(1).map(it=>{
+    const days=Math.ceil((it.next-now)/DAY);
+    const cls=days<=7?"soon":days<=60?"":"far";
+    const today=days===0;
+    return `<div class="card ${today?'today':''}">
+      ${it.custom?`<button class="del" onclick="delFest(${it.idx})" title="删除">✕</button>`:""}
+      <div class="emoji">${it.emoji}</div>
+      <div class="name">${esc(it.name)}</div>
+      <div class="date">${fmt(it.next)}</div>
+      <div class="dd ${cls}">${days===0?"就是今天！🎉":days+"<small>天后</small>"}</div>
+    </div>`;
+  }).join("");
+}
+function esc(s){return s.replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
+
+/* 每秒 tick：只更新焦点卡数字（性能友好，小卡片按天算不用每秒刷） */
+function tick(){
+  if(!heroItem)return;
+  const now=new Date();
+  let diff=heroItem.next-now;
+  const isToday=heroItem.next.getDate()===now.getDate()&&heroItem.next.getMonth()===now.getMonth()&&heroItem.next.getFullYear()===now.getFullYear();
+  if(diff<=0||isToday&&diff<DAY){
+    if(diff<=0&&heroItem.next.getTime()+DAY>now){
+      /* 今天 */
+      $("cD").textContent="🎉";$("cH").textContent="今";$("cM").textContent="天";$("cS").textContent="啦";
+      $("hTip").textContent="节日快乐！";
+      $("pFill").style.width="100%";
+      return;
+    }
+  }
+  const d=Math.floor(diff/DAY);diff-=d*DAY;
+  const h=Math.floor(diff/3600000);diff-=h*3600000;
+  const m=Math.floor(diff/60000);diff-=m*60000;
+  const s=Math.floor(diff/1000);
+  $("cD").textContent=d;$("cH").textContent=pad(h);$("cM").textContent=pad(m);$("cS").textContent=pad(s);
+  /* 进度 = 从上次发生到下次发生走过的比例 */
+  const prev=lastDate(heroItem,now);
+  const total=heroItem.next-prev;
+  const pct=Math.min(100,Math.max(0,(now-prev)/total*100));
+  $("pFill").style.width=pct.toFixed(2)+"%";
+  /* 一句话提示 */
+  const days=d;
+  $("hTip").textContent=days===0?"就在今天！":days===1?"明天就到，准备好了吗？":days<=7?"就在本周，安排起来！":days<=30?"一个月内，可以开始期待了":days<=100?"还有一阵子，别急":" distant future · 长线期待";
+}
+
+/* 添加/删除自定义节日 */
+function addFest(){
+  const emoji=($("nEmoji").value||"🎉").slice(0,2);
+  const name=$("nName").value.trim();
+  const date=$("nDate").value;
+  if(!name){$("nName").focus();return}
+  if(!date){$("nDate").focus();return}
+  const d=new Date(date+"T00:00:00");
+  if(isNaN(d)||d.getTime()+DAY<=Date.now()){alert("请选择未来的日期");return}
+  customs.push({emoji,name,type:"fixed",date});
+  save();
+  $("nName").value="";$("nDate").value="";$("nEmoji").value="";
+  render();
+}
+function delFest(i){
+  customs.splice(i,1);
+  save();
+  render();
+}
+$("nName").addEventListener("keydown",e=>{if(e.key==="Enter")addFest()});
+
+render();
+tick();
+setInterval(tick,1000);
+/* 每 10 分钟重排一次卡片（跨天/跨零点后排序变化） */
+setInterval(render,600000);
+</script>
+</body>
+</html>

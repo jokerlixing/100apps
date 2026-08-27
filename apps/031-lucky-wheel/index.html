@@ -18,8 +18,10 @@ header{margin-bottom:16px;text-align:center}
 h1{font-size:22px;font-weight:800;letter-spacing:4px;color:var(--gold)}
 .sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:2px}
 
-.main{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
-@media(max-width:760px){.main{grid-template-columns:1fr}}
+/* 单列居中布局：转盘在上，配置在下，全部水平居中（桌面/移动端统一） */
+.main{display:flex;flex-direction:column;align-items:center;gap:20px}
+.wheel-zone{width:100%;display:flex;flex-direction:column;align-items:center;gap:16px}
+.cfg{width:100%;max-width:560px}
 
 /* ===== 转盘区 ===== */
 .wheel-zone{display:flex;flex-direction:column;align-items:center;gap:16px}
@@ -132,7 +134,7 @@ footer b{color:var(--gold)}
   <div class="history">
     <h3>📜 抽奖记录
       <span style="display:flex;gap:8px">
-        <button class="reset-btn" id="resetBtn" onclick="resetAll(this)" title="重置所有库存与记录为初始状态">↻ 重置抽奖</button>
+        <button class="reset-btn" id="resetBtn" onclick="resetAll(this)" title="重置所有库存与记录为初始状态">重置抽奖</button>
         <button id="clearBtn" onclick="clearHistory(this)">清空</button>
       </span>
     </h3>

@@ -19,7 +19,8 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var
 /* 木鱼舞台 */
 .stage{position:relative;height:300px;margin-bottom:10px;user-select:none;-webkit-user-select:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.muyu{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);font-size:150px;cursor:pointer;transition:transform .08s ease-out;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1}
+.muyu{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:220px;height:220px;cursor:pointer;transition:transform .08s ease-out;filter:drop-shadow(0 14px 22px rgba(0,0,0,.5));line-height:1}
+.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none}
 .muyu:active{transform:translate(-50%,-50%) scale(.93) rotate(-3deg)}
 
 /* 计数 */
@@ -54,7 +55,7 @@ footer b{color:var(--gold)}
 
   <div class="stage">
     <canvas id="cv"></canvas>
-    <div class="muyu" id="fish">🐟</div>
+    <div class="muyu" id="fish" title="敲我"><img src="assets/muyu.png" alt="木鱼" draggable="false"></div>
   </div>
 
   <div class="counter">

@@ -188,15 +188,27 @@ requestAnimationFrame(loop);
 /* ---------- 敲击 ---------- */
 const fish=$("fish"),shadow=$("shadow"),app=$(".app");
 let knockLock=false,combo=0,comboTimer=null;
-function knock(){
+function knock(e){
+  /* e 可以是 PointerEvent（点击）或 undefined（自动/键盘） */
   total++;
   if(total>peak)peak=total;
   save();
   $("total").textContent=total.toLocaleString();
   $("now").textContent=total.toLocaleString();
   $("peak").textContent=peak.toLocaleString();
-  const r=fish.getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
-  spawn(r.left-s.left+r.width/2,r.top-s.top+r.height/2);
+
+  /* 粒子爆发位置：优先用点击坐标，否则用木鱼中心 */
+  let cx, cy;
+  if(e && e.clientX!==undefined){
+    const s=cv.parentElement.getBoundingClientRect();
+    cx=e.clientX-s.left;
+    cy=e.clientY-s.top;
+  }else{
+    const r=fish.getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+    cx=r.left-s.left+r.width/2;
+    cy=r.top-s.top+r.height/2;
+  }
+  spawn(cx,cy);
   knockSound();
 
   /* 连击计数（300ms内算连击） */
@@ -234,7 +246,7 @@ function knock(){
     },duration);
   }
 }
-fish.addEventListener("pointerdown",knock);
+fish.addEventListener("pointerdown",e=>knock(e));
 document.addEventListener("keydown",e=>{
   if(e.code==="Space"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();knock()}
 });
@@ -260,8 +272,11 @@ function knockSound(){
 /* ---------- 工具 ---------- */
 function reset(){
   if(!confirm("功德清零？三思啊施主 🙏"))return;
-  total=0;save();
-  $("total").textContent="0";$("now").textContent="0";
+  total=0;peak=0;
+  try{localStorage.setItem(KEY,JSON.stringify({total:0,peak:0}))}catch(e){console.warn("save fail",e)}
+  $("total").textContent="0";
+  $("now").textContent="0";
+  $("peak").textContent="0";
 }
 function toggleMute(){
   muted=!muted;

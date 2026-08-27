@@ -32,6 +32,17 @@ h1{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold)}
 #cM{color:var(--green);text-shadow:0 0 12px rgba(78,201,176,.3)}
 #cS{color:var(--purple);text-shadow:0 0 12px rgba(197,134,192,.3)}
 .hero .tip{color:var(--dim);font-size:12px}
+/* 到期提醒：24点前10秒高亮闪烁 */
+.hero.flash{animation:heroFlash .8s ease-in-out infinite}
+@keyframes heroFlash{
+  0%,100%{box-shadow:0 0 0 rgba(229,181,103,0);border-color:var(--line)}
+  50%{box-shadow:0 0 38px 4px rgba(229,181,103,.8);border-color:var(--gold)}
+}
+.card.flash{animation:cardFlash .8s ease-in-out infinite}
+@keyframes cardFlash{
+  0%,100%{box-shadow:0 0 0 rgba(224,108,117,0);border-color:var(--line)}
+  50%{box-shadow:0 0 24px 2px rgba(224,108,117,.75);border-color:var(--red)}
+}
 
 /* 立体长方体进度条 + 中央进度数字 */
 .hero .prog-wrap{margin:0 6px}
@@ -257,8 +268,23 @@ function tick(){
   const pct=total>0?Math.min(100,Math.max(0,(now-heroStart)/total*100)):100;
   $("pFill").style.width=pct.toFixed(2)+"%";
   $("pTxt").textContent=pct>=100?"🎉 100% 到达！":`已行进 ${pct.toFixed(2)}%`;
-  $("hTip").textContent=d===0?"就在今天！":d===1?"明天就到，准备好了吗？":d<=7?"就在本周，安排起来！":d<=30?"一个月内，可以开始期待了":d<=100?"还有一阵子，别急":"长线期待 · 慢慢来";
+  /* 到期提醒：24点前10秒（23:59:50-23:59:59），焦点卡+到期卡片高亮闪烁 */
+  const toMidnight=(24*3600)-(now.getHours()*3600+now.getMinutes()*60+now.getSeconds());
+  const flashing=toMidnight<=10;
+  $("hero").classList.toggle("flash",flashing&&!!heroItem);
+  document.querySelectorAll(".card").forEach(c=>{
+    c.classList.toggle("flash",flashing&&c.classList.contains("today"));
+  });
+  if(flashing&&!warned){
+    warned=true;
+    $("hTip").textContent="⏰ 即将到期！10 秒后进入新的一天";
+  }
+  if(!flashing&&warned){
+    warned=false;
+    render();  /* 过了24点：焦点切换+进度条归零，一次性重排 */
+  }
 }
+let warned=false;
 
 /* 删除：预置节日 → 加入隐藏名单；自定义 → 真删。统一二次确认 */
 let delKey=null,delTimer=null;

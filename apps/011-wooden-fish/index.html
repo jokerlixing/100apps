@@ -253,6 +253,22 @@ document.addEventListener("keydown",e=>{
 
 /* ---------- 木鱼音效（Web Audio 合成"笃"声） ---------- */
 let actx=null;
+/* 音频预热：首次交互前创建 AudioContext 并播放静音解锁，避免第一次点击卡顿 */
+function prewarmAudio(){
+  try{
+    if(!actx){
+      actx=new (window.AudioContext||window.webkitAudioContext)();
+      /* 静音 buffer 播放，解锁浏览器音频策略 */
+      const buf=actx.createBuffer(1,1,22050);
+      const src=actx.createBufferSource();
+      src.buffer=buf;src.connect(actx.destination);src.start(0);
+    }
+    if(actx.state==="suspended")actx.resume();
+  }catch(e){}
+}
+["pointerdown","pointermove","keydown","touchstart"].forEach(ev=>{
+  document.addEventListener(ev,prewarmAudio,{once:true,passive:true});
+});
 function knockSound(){
   if(muted)return;
   try{

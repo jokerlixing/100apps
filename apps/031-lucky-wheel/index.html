@@ -157,17 +157,17 @@ footer b{color:var(--gold)}
      多转 6-8 圈避免"看起来没转"
    ============================================================ */
 const $=id=>document.getElementById(id);
-const KEY="wheel_v1";
+const KEY="wheel_v2";   /* v2：默认配置改版，旧存档自然失效回新默认 */
 
 const PALETTE=["#e5b567","#4ec9b0","#569cd6","#c586c0","#e06c75","#7ec8e3","#a8d86a","#f0a35e"];
 
 let prizes=[
   {name:"一等奖 🎉",weight:1,stock:1},
-  {name:"二等奖 🎊",weight:4,stock:2},
-  {name:"三等奖 🎁",weight:10,stock:5},
-  {name:"幸运奖 ⭐",weight:15,stock:10},
-  {name:"再来一次",weight:30,stock:8},
-  {name:"谢谢参与",weight:40,stock:15},
+  {name:"二等奖 🎊",weight:3,stock:3},
+  {name:"三等奖 🎁",weight:5,stock:5},
+  {name:"幸运奖 ⭐",weight:20,stock:20},
+  {name:"再来一次",weight:30,stock:30},
+  {name:"谢谢参与",weight:41,stock:41},
 ];   /* 权重=百分比，固定总和 100 */
 let history=[];
 let spinning=false;
@@ -476,11 +476,11 @@ function clearHistory(btn){
 /* ---------- 重置抽奖：库存/记录/转盘全回初始 ---------- */
 const DEFAULT_PRIZES=[
   {name:"一等奖 🎉",weight:1,stock:1},
-  {name:"二等奖 🎊",weight:4,stock:2},
-  {name:"三等奖 🎁",weight:10,stock:5},
-  {name:"幸运奖 ⭐",weight:15,stock:10},
-  {name:"再来一次",weight:30,stock:8},
-  {name:"谢谢参与",weight:40,stock:15},
+  {name:"二等奖 🎊",weight:3,stock:3},
+  {name:"三等奖 🎁",weight:5,stock:5},
+  {name:"幸运奖 ⭐",weight:20,stock:20},
+  {name:"再来一次",weight:30,stock:30},
+  {name:"谢谢参与",weight:41,stock:41},
 ];
 let resetArmed=false,resetTimer=null;
 function resetAll(btn){

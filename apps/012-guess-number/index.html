@@ -96,6 +96,7 @@ footer b{color:var(--gold)}
     <button class="lbtn on" data-max="100" onclick="setLevel(this)">1~100</button>
     <button class="lbtn" data-max="500" onclick="setLevel(this)">1~500</button>
     <button class="lbtn" data-max="1000" onclick="setLevel(this)">1~1000</button>
+    <button class="lbtn" id="clrBtn" onclick="clearRecords()">🗑 清空记录</button>
   </div>
 
   <footer>100 Apps Challenge · App #012 · <b>二分查找</b>：每猜一次排除一半<br>log₂(100)≈6.6 → 7 次必中</footer>
@@ -194,6 +195,27 @@ function guess(){
 function renderStats(){
   $("best").textContent=best[max]!==null?best[max]+" 次":"-";
   $("playeds").textContent=playeds;
+}
+/* 清空所有记录：内联二次确认（不用confirm，内置浏览器会拦截） */
+let clrArmed=false,clrTimer=null;
+function clearRecords(){
+  const btn=$("clrBtn");
+  if(!clrArmed){
+    clrArmed=true;
+    btn.textContent="⚠️ 确认清空？";
+    btn.style.borderColor="var(--red)";btn.style.color="var(--red)";
+    clearTimeout(clrTimer);
+    clrTimer=setTimeout(()=>{
+      clrArmed=false;
+      btn.textContent="🗑 清空记录";btn.style.borderColor="";btn.style.color="";
+    },3000);
+    return;
+  }
+  clrArmed=false;clearTimeout(clrTimer);
+  btn.textContent="🗑 清空记录";btn.style.borderColor="";btn.style.color="";
+  best={100:null,500:null,1000:null};playeds=0;
+  save();renderStats();
+  setFB("🧹","所有记录已清空","开始全新的一局吧");
 }
 $("inp").addEventListener("keydown",e=>{if(e.key==="Enter")guess()});
 /* 禁用输入框的滚轮改值（防误触） */

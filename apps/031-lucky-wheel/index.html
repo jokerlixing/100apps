@@ -265,20 +265,15 @@ function drawWheel(){
     ctx.strokeStyle="rgba(0,0,0,.25)";
     ctx.lineWidth=3;
     ctx.stroke();
-    /* 文字：沿扇区中心角半径方向（抽完项显示 0%） */
+    /* 文字：沿扇区中心角半径方向（只显示奖项名，干净利落） */
     const midAng=(startAng+endAng)/2;
-    const pct=(p.stock>0?(p.weight/total*100).toFixed(1):"0");
     ctx.save();
     ctx.translate(cx,cy);
     ctx.rotate(midAng);
     ctx.textAlign="right";
-    ctx.fillStyle="rgba(0,0,0,.72)";
-    ctx.font="bold 30px 'Segoe UI','Microsoft YaHei',sans-serif";
-    ctx.fillText(p.name,R-26,8);
-    /* 概率+剩余库存小字 */
-    ctx.font="bold 19px sans-serif";
-    ctx.fillStyle="rgba(0,0,0,.5)";
-    ctx.fillText(pct+"% ×"+p.stock,R-26,36);
+    ctx.fillStyle="rgba(0,0,0,.75)";
+    ctx.font="bold 32px 'Segoe UI','Microsoft YaHei',sans-serif";
+    ctx.fillText(p.name,R-26,11);
     ctx.restore();
     startAng=endAng;
   });

@@ -22,38 +22,38 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 input[type=text]{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;transition:.15s}
 input[type=text]:focus{border-color:var(--green)}
 input[type=text]::placeholder{color:var(--dim)}
-.add-btn{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
-.add-btn:hover{filter:brightness(1.1)}
+.add-btn{background:var(--green);border:none;border-radius:10px;padding:0 20px;color:#12211d;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}@media(hover:hover){
+.add-btn:hover{filter:brightness(1.1)}}
 
 /* 列表 */
 .list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:.15s;animation:pop .18s ease}
-@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.item:hover{border-color:var(--dim)}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@media(hover:hover){
+.item:hover{border-color:var(--dim)}}
 .item.done{opacity:.55}
 .item.done .text{text-decoration:line-through;text-decoration-color:var(--dim)}
 
 /* 复选框 */
-.chk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--dim);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#12211d;font-size:13px;transition:.15s}
-.chk:hover{border-color:var(--green)}
+.chk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--dim);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#12211d;font-size:13px;transition:.15s}@media(hover:hover){
+.chk:hover{border-color:var(--green)}}
 .item.done .chk{background:var(--green);border-color:var(--green)}
 
 .text{flex:1;font-size:14px;line-height:1.5;word-break:break-all}
 .meta{font-size:11px;color:var(--dim);margin-top:2px}
 .del{background:transparent;border:none;color:var(--dim);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0;transition:.15s}
-.item:hover .del{opacity:1}
-.del:hover{color:var(--red);background:rgba(224,108,117,.12)}
+.item:hover .del{opacity:1}@media(hover:hover){
+.del:hover{color:var(--red);background:rgba(224,108,117,.12)}}
 
 /* 底部栏 */
 .bar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px}
 .count{font-size:13px;color:var(--muted)}
 .count b{color:var(--orange)}
 .filters{display:flex;gap:4px}
-.f-btn{background:transparent;border:none;color:var(--muted);font-size:12px;padding:5px 10px;border-radius:14px;cursor:pointer;transition:.15s}
-.f-btn:hover{color:var(--text)}
+.f-btn{background:transparent;border:none;color:var(--muted);font-size:12px;padding:5px 10px;border-radius:14px;cursor:pointer;transition:.15s}@media(hover:hover){
+.f-btn:hover{color:var(--text)}}
 .f-btn.on{background:var(--blue);color:#12131a;font-weight:600}
-.clear{background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:5px 10px;border-radius:14px}
-.clear:hover{color:var(--red)}
+.clear{background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:5px 10px;border-radius:14px}@media(hover:hover){
+.clear:hover{color:var(--red)}}
 
 .empty{text-align:center;padding:48px 0;color:var(--dim);font-size:14px}
 .empty .big{font-size:38px;margin-bottom:10px}

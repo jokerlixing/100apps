@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2457e6">
+<title>小满百货 · 模拟电商列表页</title>
+<style>
+:root{
+  --paper:#f6f7f1;--ink:#18201d;--blue:#2457e6;--orange:#ff6b35;
+  --yellow:#f4e85b;--mint:#63c7a6;--line:#cdd2c7;--muted:#66706a;--white:#fff;
+  --shadow:6px 6px 0 var(--ink);--radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{min-height:100vh;background:var(--paper);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif;overflow-x:hidden}
+body.drawer-open{overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+
+.ticker{height:34px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center;gap:28px;font:700 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1.5px;white-space:nowrap;overflow:hidden}
+.ticker span::before{content:"✦";color:var(--yellow);margin-right:28px}
+.site-header{max-width:1240px;margin:auto;padding:22px 24px 18px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:2px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:48px;height:48px;background:var(--blue);color:#fff;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;font:900 17px/1 "Arial Black","Microsoft YaHei",sans-serif;box-shadow:3px 3px 0 var(--ink);transform:rotate(-7deg)}
+.brand-name{font:900 20px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:2px}
+.brand-name small{display:block;margin-top:6px;font:700 9px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1.6px;color:var(--muted)}
+.header-tools{display:flex;align-items:center;gap:12px}
+.catalog-count{font:700 11px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted);text-align:right}
+.catalog-count b{display:block;color:var(--ink);font-size:16px}
+.cart-trigger{position:relative;border:2px solid var(--ink);background:var(--yellow);border-radius:999px;padding:11px 18px;font-weight:900;display:flex;align-items:center;gap:9px;box-shadow:3px 3px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.cart-trigger:hover{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.cart-count{min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:var(--ink);color:#fff;display:grid;place-items:center;font:800 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace}
+.cart-count.bump{animation:bump .35s ease}
+
+.hero{max-width:1240px;margin:auto;padding:58px 24px 48px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:56px;align-items:center}
+.eyebrow{font:800 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:2px;color:var(--blue);margin-bottom:18px}
+.hero h1{max-width:800px;font:900 clamp(44px,7.2vw,96px)/.94 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-5px}
+.hero h1 em{font-style:normal;color:var(--blue);text-decoration:underline;text-decoration-color:var(--orange);text-decoration-thickness:9px;text-underline-offset:8px}
+.hero-copy{max-width:590px;margin-top:24px;font-size:15px;line-height:1.8;color:var(--muted)}
+.price-poster{position:relative;justify-self:end;width:280px;height:252px;background:var(--yellow);border:3px solid var(--ink);box-shadow:var(--shadow);padding:28px;transform:rotate(3deg);display:flex;flex-direction:column;justify-content:space-between}
+.price-poster::before,.price-poster::after{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:var(--paper);border:3px solid var(--ink);top:22px}
+.price-poster::before{left:-14px}.price-poster::after{right:-14px}
+.poster-top{font:900 12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:2px}
+.poster-main{font:900 74px/.8 "Arial Black",sans-serif;letter-spacing:-6px}
+.poster-main small{font-size:24px;letter-spacing:0}
+.poster-foot{display:flex;justify-content:space-between;align-items:end;border-top:2px dashed var(--ink);padding-top:14px;font-size:12px;font-weight:800}
+.poster-foot span:last-child{font:700 10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right}
+
+.shop-shell{max-width:1240px;margin:0 auto;padding:0 24px 72px}
+.filter-panel{position:sticky;top:0;z-index:10;background:rgba(246,247,241,.95);backdrop-filter:blur(12px);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:17px 0;display:grid;grid-template-columns:minmax(220px,1.25fr) auto minmax(170px,.65fr) 190px;gap:14px;align-items:center}
+.search-box{position:relative}
+.search-box input{width:100%;height:44px;border:2px solid var(--ink);background:#fff;border-radius:999px;padding:0 45px 0 17px;font-size:13px;font-weight:650}
+.search-box .search-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.category-list{display:flex;gap:7px;flex-wrap:wrap}
+.category-chip{height:38px;padding:0 14px;border:2px solid var(--ink);background:#fff;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap;transition:background .15s,color .15s}
+.category-chip:hover{background:var(--yellow)}
+.category-chip.active{background:var(--blue);color:#fff}
+.price-filter{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center}
+.price-filter label{font:800 10px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted);letter-spacing:1px}
+.price-filter output{justify-self:end;font:900 12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}
+.price-filter input{grid-column:1/-1;width:100%;accent-color:var(--blue)}
+.sort-select{height:44px;border:2px solid var(--ink);background:#fff;border-radius:10px;padding:0 12px;font-size:12px;font-weight:800}
+
+.result-bar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:25px 0 18px}
+.result-bar h2{font:900 18px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:1px}
+.result-bar p{font:700 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted)}
+.product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.product-card{min-width:0;background:#fff;border:2px solid var(--ink);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;box-shadow:0 0 0 var(--ink)}
+.product-card:hover{transform:translate(-4px,-4px);box-shadow:7px 7px 0 var(--ink)}
+.product-art{position:relative;min-height:208px;background:var(--art);border-bottom:2px solid var(--ink);display:grid;place-items:center;overflow:hidden}
+.product-art::before{content:"";position:absolute;inset:16px;border:2px dashed rgba(24,32,29,.38);border-radius:50%}
+.product-art::after{content:"";position:absolute;width:160px;height:160px;border:28px solid rgba(255,255,255,.24);border-radius:50%;right:-70px;bottom:-80px}
+.product-icon{position:relative;z-index:1;font:900 84px/1 Georgia,serif;color:var(--icon);filter:drop-shadow(4px 5px 0 rgba(255,255,255,.65));transform:rotate(-8deg)}
+.product-no{position:absolute;top:14px;left:15px;font:900 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px}
+.stock-tag{position:absolute;right:12px;top:12px;background:var(--paper);border:1.5px solid var(--ink);border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}
+.product-info{padding:17px 16px 16px;display:flex;flex-direction:column;flex:1}
+.product-meta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font:700 10px/1 ui-monospace,SFMono-Regular,Consolas,monospace;text-transform:uppercase;letter-spacing:.7px}
+.product-info h3{font-size:17px;line-height:1.3;margin-top:10px;font-weight:900}
+.product-desc{font-size:12px;line-height:1.55;color:var(--muted);margin:7px 0 16px;min-height:38px}
+.product-buy{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.price{font:900 22px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-1px}
+.add-btn{width:44px;height:44px;border:2px solid var(--ink);border-radius:50%;background:var(--yellow);font-size:24px;font-weight:500;box-shadow:2px 2px 0 var(--ink);transition:transform .15s,background .15s}
+.add-btn:hover{background:var(--orange);transform:rotate(8deg)}
+.add-btn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;box-shadow:none;transform:none}
+.empty-results{grid-column:1/-1;border:2px dashed var(--ink);border-radius:var(--radius);padding:70px 20px;text-align:center;background:#fff}
+.empty-results .empty-icon{font-size:44px;margin-bottom:14px}
+.empty-results h3{font-size:20px;margin-bottom:8px}.empty-results p{color:var(--muted);font-size:13px}
+.reset-btn{margin-top:18px;border:2px solid var(--ink);background:var(--yellow);padding:10px 18px;border-radius:999px;font-weight:900;box-shadow:3px 3px 0 var(--ink)}
+
+.footer{background:var(--blue);color:#fff;border-top:3px solid var(--ink);padding:26px 24px;text-align:center;font:700 11px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.5px}
+.footer b{color:var(--yellow)}
+
+.overlay{position:fixed;inset:0;background:rgba(24,32,29,.55);z-index:40;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
+.overlay.show{opacity:1;visibility:visible}
+.cart-drawer{position:fixed;z-index:50;right:0;top:0;height:100%;width:min(440px,100%);background:var(--paper);border-left:3px solid var(--ink);transform:translateX(105%);visibility:hidden;pointer-events:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility .3s;display:flex;flex-direction:column}
+.cart-drawer.open{transform:translateX(0);visibility:visible;pointer-events:auto}
+.cart-head{padding:22px;border-bottom:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;background:var(--yellow)}
+.cart-head h2{font:900 20px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:2px}
+.close-cart{width:38px;height:38px;border:2px solid var(--ink);background:#fff;border-radius:50%;font-size:19px;font-weight:900}
+.cart-note{height:34px;border-bottom:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font:700 10px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px;color:var(--muted)}
+.cart-items{padding:6px 20px;overflow-y:auto;flex:1}
+.cart-row{display:grid;grid-template-columns:60px 1fr auto;gap:12px;align-items:center;padding:15px 0;border-bottom:1px dashed var(--line)}
+.cart-thumb{width:60px;height:60px;border:2px solid var(--ink);border-radius:12px;background:var(--art);display:grid;place-items:center;font:900 28px/1 Georgia,serif;color:var(--icon)}
+.cart-product h3{font-size:13px;margin-bottom:6px}.cart-product p{font:800 12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}
+.qty-control{display:flex;align-items:center;gap:3px;border:1.5px solid var(--ink);border-radius:999px;background:#fff;margin-top:9px;width:max-content}
+.qty-control button{width:27px;height:27px;border:0;background:transparent;font-weight:900;border-radius:50%}
+.qty-control button:hover{background:var(--yellow)}
+.qty-control span{min-width:23px;text-align:center;font:800 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace}
+.remove-item{border:0;background:transparent;color:var(--muted);font-size:11px;text-decoration:underline;padding:7px 0}
+.remove-item:hover{color:var(--orange)}
+.cart-empty{text-align:center;padding:85px 20px}.cart-empty .bag{font-size:55px;margin-bottom:15px}.cart-empty h3{font-size:18px;margin-bottom:8px}.cart-empty p{font-size:12px;line-height:1.6;color:var(--muted)}
+.cart-summary{border-top:2px solid var(--ink);padding:18px 22px 22px;background:#fff}
+.shipping-copy{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:800;margin-bottom:8px}.shipping-copy b{color:var(--blue)}
+.shipping-track{height:8px;background:var(--line);border:1px solid var(--ink);border-radius:999px;overflow:hidden;margin-bottom:17px}.shipping-track span{display:block;height:100%;background:var(--mint);transition:width .25s}
+.summary-line{display:flex;justify-content:space-between;font-size:12px;margin:8px 0;color:var(--muted)}
+.summary-line.total{border-top:2px dashed var(--line);padding-top:13px;margin-top:12px;color:var(--ink);font-size:17px;font-weight:900}.summary-line.total b{font:900 23px/1 ui-monospace,SFMono-Regular,Consolas,monospace}
+.checkout-btn{width:100%;height:50px;margin-top:13px;border:2px solid var(--ink);background:var(--blue);color:#fff;border-radius:10px;font-weight:900;letter-spacing:2px;box-shadow:4px 4px 0 var(--ink)}
+.checkout-btn:hover{background:var(--orange)}.checkout-btn:disabled{background:var(--line);color:var(--muted);box-shadow:none;cursor:not-allowed}
+.clear-cart{width:100%;border:0;background:transparent;color:var(--muted);text-decoration:underline;margin-top:13px;font-size:11px}
+.toast{position:fixed;left:50%;bottom:28px;z-index:80;transform:translate(-50%,25px);opacity:0;background:var(--ink);color:#fff;border:2px solid #fff;box-shadow:4px 4px 0 var(--orange);border-radius:999px;padding:11px 19px;font-size:12px;font-weight:800;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes bump{50%{transform:scale(1.28)}}
+
+@media(max-width:1050px){
+  .filter-panel{grid-template-columns:minmax(220px,1fr) 190px}.category-list{grid-column:1/-1;grid-row:2}.price-filter{grid-column:1;grid-row:3}.sort-select{grid-column:2;grid-row:3}
+  .product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:780px){
+  .site-header{padding:16px}.catalog-count{display:none}
+  .hero{grid-template-columns:1fr;padding:44px 18px 38px;gap:34px}.hero h1{font-size:clamp(42px,14vw,70px);letter-spacing:-3px}.price-poster{justify-self:start;width:min(280px,88vw)}
+  .shop-shell{padding:0 16px 58px}.filter-panel{position:relative;grid-template-columns:1fr 160px}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px){
+  .ticker{justify-content:flex-start;padding-left:12px}.brand-mark{width:42px;height:42px}.brand-name{font-size:17px}.brand-name small{display:none}.cart-trigger{padding:9px 12px}.cart-trigger .cart-word{display:none}
+  .hero{padding-top:36px}.hero h1{font-size:46px}.hero h1 em{text-decoration-thickness:6px}.hero-copy{font-size:13px}.price-poster{height:220px}.poster-main{font-size:64px}
+  .filter-panel{grid-template-columns:1fr}.category-list{grid-column:1;grid-row:2;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:none}.category-list::-webkit-scrollbar{display:none}.price-filter{grid-column:1;grid-row:3}.sort-select{grid-column:1;grid-row:4}
+  .product-grid{grid-template-columns:1fr;gap:15px}.product-card{display:grid;grid-template-columns:42% 58%}.product-art{min-height:190px;border-bottom:0;border-right:2px solid var(--ink)}.product-icon{font-size:65px}.product-info{min-width:0}.product-desc{min-height:0}.product-buy{margin-top:8px}.result-bar{align-items:end}
+  .cart-drawer{border-left:0}.cart-row{grid-template-columns:52px 1fr auto}.cart-thumb{width:52px;height:52px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="ticker" aria-hidden="true">
+  <span>OPEN DAILY 09:00–21:00</span><span>满 ¥199 免运费</span><span>JUST ENOUGH, JUST RIGHT</span>
+</div>
+
+<header class="site-header">
+  <a class="brand" href="#products" aria-label="小满百货首页" style="color:inherit;text-decoration:none">
+    <span class="brand-mark">小满</span>
+    <span class="brand-name">小满百货<small>XIAOMAN GENERAL STORE</small></span>
+  </a>
+  <div class="header-tools">
+    <div class="catalog-count"><b>12</b>件生活好物</div>
+    <button class="cart-trigger" id="cartTrigger" type="button" onclick="openCart()" aria-label="打开购物车，当前 0 件商品">
+      <span aria-hidden="true">▤</span><span class="cart-word">购物车</span><span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="heroTitle">
+    <div>
+      <p class="eyebrow">ISSUE 032 · DAILY OBJECTS / 2026</p>
+      <h1 id="heroTitle">生活不必囤，<br><em>刚好够用。</em></h1>
+      <p class="hero-copy">从桌面、厨房到周末出行，我们只挑那些每天都会碰到、用久了仍然顺手的东西。十二件小物，十二种让生活轻一点的方法。</p>
+    </div>
+    <aside class="price-poster" aria-label="本周上新价格信息">
+      <div class="poster-top">WEEKLY DROP / 本周上新</div>
+      <div class="poster-main">12<small>件</small></div>
+      <div class="poster-foot"><span>¥29 起</span><span>NO.032<br>限时陈列</span></div>
+    </aside>
+  </section>
+
+  <section class="shop-shell" id="products" aria-labelledby="productTitle">
+    <div class="filter-panel" aria-label="商品筛选工具">
+      <div class="search-box">
+        <input id="searchInput" type="search" placeholder="搜索商品或用途…" aria-label="搜索商品" autocomplete="off">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+      </div>
+      <div class="category-list" id="categoryList" aria-label="商品分类"></div>
+      <div class="price-filter">
+        <label for="priceRange">最高价格</label><output id="priceOutput" for="priceRange">¥200</output>
+        <input id="priceRange" type="range" min="40" max="200" step="10" value="200">
+      </div>
+      <select class="sort-select" id="sortSelect" aria-label="商品排序">
+        <option value="featured">排序：编辑精选</option>
+        <option value="priceAsc">价格：从低到高</option>
+        <option value="priceDesc">价格：从高到低</option>
+        <option value="rating">评分：从高到低</option>
+        <option value="sales">销量：从高到低</option>
+      </select>
+    </div>
+
+    <div class="result-bar">
+      <h2 id="productTitle">本期陈列</h2>
+      <p id="resultCount" aria-live="polite">SHOWING 12 / 12</p>
+    </div>
+    <div class="product-grid" id="productGrid"></div>
+  </section>
+</main>
+
+<footer class="footer">100 Apps Challenge · App #032 · <b>模拟电商列表页</b><br>搜索 / 分类 / 价格筛选 / 五种排序 · 购物车与运费计算 · localStorage 持久化</footer>
+
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true">
+  <div class="cart-head"><h2 id="cartTitle">购物小票</h2><button class="close-cart" id="closeCartBtn" type="button" onclick="closeCart()" aria-label="关闭购物车">×</button></div>
+  <div class="cart-note">XIAOMAN GENERAL STORE · NO.032</div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-summary" id="cartSummary"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   核心知识点：电商列表的派生状态
+   原始商品 PRODUCTS + 筛选状态 state -> deriveProducts() -> 商品列表
+   购物车只保存 id/qty，价格、库存始终以商品主数据为准，避免旧数据污染。
+   ============================================================ */
+const PRODUCTS=[
+  {id:1,name:"琥珀随行杯",category:"kitchen",cat:"餐厨",price:89,rating:4.8,sales:326,stock:8,icon:"◎",color:"#ff8a65",ink:"#7b2516",tag:"热卖",desc:"双层耐热玻璃，握在手里像一小块日落。"},
+  {id:2,name:"月球感应夜灯",category:"home",cat:"居家",price:129,rating:4.9,sales:218,stock:5,icon:"◐",color:"#8da6ff",ink:"#172e83",tag:"新品",desc:"天黑自动亮起，给夜路留一圈柔和月光。"},
+  {id:3,name:"折纸金属托盘",category:"desk",cat:"桌面",price:59,rating:4.6,sales:174,stock:12,icon:"◇",color:"#f4e85b",ink:"#665e00",tag:"",desc:"钥匙、耳机和零钱，都有一个落脚的地方。"},
+  {id:4,name:"小满帆布袋",category:"travel",cat:"出行",price:69,rating:4.7,sales:402,stock:9,icon:"▱",color:"#63c7a6",ink:"#0c5742",tag:"人气",desc:"宽肩带不勒手，能装下临时多出来的一切。"},
+  {id:5,name:"山野无火香氛",category:"home",cat:"居家",price:109,rating:4.8,sales:143,stock:6,icon:"≈",color:"#b6d56a",ink:"#3f5911",tag:"",desc:"雪松、苔藓与一点雨气，安静但不寡淡。"},
+  {id:6,name:"软木桌面时钟",category:"desk",cat:"桌面",price:149,rating:4.5,sales:97,stock:4,icon:"◷",color:"#d9aa72",ink:"#633b13",tag:"少量",desc:"没有秒针声，让时间只被看见，不被听见。"},
+  {id:7,name:"云朵午睡抱枕",category:"home",cat:"居家",price:99,rating:4.9,sales:289,stock:7,icon:"☁",color:"#a9d7f5",ink:"#175170",tag:"热卖",desc:"微弹短绒，办公室午睡也能有柔软支点。"},
+  {id:8,name:"旅行收纳三件组",category:"travel",cat:"出行",price:79,rating:4.7,sales:236,stock:11,icon:"▦",color:"#ff9f7f",ink:"#7c2c15",tag:"",desc:"衣物、线材、洗漱用品，分开装就不慌。"},
+  {id:9,name:"黄铜山脊书签",category:"desk",cat:"桌面",price:39,rating:4.6,sales:351,stock:15,icon:"⌁",color:"#e7c665",ink:"#5b4605",tag:"",desc:"薄到不会伤书脊，合上书仍留一段山线。"},
+  {id:10,name:"晨露玻璃水壶",category:"kitchen",cat:"餐厨",price:119,rating:4.8,sales:188,stock:6,icon:"♢",color:"#77d9d0",ink:"#135a54",tag:"新品",desc:"一升容量与宽口设计，清洗、加冰都顺手。"},
+  {id:11,name:"日落便签组合",category:"desk",cat:"桌面",price:29,rating:4.5,sales:512,stock:20,icon:"≡",color:"#ffb14f",ink:"#6c3a00",tag:"畅销",desc:"四种暖色、三种尺寸，把零碎想法贴住。"},
+  {id:12,name:"周末防潮野餐垫",category:"travel",cat:"出行",price:169,rating:4.9,sales:126,stock:3,icon:"▥",color:"#ef8db2",ink:"#761c43",tag:"少量",desc:"可折成手提包，草地潮气留在垫子下面。"}
+];
+const CATEGORIES=[
+  {id:"all",name:"全部"},{id:"home",name:"居家"},{id:"desk",name:"桌面"},{id:"kitchen",name:"餐厨"},{id:"travel",name:"出行"}
+];
+const STORE_KEY="xiaoman_shop_cart_v1";
+const $=id=>document.getElementById(id);
+const state={query:"",category:"all",maxPrice:200,sort:"featured",cart:loadCart()};
+let toastTimer=null;
+let clearArmed=false;
+
+function loadCart(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(STORE_KEY));
+    if(!Array.isArray(raw))return [];
+    return raw.map(row=>{
+      const p=PRODUCTS.find(item=>item.id===Number(row.id));
+      if(!p)return null;
+      const qty=Math.max(1,Math.min(p.stock,Math.floor(Number(row.qty)||1)));
+      return{id:p.id,qty};
+    }).filter(Boolean);
+  }catch(e){return []}
+}
+function saveCart(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state.cart))}catch(e){}}
+function money(n){return "¥"+Number(n).toFixed(0)}
+function cartQty(id){return state.cart.find(row=>row.id===id)?.qty||0}
+function cartCount(){return state.cart.reduce((sum,row)=>sum+row.qty,0)}
+function cartSubtotal(){return state.cart.reduce((sum,row)=>{
+  const p=PRODUCTS.find(item=>item.id===row.id);return sum+(p?p.price*row.qty:0);
+},0)}
+
+function renderCategories(){
+  $("categoryList").innerHTML=CATEGORIES.map(c=>`<button type="button" class="category-chip ${state.category===c.id?"active":""}" onclick="setCategory('${c.id}')" aria-pressed="${state.category===c.id}">${c.name}</button>`).join("");
+}
+function setCategory(id){state.category=id;renderCategories();renderProducts()}
+function deriveProducts(){
+  const q=state.query.trim().toLowerCase();
+  const list=PRODUCTS.filter(p=>(state.category==="all"||p.category===state.category)&&p.price<=state.maxPrice&&(!q||(p.name+p.cat+p.desc).toLowerCase().includes(q)));
+  const sorters={
+    priceAsc:(a,b)=>a.price-b.price,priceDesc:(a,b)=>b.price-a.price,
+    rating:(a,b)=>b.rating-a.rating||b.sales-a.sales,sales:(a,b)=>b.sales-a.sales
+  };
+  return state.sort==="featured"?list:list.sort(sorters[state.sort]);
+}
+function renderProducts(){
+  const list=deriveProducts();
+  $("resultCount").textContent=`SHOWING ${list.length} / ${PRODUCTS.length}`;
+  if(!list.length){
+    $("productGrid").innerHTML=`<div class="empty-results"><div class="empty-icon">⌕</div><h3>没有找到合适的商品</h3><p>换个关键词，或把价格范围放宽一点。</p><button class="reset-btn" type="button" onclick="resetFilters()">重置筛选</button></div>`;
+    return;
+  }
+  $("productGrid").innerHTML=list.map((p,index)=>{
+    const qty=cartQty(p.id),sold=qty>=p.stock;
+    return `<article class="product-card">
+      <div class="product-art" style="--art:${p.color};--icon:${p.ink}">
+        <span class="product-no">NO.${String(p.id).padStart(3,"0")}</span>
+        ${p.tag?`<span class="stock-tag">${p.tag}</span>`:""}
+        <span class="product-icon" aria-hidden="true">${p.icon}</span>
+      </div>
+      <div class="product-info">
+        <div class="product-meta"><span>${p.cat}</span><span>★ ${p.rating} · ${p.sales} 人买过</span></div>
+        <h3>${p.name}</h3><p class="product-desc">${p.desc}</p>
+        <div class="product-buy"><span class="price">${money(p.price)}</span><button class="add-btn" type="button" onclick="addToCart(${p.id})" ${sold?"disabled":""} aria-label="${sold?`${p.name}已达库存上限`:`将${p.name}加入购物车`}">${sold?"✓":"+"}</button></div>
+      </div>
+    </article>`;
+  }).join("");
+}
+function resetFilters(){
+  state.query="";state.category="all";state.maxPrice=200;state.sort="featured";
+  $("searchInput").value="";$("priceRange").value="200";$("priceOutput").value="¥200";$("sortSelect").value="featured";
+  renderCategories();renderProducts();toast("筛选已重置");
+}
+
+function addToCart(id){
+  const p=PRODUCTS.find(item=>item.id===id);if(!p)return;
+  const row=state.cart.find(item=>item.id===id);
+  if(row&&row.qty>=p.stock){toast(`${p.name}库存只有 ${p.stock} 件`);return}
+  if(row)row.qty++;else state.cart.push({id,qty:1});
+  saveCart();renderCart();renderProducts();bumpCount();toast(`${p.name}已加入购物车`);
+}
+function changeQty(id,delta){
+  const row=state.cart.find(item=>item.id===id),p=PRODUCTS.find(item=>item.id===id);if(!row||!p)return;
+  if(delta>0&&row.qty>=p.stock){toast(`已达到库存上限 ${p.stock} 件`);return}
+  row.qty+=delta;
+  if(row.qty<=0)state.cart=state.cart.filter(item=>item.id!==id);
+  saveCart();renderCart();renderProducts();
+}
+function removeItem(id){state.cart=state.cart.filter(item=>item.id!==id);saveCart();renderCart();renderProducts();toast("商品已移出购物车")}
+function clearCart(btn){
+  if(!state.cart.length)return;
+  if(!clearArmed){clearArmed=true;btn.textContent="再次点击确认清空";setTimeout(()=>{clearArmed=false;if(btn.isConnected)btn.textContent="清空购物车"},2200);return}
+  clearArmed=false;state.cart=[];saveCart();renderCart();renderProducts();toast("购物车已清空");
+}
+function renderCart(){
+  const count=cartCount(),subtotal=cartSubtotal(),shipping=subtotal===0?0:(subtotal>=199?0:12),total=subtotal+shipping;
+  $("cartCount").textContent=count>99?"99+":count;
+  $("cartTrigger").setAttribute("aria-label",`打开购物车，当前 ${count} 件商品`);
+  $("cartItems").innerHTML=state.cart.length?state.cart.map(row=>{
+    const p=PRODUCTS.find(item=>item.id===row.id);
+    return `<div class="cart-row">
+      <div class="cart-thumb" style="--art:${p.color};--icon:${p.ink}" aria-hidden="true">${p.icon}</div>
+      <div class="cart-product"><h3>${p.name}</h3><p>${money(p.price)} × ${row.qty}</p><div class="qty-control"><button type="button" onclick="changeQty(${p.id},-1)" aria-label="减少${p.name}数量">−</button><span>${row.qty}</span><button type="button" onclick="changeQty(${p.id},1)" aria-label="增加${p.name}数量">+</button></div></div>
+      <button class="remove-item" type="button" onclick="removeItem(${p.id})">移除</button>
+    </div>`;
+  }).join(""):`<div class="cart-empty"><div class="bag" aria-hidden="true">▤</div><h3>小票还是空白的</h3><p>从一件每天都能用上的小物开始吧。</p></div>`;
+  const remain=Math.max(0,199-subtotal),progress=Math.min(100,subtotal/199*100);
+  $("cartSummary").innerHTML=`
+    <div class="shipping-copy"><span>${subtotal>=199?"已获得免运费":"再选一些，即可免运费"}</span><b>${subtotal>=199?"已达标":`还差 ${money(remain)}`}</b></div>
+    <div class="shipping-track"><span style="width:${progress}%"></span></div>
+    <div class="summary-line"><span>商品小计</span><b>${money(subtotal)}</b></div>
+    <div class="summary-line"><span>运费</span><b>${shipping===0?(subtotal?"免运费":"¥0"):money(shipping)}</b></div>
+    <div class="summary-line total"><span>合计</span><b>${money(total)}</b></div>
+    <button class="checkout-btn" type="button" onclick="mockCheckout()" ${count?"":"disabled"}>确认结算</button>
+    <button class="clear-cart" type="button" onclick="clearCart(this)" ${count?"":"disabled"}>清空购物车</button>`;
+}
+function bumpCount(){const el=$("cartCount");el.classList.remove("bump");void el.offsetWidth;el.classList.add("bump")}
+function openCart(){
+  $("overlay").classList.add("show");$("cartDrawer").classList.add("open");$("cartDrawer").setAttribute("aria-hidden","false");document.body.classList.add("drawer-open");$("closeCartBtn").focus();
+}
+function closeCart(){
+  const wasOpen=$("cartDrawer").classList.contains("open");$("overlay").classList.remove("show");$("cartDrawer").classList.remove("open");$("cartDrawer").setAttribute("aria-hidden","true");document.body.classList.remove("drawer-open");if(wasOpen)$("cartTrigger").focus();
+}
+function mockCheckout(){toast("这是演示商店，暂不接入真实支付")}
+function toast(message){
+  const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1800);
+}
+
+$("searchInput").addEventListener("input",e=>{state.query=e.target.value;renderProducts()});
+$("priceRange").addEventListener("input",e=>{state.maxPrice=Number(e.target.value);$("priceOutput").value="¥"+state.maxPrice;renderProducts()});
+$("sortSelect").addEventListener("change",e=>{state.sort=e.target.value;renderProducts()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCart()});
+renderCategories();renderProducts();renderCart();
+</script>
+</body>
+</html>

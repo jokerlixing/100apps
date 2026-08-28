@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📄 Markdown简历生成器 · Resume Maker Pro</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{max-width:1240px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:13px;font-weight:700;padding:9px 18px;border-radius:10px;cursor:pointer;transition:.15s;outline:none}@media(hover:hover){
+.btn:hover{filter:brightness(1.1)}}
+.btn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line);font-weight:400;font-size:12px;padding:8px 14px}@media(hover:hover){
+.btn.ghost:hover{color:var(--gold);border-color:var(--gold)}}
+
+/* 主题色选择 */
+.theme-row{display:flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.theme-row span{font-size:11px;color:var(--dim);margin-right:2px}
+.theme-dot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s;outline:none}
+.theme-dot.on{border-color:#fff;transform:scale(1.15);box-shadow:0 0 8px rgba(255,255,255,.3)}
+
+/* 双栏布局 */
+.cols{display:grid;grid-template-columns:410px 1fr;gap:16px;align-items:start}
+@media(max-width:960px){.cols{grid-template-columns:1fr}}
+
+/* 表单区 */
+.form-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:13px;max-height:82vh;overflow-y:auto}
+.form-panel::-webkit-scrollbar{width:6px}
+.form-panel::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.fg label{display:block;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:6px}
+.fg input,.fg textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 12px;border-radius:9px;outline:none;transition:.15s;font-family:inherit;-webkit-user-select:text;user-select:text}
+.fg input:focus,.fg textarea:focus{border-color:var(--gold)}
+.fg textarea{min-height:110px;resize:vertical;line-height:1.7;font-family:Consolas,"Courier New",monospace;font-size:12.5px}
+.fg .hint{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.6}
+.fg .hint code{color:var(--gold);background:rgba(229,181,103,.1);padding:1px 5px;border-radius:4px;font-size:10px}
+
+/* 头像上传 */
+.avatar-row{display:flex;gap:12px;align-items:center}
+.avatar-box{width:64px;height:64px;border-radius:50%;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:.15s;font-size:22px;color:var(--dim)}@media(hover:hover){
+.avatar-box:hover{border-color:var(--gold);color:var(--gold)}}
+.avatar-box img{width:100%;height:100%;object-fit:cover}
+.avatar-tip{font-size:10px;color:var(--dim);line-height:1.6}
+
+/* 预览区（纸张）：真 A4 规格 210mm × 297mm，屏幕自适应缩放 */
+.paper-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center}
+.fit-box{width:100%;display:flex;justify-content:center;overflow:hidden}
+.paper{background:#fff;color:#2f2f33;padding:0;border-radius:6px;font-size:13px;line-height:1.75;box-shadow:0 6px 36px rgba(0,0,0,.45);width:210mm;min-height:297mm;overflow:hidden;font-family:"Segoe UI","Microsoft YaHei",sans-serif;display:grid;grid-template-columns:56mm 1fr;transform-origin:top center;flex-shrink:0}
+/* ---- 简历：左栏 ---- */
+.paper .side{background:var(--acc,#1e3a5f);color:#fff;padding:34px 24px;display:flex;flex-direction:column}
+.paper .side .avatar{width:96px;height:96px;border-radius:50%;margin:0 auto 18px;border:3px solid rgba(255,255,255,.55);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;background:rgba(255,255,255,.15);color:#fff}
+.paper .side .avatar img{width:100%;height:100%;object-fit:cover}
+.paper .side .sname{text-align:center;font-size:21px;font-weight:800;letter-spacing:3px;margin-bottom:4px}
+.paper .side .sjob{text-align:center;font-size:11.5px;opacity:.85;letter-spacing:1px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.22)}
+.paper .side h4{font-size:12px;letter-spacing:3px;margin:16px 0 8px;opacity:.92;display:flex;align-items:center;gap:6px}
+.paper .side h4::before{content:"";width:14px;height:2px;background:rgba(255,255,255,.6);border-radius:1px}
+.paper .side .cinfo{font-size:11px;line-height:2;opacity:.9;word-break:break-all}
+.paper .side .cinfo div{display:flex;gap:6px;align-items:flex-start}
+.paper .side .skill-tag{display:inline-block;font-size:10.5px;padding:3px 9px;margin:0 4px 6px 0;background:rgba(255,255,255,.16);border-radius:4px;line-height:1.5}
+.paper .side .sd{font-size:11px;opacity:.88;line-height:1.9}
+/* ---- 简历：右栏 ---- */
+.paper .main{padding:34px 32px}
+.paper .main h2{font-size:15px;color:var(--acc,#1e3a5f);letter-spacing:2px;margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid var(--acc,#1e3a5f);display:flex;align-items:center;gap:7px;font-weight:800}
+.paper .main h2::before{content:"";width:4px;height:15px;background:var(--acc,#1e3a5f);border-radius:2px}
+.paper .main .sec{margin-bottom:22px}
+.paper .main h3{font-size:13.5px;color:#232327;font-weight:700;margin:0}
+.paper .main .sub-line{font-size:11px;color:#8a8a92;margin-top:2px;margin-bottom:5px}
+.paper .main p{margin:4px 0;color:#3d3d42;font-size:12.5px}
+.paper .main ul{margin:4px 0 4px 2px;list-style:none}
+.paper .main li{padding-left:15px;position:relative;color:#3d3d42;margin:3.5px 0;font-size:12.5px}
+.paper .main li::before{content:"";position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--acc,#1e3a5f);opacity:.75}
+.paper strong{color:#191920;font-weight:700}
+.paper em{color:#555}
+.paper code{background:#f4f1e8;padding:1px 5px;border-radius:3px;font-size:11px;color:#8a5a2b;font-family:Consolas,monospace}
+.paper a{color:#2f6db3;text-decoration:none}
+/* 时间线：经历条目左侧竖线 */
+.paper .tl{position:relative;padding-left:16px;margin-bottom:14px}
+.paper .tl::before{content:"";position:absolute;left:0;top:6px;bottom:-14px;width:2px;background:var(--acc,#1e3a5f);opacity:.18;border-radius:1px}
+.paper .tl:last-child::before{display:none}
+.paper .tl::after{content:"";position:absolute;left:-3px;top:5px;width:8px;height:8px;border-radius:50%;background:#fff;border:2.5px solid var(--acc,#1e3a5f)}
+.paper .tl .date{font-size:10.5px;color:#9a9aa2;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.paper .placeholder{grid-column:1/-1;color:#bbb;text-align:center;padding:200px 0;font-size:14px}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:20px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+
+/* 打印样式：A4 满幅，所见即所得（打印前把屏幕缩放复位，保证真 A4） */
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff;padding:0}
+  .app>header,.form-panel,.paper-wrap,footer{display:none!important}
+  .paper{box-shadow:none;min-height:auto;width:210mm;transform:none!important;margin-bottom:0!important}
+}
+/* beforeprint 兜底复位（部分浏览器打印预览不重新应用 media query） */
+@media print{.fit-box{overflow:visible}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Markdown 简历生成器</h1>
+      <div class="sub">双栏排版 · 主题定制 · 实时预览 · 多格式导出</div>
+    </div>
+    <div class="toolbar">
+      <div class="theme-row">
+        <span>主题</span>
+        <button class="theme-dot on" style="background:#1e3a5f" data-c="#1e3a5f" title="深蓝"></button>
+        <button class="theme-dot" style="background:#7a3b2e" data-c="#7a3b2e" title="砖红"></button>
+        <button class="theme-dot" style="background:#2e5e3a" data-c="#2e5e3a" title="森绿"></button>
+        <button class="theme-dot" style="background:#5b3a7a" data-c="#5b3a7a" title="紫罗兰"></button>
+        <button class="theme-dot" style="background:#1f1f24" data-c="#1f1f24" title="墨黑"></button>
+        <button class="theme-dot" style="background:#9a6b1f" data-c="#9a6b1f" title="鎏金"></button>
+      </div>
+      <button class="btn ghost" onclick="fillDemo()">✨ 示例</button>
+      <button class="btn ghost" onclick="clearAll(event)">🗑 清空</button>
+      <button class="btn ghost" onclick="downloadMD()">⬇ .md</button>
+      <button class="btn ghost" onclick="downloadHTML()">⬇ .html</button>
+      <button class="btn" onclick="window.print()">🖨 打印/PDF</button>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="form-panel">
+      <div class="fg">
+        <label>头像（可选）</label>
+        <div class="avatar-row">
+          <div class="avatar-box" id="avatarBox" onclick="$('avatarInput').click()">📷</div>
+          <div class="avatar-tip">点击上传照片<br>方形/圆形均可<br>不传则显示姓名首字</div>
+          <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="loadAvatar(this)">
+        </div>
+      </div>
+      <div class="fg">
+        <label>姓名</label>
+        <input type="text" id="fName" placeholder="程序猿" maxlength="20" oninput="render()">
+      </div>
+      <div class="fg">
+        <label>求职意向</label>
+        <input type="text" id="fJob" placeholder="前端开发工程师" maxlength="30" oninput="render()">
+      </div>
+      <div class="fg">
+        <label>联系方式（用 ｜ 分隔）</label>
+        <input type="text" id="fContact" placeholder="138-0000-0000 ｜ mail@qq.com ｜ 深圳" maxlength="90" oninput="render()">
+      </div>
+      <div class="fg">
+        <label>个人简介</label>
+        <textarea id="fSummary" placeholder="3 年前端经验，熟悉 Vue/React..." oninput="render()"></textarea>
+      </div>
+      <div class="fg">
+        <label>技能清单</label>
+        <textarea id="fSkills" placeholder="每行一项，渲染为标签" oninput="render()"></textarea>
+        <div class="hint">每行一项 → 左栏技能标签</div>
+      </div>
+      <div class="fg">
+        <label>工作经历 <span style="color:var(--dim)">（Markdown）</span></label>
+        <textarea id="fWork" style="min-height:150px" oninput="render()"></textarea>
+        <div class="hint"><code>### 公司 · 职位</code> 换行 <code>2023.07 - 至今</code> 再 <code>- 成果</code>（时间线样式）</div>
+      </div>
+      <div class="fg">
+        <label>项目经历 <span style="color:var(--dim)">（Markdown）</span></label>
+        <textarea id="fProj" oninput="render()"></textarea>
+      </div>
+      <div class="fg">
+        <label>教育背景 <span style="color:var(--dim)">（Markdown）</span></label>
+        <textarea id="fEdu" oninput="render()"></textarea>
+      </div>
+    </div>
+
+    <div class="paper-wrap">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <span id="pageBadge" style="font-size:11px;color:var(--dim);letter-spacing:1px">A4 · 1 页</span>
+        <span style="font-size:10px;color:var(--dim)">屏幕预览自适应缩放 · 打印始终为 A4 实际尺寸</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="zoomStep(-10)">−</button>
+          <span id="zoomLab" style="font-size:11px;color:var(--dim);min-width:38px;text-align:center">自适应</span>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="zoomStep(10)">＋</button>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" onclick="setZoom(0)">↔ 自适应</button>
+        </div>
+      </div>
+      <div class="fit-box" id="fitBox">
+        <div class="paper" id="paper"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>100 Apps Challenge · App #016 · <b>A4 规格</b> 210×297mm · <b>迷你 Markdown 解析器</b> + 双栏排版引擎<br>数据自动存 localStorage · 打印时只输出纸张（@page A4 无边距）</footer>
+</div>
+
+<script>
+/* ============================================================
+   升级版：双栏简历排版引擎
+   - 左栏（侧边栏）：头像/姓名/意向/联系/技能标签——主题色底
+   - 右栏（主区）：简介/经历时间线/项目/教育——白底
+   - 工作经历智能分段：### 标题 + 紧随的日期行 + 列表 → 时间线条目
+   - 6 种主题色一键切换（CSS 变量 --acc 驱动）
+   - 头像：可上传（base64 存储）或姓名首字自动生成
+   - 导出 .html：内联全部样式，离线可开、可打印
+   ============================================================ */
+const KEY="resume_v2";
+const $=id=>document.getElementById(id);
+const FIELDS=["fName","fJob","fContact","fSummary","fSkills","fWork","fProj","fEdu"];
+let accColor="#1e3a5f";
+let avatarData=null;
+
+/* ---------- 迷你 Markdown → HTML（同前，经过 7/7 单测） ---------- */
+function esc(s){return s.replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
+function inline(s){
+  let t=esc(s);
+  t=t.replace(/`([^`]+)`/g,"<code>$1</code>");
+  t=t.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  t=t.replace(/\*([^*]+)\*/g,"<em>$1</em>");
+  return t;
+}
+function md2html(src){
+  const lines=src.split("\n");
+  let html="",inList=false;
+  const closeList=()=>{if(inList){html+="</ul>";inList=false}};
+  for(const raw of lines){
+    const line=raw.trimEnd();
+    if(/^##\s+/.test(line)){closeList();html+=`<h3>${inline(line.slice(3))}</h3>`}
+    else if(/^###\s+/.test(line)){closeList();html+=`<h3>${inline(line.slice(4))}</h3>`}
+    else if(/^[-*]\s+/.test(line)){
+      if(!inList){html+="<ul>";inList=true}
+      html+=`<li>${inline(line.slice(2))}</li>`;
+    }
+    else if(/^---+$/.test(line)){closeList()}
+    else if(line===""){closeList()}
+    else{closeList();html+=`<p>${inline(line)}</p>`}
+  }
+  closeList();
+  return html;
+}
+/* 经历智能分段：按 ### 切块，块内首行若像日期则提为时间线元数据 */
+function tlHTML(src){
+  const blocks=src.split(/(?=^###\s)/m).map(b=>b.trim()).filter(Boolean);
+  if(!blocks.length)return md2html(src);
+  return blocks.map(b=>{
+    const lines=b.split("\n");
+    let title="",date="",body=[];
+    let i=0;
+    if(/^###\s/.test(lines[0]||"")){title=lines[0].replace(/^###\s+/,"");i=1}
+    /* 跳过空行找日期行 */
+    while(i<lines.length&&lines[i].trim()==="")i++;
+    if(i<lines.length&&/^\d{4}/.test(lines[i].trim())&&lines[i].trim().length<32){
+      date=lines[i].trim();i++;
+    }
+    body=lines.slice(i).join("\n");
+    return `<div class="tl">
+      ${date?`<div class="date">${esc(date)}</div>`:""}
+      ${title?`<h3>${inline(title)}</h3>`:""}
+      ${md2html(body)}
+    </div>`;
+  }).join("");
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const name=$("fName").value.trim();
+  const job=$("fJob").value.trim();
+  const contact=$("fContact").value.trim();
+  const summary=$("fSummary").value.trim();
+  const skills=$("fSkills").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const work=$("fWork").value.trim();
+  const proj=$("fProj").value.trim();
+  const edu=$("fEdu").value.trim();
+  const any=name||job||contact||summary||skills.length||work||proj||edu;
+
+  if(!any){
+    $("paper").style.setProperty("--acc",accColor);
+    $("paper").innerHTML=`<div class="placeholder">左侧填写或点「✨ 示例」，这里实时生成专业简历 📄</div>`;
+    return;
+  }
+  $("paper").style.setProperty("--acc",accColor);
+
+  /* 左栏 */
+  const initial=name?esc(name[0].toUpperCase()):"简";
+  const avatarHTML=avatarData?`<img src="${avatarData}" alt="">`:initial;
+  let side=`<div class="side">
+    <div class="avatar">${avatarHTML}</div>
+    <div class="sname">${name?esc(name):"你的姓名"}</div>
+    <div class="sjob">${job?esc(job):"求职意向"}</div>`;
+  if(contact){
+    const parts=contact.split(/[｜|]/).map(s=>s.trim()).filter(Boolean);
+    side+=`<h4>CONTACT</h4><div class="cinfo">${parts.map(p=>`<div>◈ ${esc(p)}</div>`).join("")}</div>`;
+  }
+  if(skills.length){
+    side+=`<h4>SKILLS</h4><div>${skills.map(s=>`<span class="skill-tag">${inline(s)}</span>`).join("")}</div>`;
+  }
+  side+=`</div>`;
+
+  /* 右栏 */
+  let main=`<div class="main">`;
+  if(summary)main+=`<div class="sec"><h2>个人简介</h2>${md2html(summary)}</div>`;
+  if(work)main+=`<div class="sec"><h2>工作经历</h2>${tlHTML(work)}</div>`;
+  if(proj)main+=`<div class="sec"><h2>项目经历</h2>${tlHTML(proj)}</div>`;
+  if(edu)main+=`<div class="sec"><h2>教育背景</h2>${tlHTML(edu)}</div>`;
+  main+=`</div>`;
+
+  $("paper").innerHTML=side+main;
+  /* A4 溢出检测：内容高度超过 297mm 时提示 */
+  requestAnimationFrame(()=>{
+    const h=$("paper").scrollHeight;
+    const a4px=297/25.4*96;  /* mm→px @96dpi ≈ 1123px */
+    const badge=document.getElementById("pageBadge");
+    if(badge)badge.textContent=h>a4px+4?`A4 · ${Math.ceil(h/a4px)} 页 ⚠ 超出一页`:"A4 · 1 页";
+    if(badge)badge.style.color=h>a4px+4?"var(--red)":"var(--dim)";
+  });
+}
+
+/* ---------- 主题色 ---------- */
+document.querySelectorAll(".theme-dot").forEach(d=>{
+  d.onclick=()=>{
+    document.querySelectorAll(".theme-dot").forEach(x=>x.classList.remove("on"));
+    d.classList.add("on");
+    accColor=d.dataset.c;
+    render();save();
+  };
+});
+
+/* ---------- 头像 ---------- */
+function loadAvatar(input){
+  const f=input.files[0];
+  if(!f)return;
+  if(f.size>2*1024*1024){toastBox("图片请小于 2MB");return}
+  const r=new FileReader();
+  r.onload=e=>{
+    /* 压缩到 200px 圆头像，控制存储体积 */
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement("canvas");
+      c.width=c.height=200;
+      const ctx=c.getContext("2d");
+      const min=Math.min(img.width,img.height);
+      ctx.drawImage(img,(img.width-min)/2,(img.height-min)/2,min,min,0,0,200,200);
+      avatarData=c.toDataURL("image/jpeg",.85);
+      renderAvatarBox();save();render();
+    };
+    img.src=e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+function renderAvatarBox(){
+  $("avatarBox").innerHTML=avatarData?`<img src="${avatarData}">`:"📷";
+}
+
+/* ---------- 持久化 ---------- */
+function save(){
+  const data={};
+  FIELDS.forEach(f=>data[f]=$(f).value);
+  data._acc=accColor;
+  data._avatar=avatarData;
+  try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+}
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY));
+    if(!s)return;
+    FIELDS.forEach(f=>{if(s[f]!==undefined)$(f).value=s[f]});
+    if(s._acc){
+      accColor=s._acc;
+      document.querySelectorAll(".theme-dot").forEach(d=>d.classList.toggle("on",d.dataset.c===accColor));
+    }
+    if(s._avatar){avatarData=s._avatar;renderAvatarBox()}
+  }catch(e){}
+}
+FIELDS.forEach(f=>$(f).addEventListener("input",save));
+
+/* ---------- 工具 ---------- */
+function fillDemo(){
+  $("fName").value="程序猿";
+  $("fJob").value="前端开发工程师";
+  $("fContact").value="138-0000-0000 ｜ codeape@mail.com ｜ 深圳 · 南山";
+  $("fSummary").value="4 年前端开发经验，主导过 3 个从 0 到 1 的项目落地。对**交互动效**与*性能优化*有深度实践，开源贡献者，坚持用`技术博客`沉淀知识。";
+  $("fSkills").value="HTML5 / CSS3 / JavaScript ES6+\nVue 3 · Pinia · Vite\nReact · TypeScript\nNode.js / Express\nWebpack / Vite 工程化\n性能优化（Lighthouse 95+）\nGit 协作 · CI/CD\nCanvas / SVG / 动效";
+  $("fWork").value="### ABC 科技 · 高级前端工程师\n2023.07 - 至今\n- 负责核心 SaaS 控制台（**日活 5w+**）架构与开发\n- 首屏加载 3.2s → **1.1s**，Lighthouse 95 分\n- 搭建团队组件库 40+ 组件，提效 40%\n- 带 3 人小组，负责代码评审与技术方案\n\n### XYZ 互联网 · 前端开发工程师\n2021.06 - 2023.06\n- 营销活动页开发，支撑 10+ 场大促零故障\n- 主导埋点系统重构，数据准确率 99.5%\n- E2E 测试覆盖率从 0 提升至 75%";
+  $("fProj").value="### 100 Apps Challenge\n2026.08 - 进行中\n- 100 天构建 100 个 Web 应用：工具/游戏/AI 全覆盖\n- GitHub 开源，获 **500+ Star**，Fork 120+\n\n### 可视化大屏引擎\n2024.03 - 2024.09\n- 基于 Canvas 的拖拽式大屏编辑器\n- 支持数据源绑定与 30+ 图表组件";
+  $("fEdu").value="### 华南理工大学 · 计算机科学与技术\n2017.09 - 2021.06\n- 本科 · GPA 3.6/4.0\n- 校级奖学金两次 · ACM 校队队员";
+  save();render();
+}
+let clrArmed=false,clrTimer=null;
+function clearAll(e){
+  const b=e.target;
+  if(!clrArmed){
+    clrArmed=true;
+    b.textContent="⚠️ 确认清空?";
+    clearTimeout(clrTimer);
+    clrTimer=setTimeout(()=>{clrArmed=false;b.textContent="🗑 清空"},3000);
+    return;
+  }
+  clrArmed=false;clearTimeout(clrTimer);
+  b.textContent="🗑 清空";
+  FIELDS.forEach(f=>$(f).value="");
+  avatarData=null;renderAvatarBox();
+  save();render();
+}
+function toastBox(msg){
+  const t=document.createElement("div");
+  t.textContent=msg;
+  t.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);padding:10px 22px;border-radius:10px;font-size:13px;z-index:99";
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1800);
+}
+
+/* ---------- 导出 ---------- */
+function fname(){return $("fName").value.trim()||"简历"}
+function downloadMD(){
+  let md="";
+  const name=$("fName").value.trim(),job=$("fJob").value.trim(),contact=$("fContact").value.trim();
+  if(name)md+=`# ${name}\n\n`;
+  if(job)md+=`**求职意向 · ${job}**\n\n`;
+  if(contact)md+=`> ${contact}\n\n`;
+  if($("fSummary").value.trim())md+=`## 个人简介\n\n${$("fSummary").value.trim()}\n\n`;
+  const sk=$("fSkills").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(sk.length)md+=`## 专业技能\n\n${sk.map(s=>"- "+s).join("\n")}\n\n`;
+  if($("fWork").value.trim())md+=`## 工作经历\n\n${$("fWork").value.trim()}\n\n`;
+  if($("fProj").value.trim())md+=`## 项目经历\n\n${$("fProj").value.trim()}\n\n`;
+  if($("fEdu").value.trim())md+=`## 教育背景\n\n${$("fEdu").value.trim()}\n\n`;
+  dl(new Blob([md],{type:"text/markdown;charset=utf-8"}),fname()+".md");
+}
+/* 导出自包含 HTML：内联样式+内容，双击即开，可再打印成 PDF */
+function downloadHTML(){
+  const css=[...document.querySelectorAll("style")][0].innerHTML;
+  const paperHTML=$("paper").outerHTML;
+  const html=`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>${esc(fname())} · 简历</title>
+<style>
+body{margin:0;padding:24px;background:#e8e8e6;display:flex;justify-content:center;font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+${css.replace(/\.paper\{[^}]*display:grid[^}]*\}/,".paper{display:grid;")}
+@media print{body{padding:0;background:#fff}}
+</style>
+</head>
+<body>
+${paperHTML.replace('id="paper"','id="paper" style="--acc:'+accColor+'"')}
+</body>
+</html>`;
+  dl(new Blob([html],{type:"text/html;charset=utf-8"}),fname()+".html");
+  toastBox("HTML 已下载，双击打开即可打印为 PDF");
+}
+function dl(blob,name){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---------- A4 自适应缩放引擎 ----------
+   屏幕：transform scale 缩放显示（布局不变，字随比例缩）
+   打印：@media print 里 scale 还原为 1，始终输出真 A4 */
+let zoomMode=0;   /* 0=自适应，其他=手动百分比(50-150) */
+function fitA4(){
+  const box=$("fitBox"),paper=$("paper");
+  const boxW=box.clientWidth-8;
+  const paperW=paper.offsetWidth||794;   /* 210mm≈794px */
+  let s;
+  if(zoomMode===0){
+    s=Math.min(1,boxW/paperW);          /* 自适应：不放大只缩小 */
+    $("zoomLab").textContent="自适应 "+Math.round(s*100)+"%";
+  }else{
+    s=zoomMode/100;
+    $("zoomLab").textContent=zoomMode+"%";
+  }
+  paper.style.transform="scale("+s+")";
+  /* 缩放后实际占位 = 原尺寸×比例（防止容器留大白边） */
+  paper.style.marginBottom=(paper.offsetHeight*(s-1))+"px";
+}
+function setZoom(v){zoomMode=v;fitA4()}
+function zoomStep(d){setZoom(Math.min(150,Math.max(50,(zoomMode||Math.round(Math.min(1,($("fitBox").clientWidth-8)/794)*100))+d)))}
+addEventListener("resize",fitA4);
+/* 打印兜底：打印前强制复位缩放，打印后恢复自适应 */
+addEventListener("beforeprint",()=>{$("paper").style.transform="none";$("paper").style.marginBottom="0"});
+addEventListener("afterprint",fitA4);
+
+load();
+render();
+fitA4();
+</script>
+</body>
+</html>

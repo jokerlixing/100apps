@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>扫雷 · Minesweeper</title>
+  <meta name="description" content="经典扫雷小游戏：初级/中级/高级三档难度，深色主题，纯前端实现" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💣</text></svg>" />
+  <link rel="stylesheet" href="css/minesweeper.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <!-- 标题与难度切换 -->
+    <header class="game-header">
+      <div class="game-title">
+        <h1>扫雷</h1>
+        <span class="subtitle">Minesweeper</span>
+      </div>
+      <nav class="diff-bar" aria-label="难度选择">
+        <button type="button" class="diff-btn" data-difficulty="beginner" aria-pressed="true">初级 9×9</button>
+        <button type="button" class="diff-btn" data-difficulty="intermediate" aria-pressed="false">中级 16×16</button>
+        <button type="button" class="diff-btn" data-difficulty="expert" aria-pressed="false">高级 30×16</button>
+      </nav>
+    </header>
+
+    <!-- 顶部信息栏：雷数 / 笑脸 / 计时 -->
+    <section class="hud" aria-label="游戏状态">
+      <div>
+        <div class="lcd" id="mine-counter">010</div>
+        <span class="hud-label">剩余雷数</span>
+      </div>
+      <button type="button" class="face-btn" id="face-btn" data-mode="ready" title="重新开始（快捷键 R）" aria-label="重新开始">🙂</button>
+      <div>
+        <div class="lcd time" id="timer">000</div>
+        <span class="hud-label">时间（秒）</span>
+      </div>
+    </section>
+
+    <!-- 棋盘 -->
+    <section class="board-wrap">
+      <div class="board" id="board" role="grid" aria-label="扫雷棋盘"></div>
+    </section>
+
+    <footer class="game-footer">
+      左键翻开 · 右键插旗（触屏长按） · 双击/双键数字格快速展开 · <kbd>R</kbd> 重开 · <kbd>Esc</kbd> 关闭提示
+    </footer>
+  </main>
+
+  <!-- 终局结果浮层 -->
+  <div class="result-overlay" id="result-overlay" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="result-card">
+      <h2 class="result-title" id="result-title">🎉 扫雷成功！</h2>
+      <p class="result-desc" id="result-desc">所有安全格已全部翻开</p>
+      <p class="result-meta" id="result-meta">初级 · 用时 0 秒</p>
+      <button type="button" class="result-again-btn" id="result-again-btn">再来一局</button>
+    </div>
+  </div>
+
+  <!-- 脚本按依赖顺序加载：核心逻辑 → 对局状态 → 渲染 → 应用装配 -->
+  <script src="js/board.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

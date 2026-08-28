@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 读书笔记 · Reading Notes</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+@media(hover:hover){*:hover{}}
+html{overflow-anchor:none}
+body{background:radial-gradient(ellipse at 50% 0%,#1e2230 0%,var(--bg) 60%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{max-width:880px;margin:0 auto}
+header{margin-bottom:16px}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
+
+/* 统计条 */
+.stats{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.st{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 18px;flex:1;min-width:110px;text-align:center}
+.st .v{font-size:22px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
+.st .k{font-size:10px;color:var(--dim);letter-spacing:2px;margin-top:2px}
+.st.g .v{color:var(--green)}
+.st.b .v{color:var(--blue)}
+.st.p .v{color:var(--purple)}
+
+/* 录入区 */
+.add-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.add-panel h3{font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:12px}
+.frow{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.frow input{background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 12px;border-radius:9px;outline:none;-webkit-user-select:text;user-select:text}
+.frow input:focus{border-color:var(--gold)}
+.frow .bk{flex:2;min-width:140px}
+.frow .au{flex:1;min-width:100px}
+textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:13px;padding:10px 12px;border-radius:9px;outline:none;min-height:76px;resize:vertical;line-height:1.7;font-family:inherit;-webkit-user-select:text;user-select:text}
+textarea:focus{border-color:var(--gold)}
+.tag-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.tag-row .lb{font-size:11px;color:var(--dim)}
+#tagInp{flex:1;min-width:120px;font-size:12px!important;padding:6px 10px!important}
+.add-btn{background:var(--gold);border:none;color:#1a1a22;font-size:13px;font-weight:700;padding:8px 20px;border-radius:9px;cursor:pointer;outline:none}
+.add-btn:active{filter:brightness(1.2)}
+
+/* 工具条 */
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 14px;color:var(--text);font-size:13px;outline:none;-webkit-user-select:text;user-select:text}
+.search:focus{border-color:var(--gold)}
+.tag-filter{display:flex;gap:6px;flex-wrap:wrap}
+.tf{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:6px 13px;border-radius:15px;cursor:pointer;outline:none}
+@media(hover:hover){.tf:hover{color:var(--gold);border-color:var(--gold)}}
+.tf.on{color:var(--gold);border-color:var(--gold);background:rgba(229,181,103,.1)}
+
+/* 笔记卡片 */
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.note .nh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.note .bk{font-size:14px;font-weight:700;line-height:1.4}
+.note .bk small{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:2px}
+.note .fav{background:none;border:none;font-size:16px;cursor:pointer;padding:2px 4px;border-radius:6px;outline:none;filter:grayscale(1);opacity:.5}
+.note .fav.on{filter:none;opacity:1}
+.note .quote{font-size:12.5px;line-height:1.8;color:var(--text);background:var(--panel2);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;flex:1}
+.note .tags{display:flex;gap:5px;flex-wrap:wrap}
+.note .tg{font-size:10px;background:rgba(86,156,214,.14);color:var(--blue);padding:2px 9px;border-radius:9px}
+.note .ft{display:flex;justify-content:space-between;align-items:center}
+.note .dt{font-size:10px;color:var(--dim)}
+.note .ops{display:flex;gap:4px}
+.note .op{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;outline:none}
+@media(hover:hover){.note .op:hover{color:var(--gold)}}
+.note .op.del.armed{color:var(--red);border:1px solid var(--red)}
+.empty-note{grid-column:1/-1;text-align:center;color:var(--dim);padding:50px 0;font-size:13px}
+.empty-note .big{font-size:40px;margin-bottom:10px}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:20px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+@media(max-width:560px){
+  .notes{grid-template-columns:1fr}
+  .frow .bk,.frow .au{flex:1;min-width:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>读书笔记</h1>
+    <div class="sub">书摘收藏 · 标签分类 · 全文搜索 · 收藏夹</div>
+  </header>
+
+  <div class="stats">
+    <div class="st"><div class="v" id="sTotal">0</div><div class="k">笔记</div></div>
+    <div class="st b"><div class="v" id="sBooks">0</div><div class="k">书籍</div></div>
+    <div class="st p"><div class="v" id="sTags">0</div><div class="k">标签</div></div>
+    <div class="st g"><div class="v" id="sFav">0</div><div class="k">收藏</div></div>
+  </div>
+
+  <div class="add-panel">
+    <h3>✍️ 摘录一条</h3>
+    <div class="frow">
+      <input type="text" class="bk" id="bkInp" placeholder="书名，如：三体" maxlength="40">
+      <input type="text" class="au" id="auInp" placeholder="作者（可选）" maxlength="20">
+    </div>
+    <textarea id="qtInp" placeholder="书摘内容…（支持多行）"></textarea>
+    <div class="tag-row">
+      <span class="lb">标签</span>
+      <input type="text" id="tagInp" placeholder="多个标签用空格分隔，如：科幻 哲思" maxlength="40">
+      <button class="add-btn" onclick="addNote()">＋ 收藏笔记</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search" id="q" placeholder="🔍 搜索书名 / 作者 / 书摘内容 / 标签…" oninput="render()">
+    <div class="tag-filter" id="tagFilter"></div>
+  </div>
+
+  <div class="notes" id="notes"></div>
+
+  <footer>100 Apps Challenge · App #026 · <b>数据模型</b>：notes[{book,author,quote,tags[],fav,ts}]<br>全字段搜索（书名/作者/内容/标签联合匹配）· localStorage 持久化</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：多字段联合搜索 + 标签聚合
+   - 每条笔记 = {id, book, author, quote, tags[], fav, ts}
+   - 搜索：把所有字段拼成一个 haystack 小写串，
+     includes 命中即通过——简单但高效的全字段检索
+   - 标签栏动态聚合：遍历所有笔记收集 distinct tags，
+     点击标签 = 精确过滤（可与文本搜索叠加）
+   - 收藏星标：独立布尔位，配合筛选快速定位心头好
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const KEY="reading_v1";
+let notes=[];
+let curTag="";     /* 当前选中标签过滤 */
+
+try{notes=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(notes))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+/* ---------- 添加 ---------- */
+function addNote(){
+  const book=$("bkInp").value.trim();
+  const author=$("auInp").value.trim();
+  const quote=$("qtInp").value.trim();
+  const tags=$("tagInp").value.trim().split(/[\s,，]+/).filter(Boolean);
+  if(!book){toast("先写书名 📖");$("bkInp").focus();return}
+  if(!quote){toast("摘录点内容嘛 ✍️");$("qtInp").focus();return}
+  notes.unshift({id:Date.now(),book,author,quote,tags,fav:false,ts:Date.now()});
+  save();
+  $("bkInp").value="";$("auInp").value="";$("qtInp").value="";$("tagInp").value="";
+  render();
+  toast("已收藏 📚");
+}
+/* 回车快速提交（textarea 用 Ctrl+Enter） */
+$("bkInp").addEventListener("keydown",e=>{if(e.key==="Enter")addNote()});
+$("auInp").addEventListener("keydown",e=>{if(e.key==="Enter")addNote()});
+$("qtInp").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))addNote()});
+
+/* ---------- 操作 ---------- */
+function toggleFav(id){
+  const n=notes.find(x=>x.id===id);
+  if(n){n.fav=!n.fav;save();render()}
+}
+let delArmed=0,delTimer=null;
+function delNote(id,btn){
+  if(delArmed!==id){
+    delArmed=id;
+    if(btn){btn.classList.add("armed");btn.textContent="确认?"}
+    clearTimeout(delTimer);
+    delTimer=setTimeout(()=>{delArmed=0;if(btn){btn.classList.remove("armed");btn.textContent="✕"}},2500);
+    return;
+  }
+  clearTimeout(delTimer);delArmed=0;
+  notes=notes.filter(x=>x.id!==id);
+  save();render();
+  toast("已删除");
+}
+
+/* ---------- 标签聚合 ---------- */
+function allTags(){
+  const set=new Set();
+  notes.forEach(n=>n.tags.forEach(t=>set.add(t)));
+  return [...set].sort();
+}
+function pickTag(t){
+  curTag=curTag===t?"":t;
+  render();
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const q=$("q").value.trim().toLowerCase();
+  /* 联合过滤：标签 + 全字段搜索 */
+  const list=notes.filter(n=>{
+    if(curTag&&!n.tags.includes(curTag))return false;
+    if(!q)return true;
+    const hay=(n.book+" "+n.author+" "+n.quote+" "+n.tags.join(" ")).toLowerCase();
+    return hay.includes(q);
+  });
+  /* 统计 */
+  $("sTotal").textContent=notes.length;
+  $("sBooks").textContent=new Set(notes.map(n=>n.book)).size;
+  $("sTags").textContent=allTags().length;
+  $("sFav").textContent=notes.filter(n=>n.fav).length;
+  /* 标签栏 */
+  $("tagFilter").innerHTML=`<button class="tf ${curTag===""?"on":""}" onclick="pickTag('')">全部</button>`+
+    `<button class="tf ${curTag==="★收藏"?"on":""}" onclick="pickTag('★收藏')">★ 收藏</button>`+
+    allTags().map(t=>`<button class="tf ${curTag===t?"on":""}" onclick="pickTag('${esc(t)}')">${esc(t)}</button>`).join("");
+  /* 笔记列表 */
+  $("notes").innerHTML=list.length?list.map(n=>{
+    const d=new Date(n.ts);
+    const ds=`${d.getMonth()+1}/${d.getDate()}`;
+    return `<div class="note">
+      <div class="nh">
+        <div class="bk">📖 ${esc(n.book)}${n.author?`<small>${esc(n.author)}</small>`:""}</div>
+        <button class="fav ${n.fav?"on":""}" onclick="toggleFav(${n.id})" title="收藏">⭐</button>
+      </div>
+      <div class="quote">${esc(n.quote).replace(/\n/g,"<br>")}</div>
+      ${n.tags.length?`<div class="tags">${n.tags.map(t=>`<span class="tg">#${esc(t)}</span>`).join("")}</div>`:""}
+      <div class="ft">
+        <span class="dt">${ds}</span>
+        <div class="ops">
+          <button class="op" onclick="copyQuote(${n.id})" title="复制书摘">⧉</button>
+          <button class="op del" onclick="delNote(${n.id},this)">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join(""):`<div class="empty-note"><div class="big">📚</div>${q||curTag?"没有匹配的笔记，换个条件试试":"还没有笔记，摘录第一条书摘吧"}</div>`;
+}
+
+/* 复制书摘 */
+function copyQuote(id){
+  const n=notes.find(x=>x.id===id);
+  if(!n)return;
+  const text=`「${n.quote}」——《${n.book}》${n.author?" "+n.author:""}`;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast("已复制到剪贴板 📋")).catch(()=>fallbackCopy(text));
+  }else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta=document.createElement("textarea");
+  ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");toast("已复制 📋")}catch(e){toast("复制失败")}
+  ta.remove();
+}
+
+let toastTimer;
+function toast(msg){
+  const t=$("toastBox");
+  if(!t){
+    const el=document.createElement("div");
+    el.id="toastBox";
+    el.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:10px 22px;border-radius:11px;font-size:13px;z-index:99";
+    document.body.appendChild(el);
+    setTimeout(()=>render());
+  }
+  const el=document.getElementById("toastBox");
+  el.textContent=msg;el.style.opacity="1";
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{el.style.opacity="0";el.style.transition="opacity .3s"},1800);
+}
+
+render();
+</script>
+</body>
+</html>

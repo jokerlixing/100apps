@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔲 二维码生成器 · QR Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" onerror="document.getElementById('cdnErr').style.display='block'"></script>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:32px 16px}
+.app{width:100%;max-width:880px}
+h1{font-size:24px;font-weight:700;margin-bottom:4px}
+h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+.cdn-err{display:none;background:rgba(224,108,117,.12);border:1px solid var(--red);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+
+.layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text)}
+
+/* 左：输入与配置 */
+textarea{width:100%;height:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text);font-size:14px;line-height:1.6;outline:none;resize:vertical;font-family:inherit;transition:.15s}
+textarea:focus{border-color:var(--green)}
+textarea::placeholder{color:var(--dim)}
+.tpl{display:flex;gap:8px;margin:12px 0 16px;flex-wrap:wrap}
+.tpl button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 12px;border-radius:16px;cursor:pointer;transition:.15s}@media(hover:hover){
+.tpl button:hover{border-color:var(--blue);color:var(--blue)}}
+
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cfg label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.cfg select,.cfg input[type=color]{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;height:36px}
+.cfg input[type=color]{padding:3px;cursor:pointer}
+.warn{margin-top:12px;font-size:12px;color:var(--orange);display:none}
+.wc-row{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.wc-row .switch{width:34px;height:19px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:.2s;flex-shrink:0}
+.wc-row .switch::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--dim);transition:.2s}
+.wc-row.on .switch{background:rgba(78,201,176,.25);border-color:var(--green)}
+.wc-row.on .switch::after{left:17px;background:var(--green)}
+.wc-tip{display:none;margin-top:10px;font-size:12px;color:var(--blue);line-height:1.7}
+.wc-tip.show{display:block}
+
+/* 右：预览 */
+.preview{display:flex;flex-direction:column;align-items:center;gap:14px}
+.qr-box{background:#fff;border-radius:12px;padding:12px;line-height:0}
+.qr-box canvas{max-width:100%;height:auto;border-radius:4px}
+.info{font-size:12px;color:var(--dim);text-align:center;line-height:1.8}
+.info b{color:var(--muted)}
+.acts{display:flex;gap:8px;width:100%}
+.btn{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-size:13px;cursor:pointer;transition:.15s}@media(hover:hover){
+.btn:hover{border-color:var(--dim)}}
+.btn.main{background:var(--green);border-color:var(--green);color:#12211d;font-weight:700}@media(hover:hover){
+.btn.main:hover{filter:brightness(1.1)}}
+
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:16px;line-height:1.8}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🔲 <span>二维码生成器</span></h1>
+  <div class="sub">输入文字或链接实时生成 · 自定义颜色尺寸 · 一键下载 PNG</div>
+
+  <div class="cdn-err" id="cdnErr">⚠️ 二维码库加载失败，请检查网络后刷新（库来自 jsdelivr CDN）</div>
+
+  <div class="layout">
+    <div class="card">
+      <h3>📝 内容</h3>
+      <textarea id="inp" placeholder="输入任意文字或链接，如 https://example.com">https://jokerlixing.github.io/100apps/</textarea>
+      <div class="tpl">
+        <button onclick="tplLink()">🔗 链接模板</button>
+        <button onclick="tplWifi()">📶 WiFi 分享</button>
+        <button onclick="tplText()">✉️ 纯文本</button>
+      </div>
+      <h3>⚙️ 配置</h3>
+      <div class="cfg">
+        <label>尺寸
+          <select id="size">
+            <option value="160">小 · 160px</option>
+            <option value="240" selected>中 · 240px</option>
+            <option value="320">大 · 320px</option>
+          </select>
+        </label>
+        <label>容错率（可遮挡）
+          <select id="ec">
+            <option value="L">L · 7%</option>
+            <option value="M" selected>M · 15%</option>
+            <option value="Q">Q · 25%</option>
+            <option value="H">H · 30%</option>
+          </select>
+        </label>
+        <label>码点颜色
+          <input type="color" id="fg" value="#1a1b26">
+        </label>
+        <label>背景颜色
+          <input type="color" id="bg" value="#ffffff">
+        </label>
+      </div>
+      <div class="warn" id="warn">⚠️ 前景与背景对比度太低，扫码可能失败，建议一深一浅</div>
+      <div class="wc-row" id="wcRow" onclick="toggleWC()">
+        <div class="switch"></div><span>微信/QQ 友好模式（纯文本扫码可显示）</span>
+      </div>
+      <div class="wc-tip" id="wcTip">💡 已开启：扫码将打开文本页展示内容（文本编码在链接里，不经过任何服务器，刷新/收藏后依然有效），适合分享中长文本</div>
+    </div>
+
+    <div class="card preview">
+      <h3 style="align-self:flex-start">👁 预览</h3>
+      <div class="qr-box"><canvas id="cv" width="240" height="240"></canvas></div>
+      <div class="info" id="info">—</div>
+      <div class="acts">
+        <button class="btn main" onclick="download()">⬇ 下载 PNG</button>
+        <button class="btn" onclick="copyImg()">📋 复制图片</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    100 Apps Challenge · App #004 · 二维码算法来自开源库 qrcode-generator（CDN 引入）<br>
+    本地生成，内容不上传任何服务器
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- 依赖检查 ---------- */
+if(typeof qrcode==="undefined"&&!document.getElementById("cdnErr").style.display){
+  document.getElementById("cdnErr").style.display="block";
+}
+/* 关键修复：默认编码只支持单字节字符，中文会被截成乱码导致扫码识别失败，切换到 UTF-8 编码函数 */
+if(typeof qrcode!=="undefined"){
+  if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"]){
+    qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
+  }else if(window.TextEncoder){
+    qrcode.stringToBytes=s=>Array.from(new TextEncoder().encode(s));
+  }
+}
+/* 微信/QQ 友好模式：纯文本会被微信吞掉，包装成 URL 后扫码打开文本页 */
+const VIEW_URL="https://jokerlixing.github.io/100apps/apps/004-qr-generator/view.html";
+function toWeChatFriendly(text){
+  const bytes=new TextEncoder().encode(text);
+  let bin="";
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return VIEW_URL+"#"+btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+
+/* ---------- 状态 ---------- */
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const $=id=>document.getElementById(id);
+let lastQR=null,debTimer;
+
+/* ---------- 微信/QQ 友好模式 ---------- */
+let wcOn=false;
+function toggleWC(){
+  wcOn=!wcOn;
+  document.getElementById("wcRow").classList.toggle("on",wcOn);
+  document.getElementById("wcTip").classList.toggle("show",wcOn);
+  make();
+}
+
+/* ---------- 生成核心 ---------- */
+function make(){
+  let text=$("inp").value.trim();
+  if(!text){info.textContent="输入内容后开始生成";return}
+  if(wcOn){
+    if(text.length>600){info.textContent="❌ 友好模式下文本太长（上限约600字符），请关闭模式或精简";lastQR=null;return}
+    text=toWeChatFriendly(text);
+  }
+  let qr;
+  try{
+    qr=qrcode(0,$("ec").value); // typeNumber 0 = 自动选版本
+    qr.addData(text);
+    qr.make();
+  }catch(e){info.textContent="❌ 内容太长，超出二维码容量，请精简";lastQR=null;return}
+  lastQR=qr;
+  const count=qr.getModuleCount(),margin=4;
+  const target=+$("size").value;
+  const cell=Math.max(2,Math.floor(target/(count+margin*2)));
+  const dim=cell*(count+margin*2);
+  cv.width=dim;cv.height=dim;
+  const fg=$("fg").value,bg=$("bg").value;
+  ctx.fillStyle=bg;ctx.fillRect(0,0,dim,dim);
+  ctx.fillStyle=fg;
+  for(let r=0;r<count;r++)for(let c=0;c<count;c++)
+    if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
+  $("warn").style.display=lum(fg)-lum(bg)<0.35?"block":"none";
+  info.innerHTML=`模块 <b>${count}×${count}</b> · 版本 <b>${(count-17)/4|0}</b> · 单元 <b>${cell}px</b><br>尺寸 <b>${dim}×${dim}</b> · 容错 <b>${$("ec").value}</b>`;
+}
+function lum(hex){
+  const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;
+  return(0.299*r+0.587*g+0.114*b)/255;
+}
+
+/* ---------- 防抖：输入停顿 300ms 再生成 ---------- */
+$("inp").addEventListener("input",()=>{clearTimeout(debTimer);debTimer=setTimeout(make,300)});
+["size","ec","fg","bg"].forEach(id=>$(id).addEventListener("change",make));
+
+/* ---------- 模板 ---------- */
+function tplLink(){
+  $("inp").value="https://";$("inp").focus();
+  toast("已填入链接模板，补全后自动生成");
+}
+function tplWifi(){
+  $("inp").value="WIFI:T:WPA;S:你的WiFi名;P:你的密码;;";
+  $("inp").focus();$("inp").setSelectionRange(12,17);
+  toast("手机扫码即可直接连上 WiFi 📶");make();
+}
+function tplText(){$("inp").value="";$("inp").focus();toast("输入任意文字试试")}
+
+/* ---------- 导出 ---------- */
+function download(){
+  if(!lastQR){toast("先输入内容生成二维码");return}
+  const a=document.createElement("a");
+  a.href=cv.toDataURL("image/png");
+  a.download=`qrcode-${Date.now()}.png`;a.click();
+  toast("⬇ 已开始下载 PNG");
+}
+async function copyImg(){
+  if(!lastQR){toast("先输入内容生成二维码");return}
+  try{
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+    toast("📋 图片已复制，可直接粘贴");
+  }catch(e){toast("当前浏览器不支持复制图片，请用下载")}
+}
+
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+make();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+
+── A. 难度参数与棋盘构建 ──
+  [PASS] A1 三档难度参数：初级 9×9/10、中级 16×16/40、高级 16×30/99
+  [PASS] A2 createBoard 初始化：状态全 hidden、雷全 0、未布雷、未爆炸
+  [PASS] A3 createBoard 非法参数抛 RangeError
+
+── B. 坐标边界与邻域 ──
+  [PASS] B1 四角格邻居数=3 且索引均在棋盘内
+  [PASS] B2 边缘格邻居数=5
+  [PASS] B3 内部格邻居数=8
+  [PASS] B4 inBounds 越界判定
+  [PASS] B5 toIndex/toRow/toCol 往返一致（含四角）
+
+── C. 布雷与首点保护 ──
+  [PASS] C1 布雷数量精确、placeMines 幂等（二次调用返回 false）
+  [PASS] C2 首点保护（中心点抽样 300 局）：首点及周围 8 格无雷
+  [PASS] C3 首点保护（四角抽样各 80 局）：首点及其邻居无雷
+  [PASS] C4 首点保护（专家难度抽样 60 局）
+  [PASS] C5 布雷分布均匀性（800 局统计：每格布雷频率在期望值 ±50% 内）
+  [PASS] C6 雷格的 numbers 保持 0（雷格不显示数字）
+
+── D. 邻雷数计算 ──
+  [PASS] D1 手工构造 5×5 棋盘：数字与人工推算一致
+  [PASS] D2 随机 20 局专家难度：全盘独立重算核对
+
+── E. 翻格与连锁展开 ──
+  [PASS] E1 首翻：ok、进入 playing、计时启动、首格被翻开
+  [PASS] E2 连锁展开：展开区无雷、revealedOrder 无重复且只含本次新翻格
+  [PASS] E3 连锁展开边界：与未翻开格相邻的已翻开格数字全部 ≥1
+  [PASS] E4 空白格（数字 0）的邻居全部为已翻开或插旗
+  [PASS] E5 已翻开格再翻：ok=false 且状态不变
+  [PASS] E6 插旗格不可左键翻开；问号格可以左键翻开
+  [PASS] E7 越界翻格：ok=false 不抛异常
+  [PASS] E8 踩雷：hitMine、lost、explodedIndex 指向被踩雷、全部未插旗雷被翻开
+  [PASS] E9 踩雷时已正确插旗的雷保持旗子
+
+── F. 插旗循环 ──
+  [PASS] F1 插旗循环 hidden→flagged→question→hidden（重复两轮）
+  [PASS] F2 已翻开格 toggleFlag 返回 null 且状态不变
+  [PASS] F3 越界 toggleFlag 返回 null
+  [PASS] F4 旗数统计与剩余雷数（可为负）
+  [PASS] F5 终局后 handleFlagToggle 被拒绝
+
+── G. 和弦 chordReveal ──
+  [PASS] G1 未翻开格和弦：ok=false
+  [PASS] G2 数字 0 的已翻开格和弦：ok=false（无意义操作）
+  [PASS] G3 旗数不足：ok=false 且全盘状态零变化
+  [PASS] G4 正确插旗后和弦：展开周围未标记格且不踩雷
+  [PASS] G5 手工构造：旗数足够但旗插错位置 → 和弦踩雷 → lost（确定性）
+  [PASS] G6 和弦不翻开旗格与已翻开格（只动未标记隐藏格）
+
+── H. 胜负判定 ──
+  [PASS] H1 isWin：未布雷时恒为 false
+  [PASS] H2 确定性胜利：翻开全部非雷格 → won、自动插满旗、计数器归零、计时凝固
+  [PASS] H3 胜利后所有操作被拒绝（reveal / flag / chord）
+  [PASS] H4 随机 15 局自动通关（跳过雷格策略）：全部 won 且旗数=雷数
+  [PASS] H5 随机 15 局第二翻必踩雷：ready→playing→lost
+  [PASS] H6 失败时错误旗被 getWronglyFlaggedIndices 识别
+
+── I. 计时、重开与难度回退 ──
+  [PASS] I1 Date.now 打桩：ready→playing 启动计时、用时按实际流逝计算
+  [PASS] I2 计时封顶 999 秒
+  [PASS] I3 restart：同难度、状态归零、棋盘重置
+  [PASS] I4 非法难度回退到初级
+  [PASS] I5 createGame 三档难度棋盘尺寸与总格数
+
+── J. UI 显示格式 ──
+  [PASS] J1 剩余雷数计数器显示格式：正数补零 3 位 / 负数 -NN / negative 类切换
+  [PASS] J2 计时器显示：补零 3 位并封顶 999
+  [PASS] J3 笑脸表情映射：ready/playing 🙂 won 😎 lost 😵 scared 😮（仅对局中）
+
+ALL PASS — QA 独立复核共 50 项

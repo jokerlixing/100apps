@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏦 房贷计算器 · Mortgage Calculator</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6; --purple:#c586c0;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{max-width:880px;margin:0 auto}
+header{margin-bottom:16px}
+h1{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px;letter-spacing:1px}
+
+.main{display:grid;grid-template-columns:330px 1fr;gap:14px;align-items:start}
+@media(max-width:760px){.main{grid-template-columns:1fr}}
+
+/* 输入面板 */
+.input-panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.fg{margin-bottom:16px}
+.fg label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px;letter-spacing:1px}
+.fg label .v{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--gold);height:4px;cursor:pointer}
+.fg .quick{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.qk{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:10px;padding:3px 9px;border-radius:11px;cursor:pointer;transition:.12s;outline:none}@media(hover:hover){
+.qk:hover{color:var(--gold);border-color:var(--gold)}}
+.custom-inp{width:100%;margin-top:7px;background:rgba(0,0,0,.22);border:1px solid var(--line);color:var(--text);font-size:12px;padding:7px 10px;border-radius:8px;outline:none;-webkit-user-select:text;user-select:text;font-variant-numeric:tabular-nums}
+.custom-inp:focus{border-color:var(--gold)}
+.custom-inp::-webkit-inner-spin-button{opacity:.4}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;background:var(--panel2);border:none;color:var(--muted);font-size:13px;padding:9px;cursor:pointer;transition:.15s;outline:none}
+.seg button.on{background:rgba(229,181,103,.15);color:var(--gold);font-weight:700}
+
+/* 结果面板 */
+.result-panel{display:flex;flex-direction:column;gap:14px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:560px){.cards{grid-template-columns:1fr 1fr}}
+.rc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.rc .k{font-size:10px;color:var(--dim);letter-spacing:2px;margin-bottom:6px}
+.rc .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--gold)}
+.rc .v small{font-size:11px;font-weight:400;color:var(--muted)}
+.rc.green .v{color:var(--green)}
+.rc.blue .v{color:var(--blue)}
+.rc.red .v{color:var(--red)}
+
+/* 对比表 */
+.compare{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;overflow-x:auto}
+.compare h3{font-size:13px;color:var(--muted);letter-spacing:2px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--dim);font-weight:600;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:1px}
+td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left;color:var(--muted)}
+tr.hl td{color:var(--gold);font-weight:700}
+.compare .tip{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.7}
+.compare .tip b{color:var(--gold)}
+
+/* 曲线图 */
+.chart-panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.chart-panel h3{font-size:13px;color:var(--muted);letter-spacing:2px;margin-bottom:4px}
+.legend{display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--muted)}
+.lg{display:flex;align-items:center;gap:5px}
+.lg i{width:16px;height:3px;border-radius:2px;display:inline-block}
+.chart-scroll{overflow-x:auto}
+svg{min-width:560px;width:100%;display:block}
+
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:18px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>房贷计算器</h1>
+    <div class="sub">等额本息 / 等额本金对比 · 剩余本金曲线 · 实时计算</div>
+  </header>
+
+  <div class="main">
+    <div class="input-panel">
+      <div class="fg">
+        <label>贷款总额 <span class="v" id="amountV">100 万元</span></label>
+        <input type="range" id="amount" min="1" max="1000" step="1" value="100" oninput="onCalc()">
+        <div class="quick">
+          <button class="qk" onclick="setVal('amount',10)">10万</button>
+          <button class="qk" onclick="setVal('amount',20)">20万</button>
+          <button class="qk" onclick="setVal('amount',25)">25万</button>
+          <button class="qk" onclick="setVal('amount',50)">50万</button>
+          <button class="qk" onclick="setVal('amount',100)">100万</button>
+          <button class="qk" onclick="setVal('amount',300)">300万</button>
+          <button class="qk" onclick="setVal('amount',500)">500万</button>
+        </div>
+        <input type="number" class="custom-inp" id="amountInp" placeholder="自定义万元（1-1000）" min="1" max="1000" step="1" oninput="customSet('amount',this.value,1,1000)">
+      </div>
+      <div class="fg">
+        <label>年利率 <span class="v" id="rateV">3.60 %</span></label>
+        <input type="range" id="rate" min="10" max="60" step="1" value="36" oninput="onCalc()">
+        <div class="quick">
+          <button class="qk" onclick="setVal('rate',25)">2.5%</button>
+          <button class="qk" onclick="setVal('rate',30)">3.0%</button>
+          <button class="qk" onclick="setVal('rate',36)">3.6%</button>
+          <button class="qk" onclick="setVal('rate',41)">4.1%</button>
+          <button class="qk" onclick="setVal('rate',49)">4.9%</button>
+        </div>
+        <input type="number" class="custom-inp" id="rateInp" placeholder="自定义利率%（1.0-6.0）" min="1" max="6" step="0.01" oninput="customSet('rate',this.value,10,60,x=>Math.round(x*10))">
+      </div>
+      <div class="fg">
+        <label>贷款年限 <span class="v" id="yearsV">30 年</span></label>
+        <input type="range" id="years" min="5" max="30" step="1" value="30" oninput="onCalc()">
+        <div class="quick">
+          <button class="qk" onclick="setVal('years',5)">5年</button>
+          <button class="qk" onclick="setVal('years',10)">10年</button>
+          <button class="qk" onclick="setVal('years',15)">15年</button>
+          <button class="qk" onclick="setVal('years',20)">20年</button>
+          <button class="qk" onclick="setVal('years',25)">25年</button>
+          <button class="qk" onclick="setVal('years',30)">30年</button>
+        </div>
+        <input type="number" class="custom-inp" id="yearsInp" placeholder="自定义年限（5-30）" min="5" max="30" step="1" oninput="customSet('years',this.value,5,30)">
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>还款方式</label>
+        <div class="seg">
+          <button class="on" id="btnBenxi" onclick="setMode('benxi')">等额本息</button>
+          <button id="btnBenjin" onclick="setMode('benjin')">等额本金</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <div class="cards">
+        <div class="rc"><div class="k">月供</div><div class="v" id="rMonthly">--</div></div>
+        <div class="rc green"><div class="k">利息总额</div><div class="v" id="rInterest">--</div></div>
+        <div class="rc blue"><div class="k">还款总额</div><div class="v" id="rTotal">--</div></div>
+      </div>
+
+      <div class="compare">
+        <h3>📊 两种方式对比</h3>
+        <table>
+          <tr><th>对比项</th><th>等额本息</th><th>等额本金</th></tr>
+          <tr id="rowMonthly"><td>月供</td><td id="cM1">--</td><td id="cM2">--</td></tr>
+          <tr><td>首月月供</td><td id="cF1">--</td><td id="cF2">--</td></tr>
+          <tr><td>末月月供</td><td id="cL1">--</td><td id="cL2">--</td></tr>
+          <tr><td>利息总额</td><td id="cI1">--</td><td id="cI2">--</td></tr>
+          <tr class="hl"><td>本息合计</td><td id="cT1">--</td><td id="cT2">--</td></tr>
+          <tr><td>总利息差</td><td colspan="2" id="cDiff" style="text-align:right">--</td></tr>
+        </table>
+        <div class="tip" id="tipBox"></div>
+      </div>
+
+      <div class="chart-panel">
+        <h3>📈 剩余本金曲线</h3>
+        <div class="legend">
+          <span class="lg"><i style="background:var(--gold)"></i>等额本息</span>
+          <span class="lg"><i style="background:var(--green)"></i>等额本金</span>
+        </div>
+        <div class="chart-scroll" id="chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>100 Apps Challenge · App #024 · <b>等额本息</b>：月供固定 A=P·i·(1+i)ⁿ/[(1+i)ⁿ−1] · <b>等额本金</b>：月供递减 每月本金=P/n<br>利率按 LPR 3.6% 基准 · 计算结果仅供参考，以银行审批为准</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：房贷金融数学
+   - 等额本息（固定月供）：
+     A = P·i·(1+i)ⁿ / [(1+i)ⁿ − 1]
+     P=本金 i=月利率 n=总月数
+     每月利息 = 剩余本金×i，每月本金 = A − 利息
+   - 等额本金（递减月供）：
+     每月本金 = P/n（恒定）
+     第k月月供 = P/n + (P−(k−1)·P/n)·i
+   - 剩余本金曲线：两种方式的余额走势（本息前慢后快/本金匀速）
+   - 利息差 = 本息总利息 − 本金总利息（本金省息但有前期压力）
+   ============================================================ */
+const $=id=>document.getElementById(id);
+let mode="benxi";
+
+/* 滑杆拖动入口：计算+反向同步下方输入框 */
+function onCalc(){calc();syncCustomInputs()}
+function setVal(id,v){$(id).value=v;calc();syncCustomInputs()}
+/* 自定义输入 → 滑杆自动对位（含 clamp + 精度换算） */
+function customSet(id,raw,min,max,conv){
+  let v=parseFloat(raw);
+  if(isNaN(v))return;                     /* 输入中间态不打断 */
+  /* 输入框业务范围：amount/years 直接值，rate 是百分比 */
+  if(id==="amount"){v=Math.min(1000,Math.max(1,v))}         /* 万元，最低1万 */
+  else if(id==="rate"){v=Math.min(6,Math.max(1,v));v=Math.round(v*10)}  /* % → 滑杆×10 */
+  else{v=Math.min(30,Math.max(5,v))}                        /* 年 */
+  $(id).value=v;
+  calc();syncCustomInputs();
+}
+/* 滑杆变动时反向同步输入框显示 */
+function syncCustomInputs(){
+  $("amountInp").value=$("amount").value;
+  $("rateInp").value=($("rate").value/10).toFixed(1);
+  $("yearsInp").value=$("years").value;
+}
+function setMode(m){
+  mode=m;
+  $("btnBenxi").classList.toggle("on",m==="benxi");
+  $("btnBenjin").classList.toggle("on",m==="benjin");
+  calc();
+  syncCustomInputs();
+}
+
+/* ---------- 核心计算 ---------- */
+/* 等额本息：返回 {monthly, totalInterest, total, balances[]} */
+function calcBenxi(P,annualRate,years){
+  const n=years*12;
+  const i=annualRate/100/12;
+  const A=P*i*Math.pow(1+i,n)/(Math.pow(1+i,n)-1);
+  let bal=P,totalInterest=0;
+  const balances=[bal];
+  for(let k=0;k<n;k++){
+    const interest=bal*i;
+    const principal=A-interest;
+    bal-=principal;
+    totalInterest+=interest;
+    if(k%Math.max(1,Math.floor(n/60))===0)balances.push(Math.max(0,bal));  /* 采样60点 */
+  }
+  balances.push(0);
+  return{monthly:A,first:A,last:A,totalInterest,total:P+totalInterest,balances};
+}
+/* 等额本金 */
+function calcBenjin(P,annualRate,years){
+  const n=years*12;
+  const i=annualRate/100/12;
+  const mp=P/n;   /* 每月固定本金 */
+  let bal=P,totalInterest=0;
+  const balances=[bal];
+  let first=0,last=0;
+  for(let k=1;k<=n;k++){
+    const interest=bal*i;
+    const pay=mp+interest;
+    if(k===1)first=pay;
+    if(k===n)last=pay;
+    bal-=mp;
+    totalInterest+=interest;
+    if((k-1)%Math.max(1,Math.floor(n/60))===0)balances.push(Math.max(0,bal));
+  }
+  balances.push(0);
+  return{monthly:null,first,last,totalInterest,total:P+totalInterest,balances};
+}
+
+function fmt(n){
+  if(n>=10000)return (n/10000).toFixed(1)+"万";
+  return Math.round(n).toLocaleString();
+}
+function fmtY(n){
+  return "¥"+fmt(n);
+}
+
+/* ---------- 渲染 ---------- */
+function calc(){
+  const P=$("amount").value*10000;
+  const rate=$("rate").value/10;
+  const years=+$("years").value;
+  $("amountV").textContent=$("amount").value+" 万元";
+  $("rateV").textContent=rate.toFixed(1)+" %";
+  $("yearsV").textContent=years+" 年";
+
+  const bx=calcBenxi(P,rate,years);
+  const bj=calcBenjin(P,rate,years);
+
+  /* 主卡片按当前模式 */
+  const cur=mode==="benxi"?bx:bj;
+  $("rMonthly").innerHTML=mode==="benxi"
+    ?fmtY(cur.monthly)+"<small>/月</small>"
+    :fmtY(cur.first)+" → "+fmtY(cur.last)+"<small>/月</small>";
+  $("rInterest").innerHTML=fmtY(cur.totalInterest);
+  $("rTotal").innerHTML=fmtY(cur.total);
+
+  /* 对比表 */
+  $("cM1").textContent=fmtY(bx.monthly);
+  $("cM2").textContent=fmtY(bj.first)+" → "+fmtY(bj.last);
+  $("cF1").textContent=fmtY(bx.first);
+  $("cF2").textContent=fmtY(bj.first);
+  $("cL1").textContent=fmtY(bx.last);
+  $("cL2").textContent=fmtY(bj.last);
+  $("cI1").textContent=fmtY(bx.totalInterest);
+  $("cI2").textContent=fmtY(bj.totalInterest);
+  $("cT1").textContent=fmtY(bx.total);
+  $("cT2").textContent=fmtY(bj.total);
+  const diff=bx.totalInterest-bj.totalInterest;
+  $("cDiff").textContent=(diff>0?"等额本金省 ":"等额本息省 ")+fmtY(Math.abs(diff));
+  $("rowMonthly").classList.toggle("hl",false);
+
+  /* 建议 */
+  $("tipBox").innerHTML=diff>0
+    ?`💡 <b>等额本金</b>总利息少 ${fmt(diff>10000?(diff/10000).toFixed(1)+"万":Math.round(diff)+"元")}，但首月多还 ${fmtY(bj.first-bx.monthly)}。适合当前收入较高、想省息的人群；预算紧张或打算提前还款选<b>等额本息</b>更稳。`
+    :`两种方式利息相同（年限太短时差异不明显）。`;
+
+  drawChart(bx,bal_s(bx,bj),years);
+}
+/* 统一两条曲线的采样长度 */
+function bal_s(a,b){
+  return b.balances;
+}
+function drawChart(bx,bjB,years){
+  const W=640,H=200,P=42;
+  const bxV=bx.balances,bjV=bjB;
+  const len=Math.max(bxV.length,bjV.length);
+  const maxVal=bxV[0];
+  const x=i=>P+i*(W-P*2)/(len-1);
+  const y=v=>H-30-(v/maxVal)*(H-60);
+  function path(vals){
+    /* 归一到统一长度（线性插值采样） */
+    let d="";
+    for(let i=0;i<len;i++){
+      const t=i/(len-1)*(vals.length-1);
+      const idx=Math.floor(t),frac=t-idx;
+      const v=vals[idx+1]!==undefined?vals[idx]+(vals[idx+1]-vals[idx])*frac:vals[idx];
+      d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" ";
+    }
+    return d;
+  }
+  const axis=`
+    <line x1="${P}" y1="${H-30}" x2="${W-P+10}" y2="${H-30}" stroke="var(--line)"/>
+    <text x="${P-6}" y="${y(maxVal)+4}" text-anchor="end" font-size="10" fill="var(--dim)">${fmt(maxVal)}</text>
+    <text x="${P-6}" y="${H-26}" text-anchor="end" font-size="10" fill="var(--dim)">0</text>
+    <text x="${P}" y="${H-12}" font-size="10" fill="var(--dim)">第0月</text>
+    <text x="${W-P}" y="${H-12}" text-anchor="end" font-size="10" fill="var(--dim)">第${years*12}月</text>`;
+  $("chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}">
+    ${axis}
+    <path d="${path(bxV)}" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="${path(bjV)}" fill="none" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 0"/>
+  </svg>`;
+}
+
+calc();
+syncCustomInputs();
+</script>
+</body>
+</html>

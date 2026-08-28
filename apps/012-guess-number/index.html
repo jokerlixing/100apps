@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎲 猜数字游戏 · Guess Number</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75; --blue:#569cd6;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px}
+.app{width:100%;max-width:440px;text-align:center;margin:0 auto}
+h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:4px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-bottom:24px;letter-spacing:2px}
+
+/* 范围可视化条 */
+.range-bar{position:relative;height:44px;margin-bottom:20px;background:var(--panel);border-radius:22px;border:1px solid var(--line);overflow:hidden}
+.range-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,rgba(78,201,176,.25),rgba(78,201,176,.4));border-right:2px solid var(--green);transition:.25s}
+.range-labels{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:13px;font-variant-numeric:tabular-nums;color:var(--text);pointer-events:none;font-weight:600}
+
+/* 输入区 */
+.guess-row{display:flex;gap:10px;margin-bottom:18px}
+.guess-input{flex:1;background:var(--panel);border:2px solid var(--line);color:var(--text);font-size:24px;text-align:center;padding:12px;border-radius:12px;outline:none;font-variant-numeric:tabular-nums;transition:.15s;-webkit-user-select:text;user-select:text}
+.guess-input:focus{border-color:var(--gold)}
+.guess-input.shake-wrong{animation:shakeX .3s}
+@keyframes shakeX{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.btn{background:var(--gold);border:none;color:#1a1a22;font-size:16px;font-weight:700;padding:12px 28px;border-radius:12px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}@media(hover:hover){
+.btn:hover{filter:brightness(1.1)}}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--panel);color:var(--muted);border:1px solid var(--line);font-weight:400;font-size:14px;padding:12px 18px}
+
+/* 反馈区 */
+.feedback{min-height:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-bottom:18px}
+.feedback .emoji{font-size:44px;line-height:1}
+.feedback .msg{font-size:16px;color:var(--text)}
+.feedback .hint{font-size:12px;color:var(--dim)}
+.feedback.win .emoji,.feedback.win .msg{animation:pop .4s cubic-bezier(.25,.46,.45,.94)}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+
+/* 历史 */
+.history{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:20px;min-height:28px}
+.chip{font-size:12px;padding:4px 10px;border-radius:12px;font-variant-numeric:tabular-nums;border:1px solid var(--line);background:var(--panel)}
+.chip.high{color:var(--red);border-color:rgba(224,108,117,.4)}
+.chip.low{color:var(--blue);border-color:rgba(86,156,214,.4)}
+.chip.bingo{color:var(--gold);border-color:var(--gold);font-weight:700}
+
+/* 统计 */
+.stats{display:flex;gap:10px;margin-bottom:20px}
+.stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat .v{font-size:20px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+.stat .k{font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:1px}
+
+/* 难度 */
+.levels{display:flex;gap:8px;justify-content:center}
+.lbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:18px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}
+.lbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(229,181,103,.1)}
+
+footer{color:var(--dim);font-size:11px;margin-top:24px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>猜数字游戏</h1>
+  <div class="sub">1 ~ 100 · 二分法最多 7 次必中</div>
+
+  <div class="range-bar">
+    <div class="range-fill" id="fill"></div>
+    <div class="range-labels"><span id="loLab">1</span><span id="hiLab">100</span></div>
+  </div>
+
+  <div class="guess-row">
+    <input class="guess-input" id="inp" type="number" min="1" max="100" placeholder="?" inputmode="numeric" autocomplete="off">
+    <button class="btn" id="goBtn" onclick="guess()">猜！</button>
+    <button class="btn ghost" id="reBtn" onclick="newGame()" style="display:none">再来</button>
+  </div>
+
+  <div class="feedback" id="fb">
+    <div class="emoji">🎯</div>
+    <div class="msg">我想好了一个数字，猜猜看</div>
+    <div class="hint">输入 1-100 之间的整数</div>
+  </div>
+
+  <div class="history" id="hist"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="v" id="cnt">0</div><div class="k">本局次数</div></div>
+    <div class="stat"><div class="v" id="best">-</div><div class="k">最少次数纪录</div></div>
+    <div class="stat"><div class="v" id="playeds">0</div><div class="k">总局数</div></div>
+  </div>
+
+  <div class="levels">
+    <button class="lbtn on" data-max="100" onclick="setLevel(this)">1~100</button>
+    <button class="lbtn" data-max="500" onclick="setLevel(this)">1~500</button>
+    <button class="lbtn" data-max="1000" onclick="setLevel(this)">1~1000</button>
+    <button class="lbtn" id="clrBtn" onclick="clearRecords()">🗑 清空记录</button>
+  </div>
+
+  <footer>100 Apps Challenge · App #012 · <b>二分查找</b>：每猜一次排除一半<br>log₂(100)≈6.6 → 7 次必中</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：二分查找
+   - 每次猜测把可行区间 [lo,hi] 砍一半
+   - N 个数最多 log₂(N) 向上取整次猜中
+   - 100→7次 500→9次 1000→10次
+   - 绿色进度条就是可视化了的"搜索区间"
+   ============================================================ */
+const KEY="guessnum_v1";
+const $=id=>document.getElementById(id);
+let max=100,answer=0,tries=0,over=false;
+let best={100:null,500:null,1000:null},playeds=0;
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s){best=s.best||best;playeds=s.playeds||0}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({best,playeds}))}catch(e){}}
+
+function newGame(){
+  answer=1+Math.floor(Math.random()*max);
+  tries=0;over=false;
+  $("inp").value="";$("inp").disabled=false;
+  $("goBtn").style.display="";$("reBtn").style.display="none";
+  setFB("🎯","我想好了一个数字，猜猜看","输入 1-"+max+" 之间的整数");
+  $("hist").innerHTML="";
+  $("cnt").textContent="0";
+  updateRange(1,max,1,max);
+  $("inp").focus();
+}
+function setLevel(btn){
+  document.querySelectorAll(".lbtn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  max=+btn.dataset.max;
+  $("inp").max=max;
+  newGame();
+}
+function setFB(emoji,msg,hint,win){
+  const fb=$("fb");
+  fb.className="feedback"+(win?" win":"");
+  fb.innerHTML=`<div class="emoji">${emoji}</div><div class="msg">${msg}</div>${hint?`<div class="hint">${hint}</div>`:""}`;
+}
+/* 可视化搜索区间：整个条代表 [1,max]，绿色填充代表仍可能的 [lo,hi] */
+function updateRange(lo,hi){
+  const pct=x=>((x-1)/(max-1)*100);
+  const left=pct(lo),width=Math.max(pct(hi)-left,max===1?0:0.8);
+  $("fill").style.left=left+"%";
+  $("fill").style.width=width+"%";
+  $("loLab").textContent=lo;
+  $("hiLab").textContent=hi;
+}
+function guess(){
+  if(over)return;
+  const v=parseInt($("inp").value,10);
+  if(isNaN(v)||v<1||v>max){
+    const inp=$("inp");
+    inp.classList.remove("shake-wrong");void inp.offsetWidth;inp.classList.add("shake-wrong");
+    setFB("🤨","这不在范围内啊","请输入 1-"+max+" 的整数");
+    return;
+  }
+  tries++;playeds++;
+  $("cnt").textContent=tries;
+  $("inp").value="";$("inp").focus();
+
+  /* 用猜测值收缩可行区间（就是二分查找的区间收缩） */
+  let lo=1,hi=max;
+  const chips=$("hist").children;
+  for(const c of chips){
+    const val=+c.textContent.replace(/[^\d]/g,"");
+    if(c.classList.contains("high"))hi=Math.min(hi,val-1);
+    else if(c.classList.contains("low"))lo=Math.max(lo,val+1);
+  }
+  const cls=v===answer?"bingo":v>answer?"high":"low";
+  $("hist").insertAdjacentHTML("beforeend",`<span class="chip ${cls}">${v}${v===answer?" ✓":v>answer?" ↓":" ↑"}</span>`);
+  if(v!==answer){
+    if(v>answer){hi=Math.min(hi,v-1)}else{lo=Math.max(lo,v+1)}
+    updateRange(lo,hi);
+    const remain=hi-lo+1;
+    setFB(v>answer?"📉":"📈",v>answer?v+" 太大了":v+" 太小了",`范围缩小到 ${lo}~${hi}（剩 ${remain} 个 · 建议猜 ${Math.floor((lo+hi)/2)}）`);
+  }else{
+    over=true;
+    $("inp").disabled=true;
+    $("goBtn").style.display="none";$("reBtn").style.display="";
+    updateRange(v,v);
+    const minTries=Math.ceil(Math.log2(max));
+    let m;
+    if(tries<=minTries)m=`🏆 ${tries} 次！达到理论最优（log₂${max}≈${minTries.toFixed(1)}）`;
+    else if(tries<=minTries+3)m="👍 不错，还有优化空间";
+    else m="😅 试试每次猜区间中点吧";
+    setFB("🎉","猜对了！答案就是 "+v,m,true);
+    if(best[max]===null||tries<best[max]){best[max]=tries}
+    save();renderStats();
+  }
+}
+function renderStats(){
+  $("best").textContent=best[max]!==null?best[max]+" 次":"-";
+  $("playeds").textContent=playeds;
+}
+/* 清空所有记录：内联二次确认（不用confirm，内置浏览器会拦截） */
+let clrArmed=false,clrTimer=null;
+function clearRecords(){
+  const btn=$("clrBtn");
+  if(!clrArmed){
+    clrArmed=true;
+    btn.textContent="⚠️ 确认清空？";
+    btn.style.borderColor="var(--red)";btn.style.color="var(--red)";
+    clearTimeout(clrTimer);
+    clrTimer=setTimeout(()=>{
+      clrArmed=false;
+      btn.textContent="🗑 清空记录";btn.style.borderColor="";btn.style.color="";
+    },3000);
+    return;
+  }
+  clrArmed=false;clearTimeout(clrTimer);
+  btn.textContent="🗑 清空记录";btn.style.borderColor="";btn.style.color="";
+  best={100:null,500:null,1000:null};playeds=0;
+  save();
+  newGame();  /* 本局也重置：次数归零+新答案+历史清空 */
+  renderStats();
+  setFB("🧹","所有记录已清空","开始全新的一局吧");
+}
+$("inp").addEventListener("keydown",e=>{if(e.key==="Enter")guess()});
+/* 禁用输入框的滚轮改值（防误触） */
+$("inp").addEventListener("wheel",e=>e.preventDefault(),{passive:false});
+renderStats();
+newGame();
+</script>
+</body>
+</html>

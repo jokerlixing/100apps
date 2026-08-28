@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎯 随机点名器 · Random Picker</title>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;padding:28px 16px}
+.app{width:100%;max-width:680px}
+h1{font-size:24px;font-weight:700;margin-bottom:4px}
+h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+
+.layout{display:grid;grid-template-columns:1fr 240px;gap:14px;align-items:start}
+@media(max-width:640px){.layout{grid-template-columns:1fr}}
+
+/* 左：舞台 */
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 20px;text-align:center}
+.screen{height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+#name{font-size:44px;font-weight:700;letter-spacing:2px;transition:color .1s}
+#name.rolling{color:var(--dim);font-size:36px}
+#name.winner{color:var(--green);animation:zoom .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes zoom{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.ctrl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}@media(hover:hover){
+.btn:hover{border-color:var(--dim)}}
+.btn.main{background:var(--green);border-color:var(--green);color:#12211d;font-size:15px}@media(hover:hover){
+.btn.main:hover{filter:brightness(1.1)}}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.pool{margin-top:14px;font-size:12px;color:var(--dim)}
+.pool b{color:var(--blue)}
+.opt{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.switch{width:34px;height:19px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:.2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--dim);transition:.2s}
+.opt.on .switch{background:rgba(78,201,176,.25);border-color:var(--green)}
+.opt.on .switch::after{left:17px;background:var(--green)}
+
+/* 右：面板 */
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h4{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)}
+textarea{width:100%;height:140px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;line-height:1.7;outline:none;resize:vertical;font-family:inherit;transition:.15s}
+textarea:focus{border-color:var(--green)}
+textarea::placeholder{color:var(--dim)}
+.mini{background:transparent;border:1px solid var(--line);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:12px;cursor:pointer;transition:.15s}@media(hover:hover){
+.mini:hover{border-color:var(--blue);color:var(--blue)}}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* 历史 */
+.hist{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.h-item{display:flex;justify-content:space-between;font-size:13px;padding:7px 10px;background:var(--panel2);border-radius:8px;animation:pop .2s ease}
+@keyframes pop{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+.h-item .n{font-weight:600}
+.h-item .t{color:var(--dim);font-size:11px}
+.h-empty{color:var(--dim);font-size:12px;text-align:center;padding:16px 0}
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-height:1.8}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🎯 <span>随机点名器</span></h1>
+  <div class="sub">课堂点名 · 年会抽奖 · 团建分组 · crypto 级公平随机</div>
+
+  <div class="layout">
+    <div class="stage">
+      <div class="screen"><div id="name">准备点名</div></div>
+      <div class="ctrl">
+        <button class="btn main" id="btnGo" onclick="roll()">🎲 开始点名</button>
+        <button class="btn" onclick="resetRound()">↺ 重置本轮</button>
+      </div>
+      <div class="pool" id="pool">候选池：<b>0</b> 人 · 已点：<b>0</b> 人</div>
+      <div class="opt on" id="optUnique" onclick="toggleUnique()">
+        <div class="switch"></div><span>已点不重复（抽完全部自动提示重置）</span>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h4>📝 名单（一行一个）</h4>
+        <textarea id="names" placeholder="张三&#10;李四&#10;王五&#10;……"></textarea>
+        <div class="row">
+          <button class="mini" onclick="loadDemo()">示例名单</button>
+          <button class="mini" onclick="clearNames()">清空</button>
+          <button class="mini" onclick="shuffleNames()">名单洗牌</button>
+        </div>
+      </div>
+      <div class="card">
+        <h4>📜 本轮点名记录</h4>
+        <div class="hist" id="hist"><div class="h-empty">还没点过名</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>100 Apps Challenge · App #008 · 名单自动保存在本地 · 随机源：crypto.getRandomValues</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   知识点呼应：
+   - 随机源复用 #005 的方案：crypto.getRandomValues + 拒绝采样
+     （Math.random 可预测，点名公平性要用密码学随机）
+   - 动画：requestAnimationFrame + 缓动减速（先快后慢的老虎机效果）
+   ============================================================ */
+const KEY="picker_v1";
+const $=id=>document.getElementById(id);
+
+/* 密码学安全随机整数 [0, max) */
+function randInt(max){
+  if(max<=0)return 0;
+  const limit=Math.floor(0x100000000/max)*max;
+  const buf=new Uint32Array(1);
+  do{crypto.getRandomValues(buf)}while(buf[0]>=limit);
+  return buf[0]%max;
+}
+
+/* ---------- 名单管理 ---------- */
+let names=[],unique=true;
+function loadNames(){
+  names=$("names").value.split("\n").map(s=>s.trim()).filter(Boolean);
+}
+function saveNames(){
+  localStorage.setItem(KEY,JSON.stringify({names:$("names").value,unique}));
+}
+function restore(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY));
+    if(s){$("names").value=s.names||"";unique=s.unique!==false;}
+  }catch(e){}
+  $("optUnique").classList.toggle("on",unique);
+}
+function loadDemo(){
+  $("names").value=["星哥","老王","小李","阿张","陈总","刘工","周周","吴姐","郑哥","孙俪","钱多多","赵子龙"].join("\n");
+  loadNames();saveNames();updatePool();
+  toast("已载入 12 人示例名单");
+}
+function clearNames(){
+  if(!confirm("清空名单？"))return;
+  $("names").value="";loadNames();saveNames();updatePool();
+}
+function shuffleNames(){
+  loadNames();
+  for(let i=names.length-1;i>0;i--){
+    const j=randInt(i+1);
+    [names[i],names[j]]=[names[j],names[i]];
+  }
+  $("names").value=names.join("\n");saveNames();
+  toast("🔀 名单已随机打乱");
+}
+$("names").addEventListener("input",()=>{loadNames();saveNames();updatePool()});
+
+/* ---------- 点名状态 ---------- */
+let picked=[];    // 本轮已点（用于不重复模式）
+let history=[];   // 展示记录
+let rolling=false;
+
+function toggleUnique(){unique=!unique;$("optUnique").classList.toggle("on",unique);saveNames()}
+function resetRound(){
+  picked=[];history=[];
+  renderHist();updatePool();
+  $("name").textContent="准备点名";$("name").className="";
+  toast("已重置本轮点名");
+}
+
+/* ---------- 核心点名 ---------- */
+function roll(){
+  if(rolling)return;
+  loadNames();
+  let pool=unique?names.filter(n=>!picked.includes(n)):names;
+  if(!pool.length){
+    toast(unique?"本轮已全部点完，点「重置本轮」重新开始":"名单是空的，先填几个名字");
+    return;
+  }
+  const winner=pool[randInt(pool.length)];
+  rolling=true;
+  $("btnGo").disabled=true;
+  animateRoll(pool,winner);
+}
+
+/* 老虎机动画：先快后慢，最后定格 */
+function animateRoll(pool,winner){
+  const el=$("name");
+  el.className="rolling";
+  const start=performance.now(),DUR=1800;
+  let lastTick=0,interval=50;
+  function frame(now){
+    const t=now-start;
+    if(t>=DUR){
+      el.textContent=winner;
+      el.className="winner";
+      chime();
+      finish(winner);
+      return;
+    }
+    /* 缓动：闪动间隔从 50ms 渐增到 280ms（减速感） */
+    const prog=t/DUR;
+    interval=50+prog*prog*230;
+    if(now-lastTick>=interval){
+      lastTick=now;
+      el.textContent=pool[randInt(pool.length)];
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+function finish(winner){
+  rolling=false;
+  $("btnGo").disabled=false;
+  if(unique)picked.push(winner);
+  const now=new Date();
+  history.unshift({n:winner,t:`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`});
+  renderHist();updatePool();
+  if(unique&&picked.length===names.length)toast("🎉 全员点完！重置本轮可再来一遍");
+}
+function updatePool(){
+  loadNames();
+  const left=unique?names.length-picked.length:names.length;
+  $("pool").innerHTML=`候选池：<b>${left}</b> 人 · 已点：<b>${picked.length}</b> 人`;
+}
+function renderHist(){
+  $("hist").innerHTML=history.length
+    ?history.map((h,i)=>`<div class="h-item"><span class="n">${i+1}. ${esc(h.n)}</span><span class="t">${h.t}</span></div>`).join("")
+    :`<div class="h-empty">还没点过名</div>`;
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+/* ---------- 中奖音效（Web Audio 双音上扬） ---------- */
+function chime(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [[0,660],[0.12,880]].forEach(([d,f])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.frequency.value=f;o.type="sine";
+      g.gain.setValueAtTime(0.0001,ctx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+d+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+d+0.25);
+      o.connect(g);g.connect(ctx.destination);
+      o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+0.3);
+    });
+  }catch(e){}
+}
+
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+
+/* ---------- 启动 ---------- */
+restore();
+loadNames();updatePool();renderHist();
+if(!names.length)loadDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100 Apps Challenge · 星哥的一百应用挑战</title>
+<style>
+:root{
+  --bg:#1a1b26; --panel:#232433; --panel2:#2a2b3d; --line:#363850;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --green:#4ec9b0; --blue:#569cd6; --orange:#e5a663; --purple:#c586c0; --red:#e06c75;
+  --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:24px}
+.wrap{max-width:1200px;margin:0 auto}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+h1{font-size:26px;font-weight:700;letter-spacing:.5px}
+h1 .grad{background:linear-gradient(90deg,var(--green),var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-top:6px}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#12211d;font-weight:600}
+.btn.primary:hover{filter:brightness(1.1);color:#12211d}
+
+/* dashboard */
+.dash{display:flex;gap:20px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:16px;flex-wrap:wrap}
+.ring-box{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:160px}
+.ring{position:relative;width:150px;height:150px}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .num b{font-size:30px;font-weight:700}
+.ring .num span{font-size:12px;color:var(--muted)}
+.stats{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;min-width:280px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat .v{font-size:26px;font-weight:700}
+.stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+.milestone{background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:12px 16px;width:100%;font-size:13px;color:var(--muted)}
+.milestone b{color:var(--green)}
+
+/* filters */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+.search{flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none}
+.search:focus{border-color:var(--blue)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:.15s}
+.chip.on{color:#12131a;font-weight:600}
+.chip:hover{opacity:.85}
+
+/* add bar */
+.addbar{display:flex;gap:8px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+.addbar input,.addbar select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none}
+.addbar input:focus,.addbar select:focus{border-color:var(--green)}
+.addbar .name{flex:2;min-width:160px}
+.addbar .desc{flex:3;min-width:200px}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;transition:.15s;position:relative}
+.card:hover{border-color:var(--dim);transform:translateY(-2px)}
+.card.done{border-left:3px solid var(--green)}
+.card.doing{border-left:3px solid var(--orange)}
+.card.todo{border-left:3px solid var(--dim)}
+.card .top{display:flex;justify-content:space-between;align-items:center}
+.idx{font-size:12px;color:var(--dim);font-family:Consolas,monospace}
+.lv{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.lv1{background:rgba(78,201,176,.15);color:var(--green)}
+.lv2{background:rgba(86,156,214,.15);color:var(--blue)}
+.lv3{background:rgba(229,166,99,.15);color:var(--orange)}
+.lv4{background:rgba(197,134,192,.15);color:var(--purple)}
+.lv5{background:rgba(224,108,117,.15);color:var(--red)}
+.name{font-size:15px;font-weight:600;line-height:1.35}
+.card.done .name{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--dim)}
+.desc{font-size:12px;color:var(--muted);line-height:1.5;flex:1}
+.bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.status-btn{border:none;cursor:pointer;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:600;transition:.15s}
+.status-btn.todo{background:rgba(92,96,121,.2);color:var(--muted)}
+.status-btn.doing{background:rgba(229,166,99,.18);color:var(--orange)}
+.status-btn.done{background:rgba(78,201,176,.18);color:var(--green)}
+.status-btn:hover{filter:brightness(1.3)}
+.link-edit{background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:12px}
+.link-edit:hover{color:var(--blue)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.idx-lv{display:flex;align-items:center;gap:8px;min-width:0}
+.card a.go{font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(86,156,214,.15);color:var(--blue);text-decoration:none;white-space:nowrap;flex-shrink:0;transition:.15s}
+.card a.go:hover{background:var(--blue);color:#12131a}
+.empty{text-align:center;color:var(--dim);padding:60px 0;font-size:14px;grid-column:1/-1}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--green);color:var(--text);padding:12px 24px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* 链接编辑弹层（替代 prompt，内置浏览器兼容） */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-mask.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h3{font-size:14px;margin-bottom:12px}
+.modal input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;-webkit-user-select:text;user-select:text;font-family:Consolas,monospace}
+.modal input:focus{border-color:var(--blue)}
+.modal .tip{font-size:11px;color:var(--dim);margin-top:8px}
+.modal .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:24px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🚀 <span class="grad">100 Apps Challenge</span></h1>
+      <div class="sub">星哥的一百应用挑战 · App #001 就是这个追踪器本身 · 数据存在浏览器本地</div>
+    </div>
+  </header>
+
+  <div class="dash">
+    <div class="ring-box">
+      <div class="ring">
+        <svg width="150" height="150">
+          <circle cx="75" cy="75" r="64" fill="none" stroke="var(--line)" stroke-width="10"/>
+          <circle id="prog" cx="75" cy="75" r="64" fill="none" stroke="url(#g1)" stroke-width="10" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402"/>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#4ec9b0"/><stop offset="100%" stop-color="#569cd6"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="num"><b id="doneNum">0</b><span>/ 100 完成</span></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v" style="color:var(--green)" id="sDone">0</div><div class="l">✅ 已完成</div></div>
+      <div class="stat"><div class="v" style="color:var(--orange)" id="sDoing">0</div><div class="l">🔥 进行中</div></div>
+      <div class="stat"><div class="v" style="color:var(--muted)" id="sTodo">100</div><div class="l">📋 未开始</div></div>
+      <div class="stat"><div class="v" style="color:var(--blue)" id="sPct">0%</div><div class="l">📈 总进度</div></div>
+      <div class="stat"><div class="v" style="color:var(--purple)" id="sStreak">-</div><div class="l">🏆 最近完成</div></div>
+    </div>
+    <div class="milestone" id="milestone"></div>
+  </div>
+
+  <div class="filters">
+    <input class="search" id="q" placeholder="🔍 搜索应用名称或描述…" oninput="render()">
+    <div class="chips" id="lvChips"></div>
+    <div class="chips" id="stChips"></div>
+  </div>
+
+  <div class="addbar">
+    <input class="name" id="addName" placeholder="自定义应用名称，如：猫粮余量计算器" maxlength="30">
+    <input class="desc" id="addDesc" placeholder="一句话描述（可选）" maxlength="60">
+    <select id="addLv">
+      <option value="1">L1 入门</option><option value="2">L2 进阶</option>
+      <option value="3" selected>L3 前后端</option><option value="4">L4 全栈AI</option><option value="5">L5 综合</option>
+    </select>
+    <button class="btn primary" onclick="addCustom()">➕ 添加点子</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    规则很简单：上线一个，勾一个 · 每 10 个是一个里程碑 🎉<br>
+    Challenge started · 每一个伟大的开发者都从 App #001 开始
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-mask" id="linkMask" onclick="if(event.target===this)closeLinkModal()">
+  <div class="modal">
+    <h3 id="linkTitle">🔗 设置访问链接</h3>
+    <input type="text" id="linkInput" placeholder="https://your-app-url.example.com/" onkeydown="if(event.key==='Enter')saveLink()">
+    <div class="tip">留空则清除链接 · Enter 快速保存</div>
+    <div class="btns">
+      <button class="btn" onclick="closeLinkModal()">取消</button>
+      <button class="btn primary" onclick="saveLink()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LV_NAMES={1:"L1 入门",2:"L2 进阶",3:"L3 前后端",4:"L4 全栈AI",5:"L5 综合"};
+const ST_NAMES={todo:"📋 未开始",doing:"🔥 进行中",done:"✅ 完成"};
+const NEXT={todo:"doing",doing:"done",done:"todo"};
+
+const IDEAS=[
+["百应用挑战追踪器","就是本页面：进度环+难度筛选+数据备份，挑战从这里开始","1","https://jokerlixing.github.io/100apps/"],
+["番茄钟计时器","25分钟专注+5分钟休息，含当日专注统计","1","https://jokerlixing.github.io/100apps/apps/002-tomato-timer/"],
+["待办清单 TodoList","增删改查+localStorage持久化，入门必备","1","https://jokerlixing.github.io/100apps/apps/003-todo-list/"],
+["二维码生成器","输入文本/链接生成二维码，支持下载","1","https://jokerlixing.github.io/100apps/apps/004-qr-generator/"],
+["密码生成器","可配长度与字符集，实时强度检测","1","https://jokerlixing.github.io/100apps/apps/005-password-generator/"],
+["单位换算器","长度/重量/温度/面积多类换算","1","https://jokerlixing.github.io/100apps/apps/006-unit-converter/"],
+["倒计时日历","距离目标日期还有多少天，支持多个目标","1","https://jokerlixing.github.io/100apps/apps/007-countdown/"],
+["随机点名器","导入名单随机抽取，已点不重复","1","https://jokerlixing.github.io/100apps/apps/008-random-picker/"],
+["打字速度测试","中英文WPM测试，统计准确率","1","https://jokerlixing.github.io/100apps/apps/009-typing-test/"],
+["记忆翻牌游戏","翻牌配对小游戏，计步计时","1","https://jokerlixing.github.io/100apps/apps/010-memory-game/"],
+["电子木鱼","点击敲木鱼计数，带音效禅意UI","1","https://jokerlixing.github.io/100apps/apps/011-wooden-fish/"],
+["猜数字游戏","1-100猜数，二分提示太大/太小","1","https://jokerlixing.github.io/100apps/apps/012-guess-number/"],
+["节日倒计时卡片","春节/国庆/生日倒计时精美卡片","1","https://jokerlixing.github.io/100apps/apps/013-festival-countdown/"],
+["BMI计算器","体重身高计算+健康区间建议","1","https://jokerlixing.github.io/100apps/apps/014-bmi-calculator/"],
+["配色方案生成器","随机生成和谐配色，一键复制色值","1","https://jokerlixing.github.io/100apps/apps/015-color-palette/"],
+["Markdown简历生成器","表单填写实时预览，导出打印","1","https://jokerlixing.github.io/100apps/apps/016-resume-maker/"],
+["记账本","分类收支记录+月度饼图统计","2","https://jokerlixing.github.io/100apps/apps/017-expense-tracker/"],
+["天气仪表盘","调用天气API，温度湿度风力可视化","2","https://jokerlixing.github.io/100apps/apps/018-weather-dashboard/"],
+["贪吃蛇","经典贪吃蛇，键盘操作+最高分记录","2","https://jokerlixing.github.io/100apps/apps/019-snake-game/"],
+["2048","方向键合并数字，动画流畅","2","https://jokerlixing.github.io/100apps/apps/020-2048/"],
+["扫雷","左键翻开右键插旗，难度三档","2","https://jokerlixing.github.io/100apps/apps/021-minesweeper/"],
+["白噪音播放器","雨声/海浪/森林混合播放，助眠专注","2","https://jokerlixing.github.io/100apps/apps/022-white-noise/"],
+["番茄钟 Pro","关联任务+每周专注时长图表","2","https://jokerlixing.github.io/100apps/apps/023-pomodoro-pro/"],
+["房贷计算器","等额本息/等额本金对比+还款曲线图","2","https://jokerlixing.github.io/100apps/apps/024-mortgage-calculator/"],
+["汇率换算器","接入实时汇率API，多币种互转","2","https://jokerlixing.github.io/100apps/apps/025-currency-exchange/"],
+["读书笔记应用","书摘收藏+标签分类+搜索","2","https://jokerlixing.github.io/100apps/apps/026-reading-notes/"],
+["习惯打卡日历","GitHub热力图风格的坚持记录","2","https://jokerlixing.github.io/100apps/apps/027-habit-tracker/"],
+["表情包搜索器","聚合表情包搜索+收藏夹","2","https://jokerlixing.github.io/100apps/apps/028-emoji-search/"],
+["英语单词卡片","翻卡记忆+艾宾浩斯复习计划","2","https://jokerlixing.github.io/100apps/apps/029-word-cards/"],
+["日历应用","月视图+添加事件+今日高亮","2","https://jokerlixing.github.io/100apps/apps/030-calendar/"],
+["抽奖转盘","可配置奖项与权重，转盘动画","2","https://jokerlixing.github.io/100apps/apps/031-lucky-wheel/"],
+["模拟电商列表页","商品卡片+筛选排序+购物车交互","2"],
+["代码片段管理器","收藏代码片段，语法高亮+搜索","2"],
+["多任务倒计时","多个计时器并行，到点提醒","2"],
+["随机分组工具","名单导入随机分组，适合团建","2"],
+["人生进度条","年龄/年度/目标进度可视化","2"],
+["个人博客","Markdown写作+标签归档+文章列表","3"],
+["在线问卷系统","创建问卷/分享填写/统计图表","3"],
+["短链接服务","长链转短链+点击量统计","3"],
+["图片压缩工具","Canvas本地批量压缩，无需上传","3"],
+["二维码名片","vCard电子名片，扫码存联系人","3"],
+["多人实时白板","WebSocket协作画板，实时同步","3"],
+["网页聊天室","群聊+在线成员列表+历史消息","3"],
+["留言墙","弹幕式留言滚动展示+点赞","3"],
+["RSS阅读器","订阅管理+文章聚合列表+已读标记","3"],
+["在线测验系统","题库组卷+计时答题+自动判分","3"],
+["拼图小游戏","图片切割打乱+拖拽还原+计时","3"],
+["键盘钢琴","Web Audio按键演奏+录制回放","3"],
+["屏幕录制工具","MediaRecorder录屏+下载","3"],
+["局域网文件快传","设备间互传文件，二维码直连","3"],
+["股票自选行情","实时行情刷新+K线图绘制","3"],
+["在线脑图编辑器","节点增删改+展开折叠+导出图片","3"],
+["本地密码管理器","主密码加密存储账号密码","3"],
+["API测试工具","简化版Postman，发请求看响应","3"],
+["JSON格式化工具","树形展示+校验错误定位","3"],
+["正则表达式测试器","实时匹配高亮+常用正则库","3"],
+["CORS代理小服务","解决本地开发跨域的代理工具","3"],
+["网页性能检测器","输入网址检测加载性能评分","3"],
+["字幕时间轴编辑器","视频字幕逐条对齐+预览","3"],
+["在线图片编辑器","裁剪+滤镜+加文字，简化版PS","3"],
+["每日壁纸应用","Bing每日图+收藏+一键设为主页","3"],
+["AI聊天助手","接入LLM API，流式输出对话","4"],
+["AI写作助手","润色/扩写/翻译/改风格","4"],
+["AI识图取字","OCR图片转文字，支持批量","4"],
+["AI语音转文字","录音上传实时转写文稿","4"],
+["AI简历优化器","上传简历，AI给出修改建议","4"],
+["AI菜谱推荐","输入冰箱食材，推荐能做的菜","4"],
+["智能客服机器人","FAQ知识库+意图识别回复","4"],
+["AI面试模拟器","按岗位提问+回答评分反馈","4"],
+["AI口语陪练","语音对话练习英语口语","4"],
+["情绪日记","记录心情，AI分析情绪趋势","4"],
+["全栈电商Demo","商品/购物车/下单/订单管理","4"],
+["论坛社区","发帖/评论/点赞/用户系统","4"],
+["在线协同文档","多人实时编辑同一文档","4"],
+["项目管理看板","Trello式拖拽看板+成员","4"],
+["订阅管理","追踪所有订阅服务与续费提醒","4"],
+["短链聚合平台","短链+二维码+访问统计后台","4"],
+["私人网盘","文件上传下载分享+配额管理","4"],
+["音乐播放器","歌单管理+歌词滚动+播放控制","4"],
+["视频网站Demo","视频播放+弹幕+播放列表","4"],
+["直播弹幕系统","模拟直播间+实时弹幕互动","4"],
+["微信小程序商城","小程序版电商，完整下单流程","4"],
+["桌面便签应用","Electron桌面端+置顶便签","4"],
+["划词翻译插件","浏览器插件，选中即翻译","4"],
+["标签页管理插件","一键整理浏览器标签组","4"],
+["CLI天气工具","命令行查天气+ASCII艺术输出","4"],
+["低代码表单构建器","拖拽组件生成表单+导出代码","5"],
+["可视化大屏编辑器","图表拖拽布局+数据源绑定","5"],
+["个人知识库Wiki","双链笔记+全文搜索+关系图","5"],
+["自动化工作流引擎","IFTTT简化版：触发器→动作","5"],
+["爬虫数据看板","定时抓取+变化监控+推送","5"],
+["简历投递助手","一份数据生成多版本简历","5"],
+["团队协作白板","多人协作+模板库+导出","5"],
+["在线IDE","代码编辑+多语言运行+预览","5"],
+["AI绘画广场","文生图+画廊+提示词分享","5"],
+["语音记账","说一句话AI解析自动记账","5"],
+["智能家居中控","设备模拟+场景联动面板","5"],
+["区块链浏览器","查询地址/交易/区块数据","5"],
+["开源组件库","10+组件+文档站+npm发布","5"],
+["个人作品集网站","集成展示全部作品，求职利器","5"],
+["AI Agent平台","多工具调用+任务编排执行","5"]
+];
+
+const KEY="apps100_v3";
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done"}; // 挑战官方进度
+let apps=[];
+function load(){
+  try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}
+  apps=IDEAS.map((a,i)=>({id:i+1,name:a[0],desc:a[1],lv:+a[2],st:INIT_DONE[i+1]||"todo",custom:false,link:a[3]||""}));
+  save();
+}
+/* 同步官方进度：内置应用的链接与完成态以代码为准（自定义点子不受影响） */
+function syncOfficial(){
+  let dirty=false;
+  apps.forEach(a=>{
+    if(a.custom)return;
+    const idea=IDEAS[a.id-1];
+    if(!idea)return;
+    if(idea[3]&&!a.link){a.link=idea[3];dirty=true}
+    if(INIT_DONE[a.id]==="done"&&a.st!=="done"){a.st="done";dirty=true}
+  });
+  if(dirty)save();
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(apps))}
+
+let fLv=0,fSt="";
+function chip(label,on,fn,cls){return `<button class="chip ${on?'on '+cls:''}" style="${on?'background:'+(cls=='lvx'?'var(--blue)':'var(--orange)'):''}" onclick="${fn}">${label}</button>`}
+function renderChips(){
+  document.getElementById("lvChips").innerHTML=
+    chip("全部难度",fLv===0,"setLv(0)","lvx")+
+    [1,2,3,4,5].map(l=>chip(LV_NAMES[l],fLv===l,`setLv(${l})`,"lvx")).join("");
+  const stDef=[["","全部状态"],["todo","未开始"],["doing","进行中"],["done","已完成"]];
+  document.getElementById("stChips").innerHTML=
+    stDef.map(s=>chip(s[1],fSt===s[0],`setSt('${s[0]}')`,"stx")).join("");
+}
+function setLv(l){fLv=l;renderChips();render()}
+function setSt(s){fSt=s;renderChips();render()}
+
+function render(){
+  const q=document.getElementById("q").value.trim().toLowerCase();
+  const list=apps.filter(a=>
+    (!fLv||a.lv===fLv)&&(!fSt||a.st===fSt)&&
+    (!q||a.name.toLowerCase().includes(q)||a.desc.toLowerCase().includes(q)));
+  const g=document.getElementById("grid");
+  if(!list.length){g.innerHTML=`<div class="empty">没有匹配的应用，换个条件试试 🔍</div>`}
+  else g.innerHTML=list.map(a=>`
+    <div class="card ${a.st}">
+      <div class="top">
+        <div class="idx-lv">
+          <span class="idx">#${String(a.id).padStart(3,"0")}${a.custom?" ✏️":""}</span>
+          ${a.link?`<a class="go" href="${esc(a.link)}${a.link.includes("?")?"&":"?"}_ts=${Date.now()}" target="_blank">访问 ↗</a>`:""}
+        </div>
+        <span class="lv lv${a.lv}">${LV_NAMES[a.lv]}</span>
+      </div>
+      <div class="name">${esc(a.name)}</div>
+      <div class="desc">${esc(a.desc)}</div>
+      <div class="bottom">
+        <button class="status-btn ${a.st}" onclick="cycle(${a.id})">${ST_NAMES[a.st]} →</button>
+        <button class="link-edit" onclick="setLink(${a.id})" title="填写部署链接">🔗</button>
+        ${a.custom?`<button class="link-edit" onclick="delCustom(${a.id},this)" title="删除">🗑</button>`:""}
+      </div>
+    </div>`).join("");
+  updateDash();
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+function cycle(id){
+  const a=apps.find(x=>x.id===id);if(!a)return;
+  const from=a.st;a.st=NEXT[a.st];save();
+  if(a.st==="done"){
+    const n=apps.filter(x=>x.st==="done").length;
+    if(n%10===0)toast(`🎉 里程碑达成：${n} 个应用！继续冲！`);
+    else toast(`✅ #${String(id).padStart(3,"0")} ${a.name} 完成！`);
+  } else if(a.st==="todo"&&from==="done"){toast(`↩️ 已撤销完成状态`)}
+  render();
+}
+/* 链接编辑：弹层代替 prompt（内置浏览器不拦截） */
+let linkEditId=null;
+function setLink(id){
+  const a=apps.find(x=>x.id===id);if(!a)return;
+  linkEditId=id;
+  document.getElementById("linkTitle").textContent=`🔗 #${String(id).padStart(3,"0")} ${a.name} 的链接`;
+  document.getElementById("linkInput").value=a.link||"";
+  document.getElementById("linkMask").classList.add("show");
+  setTimeout(()=>document.getElementById("linkInput").focus(),50);
+}
+function saveLink(){
+  const a=apps.find(x=>x.id===linkEditId);if(!a)return closeLinkModal();
+  const v=document.getElementById("linkInput").value.trim();
+  /* 简单校验：要么空，要么像 URL */
+  if(v&&!/^(https?:\/\/|\/|\.\/)/.test(v)){toast("链接需以 http(s):// 开头");return}
+  a.link=v;save();render();
+  closeLinkModal();
+  toast(v?"🔗 链接已保存":"🔗 链接已清除");
+}
+function closeLinkModal(){
+  document.getElementById("linkMask").classList.remove("show");
+  linkEditId=null;
+}
+/* 删除自定义点子：内联二次确认（替代 confirm） */
+let delCusArmed=0,delCusTimer=null;
+function delCustom(id,btn){
+  if(delCusArmed!==id){
+    delCusArmed=id;
+    if(btn)btn.textContent="确认?⚠";
+    document.querySelectorAll(".link-edit").forEach(b=>{if(b!==btn&&b.textContent==="确认?⚠")b.textContent="🗑"});
+    clearTimeout(delCusTimer);
+    delCusTimer=setTimeout(()=>{delCusArmed=0;if(btn&&btn.textContent==="确认?⚠")btn.textContent="🗑"},3000);
+    return;
+  }
+  clearTimeout(delCusTimer);delCusArmed=0;
+  apps=apps.filter(x=>x.id!==id);save();render();
+  toast("🗑 已删除自定义点子");
+}
+function addCustom(){
+  const n=document.getElementById("addName").value.trim();
+  if(!n){toast("先填个应用名称 👀");return}
+  const d=document.getElementById("addDesc").value.trim()||"自定义点子";
+  const lv=+document.getElementById("addLv").value;
+  const id=Math.max(0,...apps.map(a=>a.id))+1;
+  apps.push({id,name:n,desc:d,lv,st:"todo",custom:true,link:""});
+  save();
+  document.getElementById("addName").value="";document.getElementById("addDesc").value="";
+  toast(`➕ 已添加 #${String(id).padStart(3,"0")} ${n}`);render();
+}
+function updateDash(){
+  const done=apps.filter(a=>a.st==="done").length,doing=apps.filter(a=>a.st==="doing").length,
+        todo=apps.filter(a=>a.st==="todo").length,total=apps.length,
+        pct=total?Math.round(done/total*100):0;
+  document.getElementById("doneNum").textContent=done;
+  document.getElementById("sDone").textContent=done;
+  document.getElementById("sDoing").textContent=doing;
+  document.getElementById("sTodo").textContent=todo;
+  document.getElementById("sPct").textContent=pct+"%";
+  document.getElementById("sStreak").textContent=done?`${done} 连击`:"—";
+  const off=402-402*pct/100;
+  document.getElementById("prog").style.strokeDashoffset=off;
+  const nextMs=Math.floor(done/10)*10+10;
+  document.getElementById("milestone").innerHTML= done>=100
+    ?`🏅 <b>传说达成！</b>100个应用全部完成，星哥封神！`
+    :`下一个里程碑：<b>${nextMs} 个</b> · 还差 <b>${nextMs-done}</b> 个 · ${"▓".repeat(done%10==0&&done>0?10:done%10)}${"░".repeat(done%10==0&&done>0?0:10-done%10)} ${done%10==0&&done>0?10:done%10}/10`;
+}
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2400);
+}
+load();renderChips();render();
+</script>
+</body>
+</html>

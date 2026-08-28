@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐟 电子木鱼 · Wooden Fish</title>
+<style>
+:root{
+  --bg:#16181f; --panel:#21242e; --panel2:#2a2e3b; --line:#3a3f52;
+  --text:#d5d7e4; --muted:#8b8fa8; --dim:#5c6079;
+  --gold:#e5b567; --green:#4ec9b0; --red:#e06c75;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% 20%,#1e2230 0%,var(--bg) 65%);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif;min-height:100vh;padding:20px;overflow-x:hidden}
+.app{width:100%;max-width:460px;text-align:center;position:relative;margin:0 auto}
+h1{font-size:22px;font-weight:700;letter-spacing:4px;margin-bottom:2px;color:var(--gold)}
+.sub{color:var(--muted);font-size:12px;margin-bottom:26px;letter-spacing:2px}
+
+/* 木鱼舞台 */
+.stage{position:relative;height:320px;margin-bottom:10px;user-select:none;-webkit-user-select:none;perspective:600px}
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}  /* 粒子层置顶，盖在木鱼上面 */
+.muyu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:200px;height:200px;cursor:pointer;line-height:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;outline:none}
+.muyu:focus-visible{outline:none}
+.muyu img{width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:24px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* 计数 */
+.counter{margin-bottom:8px}
+.counter .num{font-size:44px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;text-shadow:0 2px 12px rgba(229,181,103,.25)}
+.counter .label{font-size:12px;color:var(--muted);letter-spacing:3px;margin-top:2px}
+.session{font-size:12px;color:var(--dim);margin-bottom:18px}
+.session b{color:var(--green)}
+
+/* 功用区 */
+.tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.tbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:18px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;outline:none}@media(hover:hover){
+.tbtn:hover{border-color:var(--gold);color:var(--gold)}}
+
+/* 自动敲击设置 */
+.auto{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;font-size:13px;color:var(--muted)}
+.auto .switch{width:34px;height:19px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;transition:.2s}
+.auto .switch::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--dim);transition:.2s}
+.auto.on .switch{background:rgba(229,181,103,.25);border-color:var(--gold)}
+.auto.on .switch::after{left:17px;background:var(--gold)}
+.auto input[type=range]{width:90px;accent-color:var(--gold)}
+.auto .hz{color:var(--gold);font-variant-numeric:tabular-nums;min-width:52px;text-align:left}
+
+footer{color:var(--dim);font-size:11px;margin-top:22px;line-height:1.8;letter-spacing:1px}
+footer b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>电子木鱼</h1>
+  <div class="sub">心诚则灵 · 敲一下功德+1</div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="muyu" id="fish" title="敲我"><img src="assets/muyu.png?v=4" alt="木鱼" draggable="false" decoding="async" fetchpriority="high"></div>
+  </div>
+
+  <div class="counter">
+    <div class="num" id="total">0</div>
+    <div class="label">累计功德</div>
+  </div>
+  <div class="session">本次 session：<b id="now">0</b> · 历史峰值 <span id="peak">0</span></div>
+
+  <div class="auto" id="autoRow">
+    <div class="switch" onclick="toggleAuto()"></div>
+    <span>自动敲</span>
+    <input type="range" id="hz" min="1" max="10" value="3" oninput="hzLabel.textContent=this.value+' 次/秒'">
+    <span class="hz" id="hzLabel">3 次/秒</span>
+  </div>
+
+  <div class="tools" style="margin-top:16px">
+    <button class="tbtn" onclick="reset()">↺ 功德清零</button>
+    <button class="tbtn" onclick="toggleMute()" id="btnMute">🔊 音效开</button>
+    <button class="tbtn" onclick="pray()">🙏 祈福</button>
+  </div>
+
+  <footer>100 Apps Challenge · App #011 · 功德存于本地，诚不我欺<br><b>空格键</b>也可以敲</footer>
+</div>
+
+<script>
+/* ============================================================
+   新知识点：Canvas 粒子系统
+   - 每次敲击生成粒子（金色光点+功德文字）进入粒子池
+   - requestAnimationFrame 驱动统一重绘：每个粒子有速度/重力/寿命
+   - 寿命尽头自动回收（数组 splice）——所有游戏特效的底层套路
+   ============================================================ */
+const KEY="muyu_v1";
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+let total=0,peak=0,muted=false,autoTimer=null,autoOn=false;
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s){total=s.total||0;peak=s.peak||0}}catch(e){}
+function save(){localStorage.setItem(KEY,JSON.stringify({total,peak}))}
+
+/* ---------- 画布尺寸自适应 ---------- */
+function fit(){
+  const r=cv.parentElement.getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio;
+  cv.height=r.height*devicePixelRatio;
+}
+fit();addEventListener("resize",fit);
+
+/* ---------- 粒子系统 ---------- */
+const particles=[];
+let rafId=null;
+function ensureLoop(){
+  /* 性能关键：空闲时渲染循环完全停止，有粒子才启动 */
+  if(rafId===null)rafId=requestAnimationFrame(loop);
+}
+function spawn(cx,cy){
+  ensureLoop();
+  /* 金色光点 ×6 */
+  for(let i=0;i<6;i++){
+    particles.push({
+      type:"dot",x:cx,y:cy,
+      vx:(Math.random()-.5)*2.4,
+      vy:-Math.random()*2.6-.6,
+      g:.045,                 /* 重力 */
+      life:1,decay:.016+Math.random()*.01,
+      r:2+Math.random()*2.5
+    });
+  }
+  /* 功德+1 飘字 */
+  particles.push({
+    type:"text",x:cx+(Math.random()-.5)*30,y:cy-30,
+    vx:(Math.random()-.5)*.5,vy:-1.3,g:0,
+    life:1,decay:.011,
+    txt:Math.random()<.12?["功德+10","心诚则灵","佛光普照","无量功德"][Math.floor(Math.random()*4)]:"功德 +1"
+  });
+}
+function loop(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save();
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue}
+    ctx.globalAlpha=Math.max(0,p.life);
+    if(p.type==="dot"){
+      ctx.fillStyle="#e5b567";
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);
+      ctx.fill();
+    }else{
+      ctx.fillStyle="#f0d9a8";
+      ctx.font="600 15px 'Segoe UI','Microsoft YaHei'";
+      ctx.textAlign="center";
+      ctx.fillText(p.txt,p.x,p.y);
+    }
+  }
+  ctx.restore();
+  /* 粒子全部消亡 → 停止循环，空闲时零CPU占用 */
+  rafId=particles.length>0?requestAnimationFrame(loop):null;
+}
+requestAnimationFrame(loop);
+
+/* ---------- 敲击 ---------- */
+const fish=$("fish");
+function knock(e){
+  /* e 可以是 PointerEvent（点击）或 undefined（自动/键盘） */
+  total++;
+  if(total>peak)peak=total;
+  save();
+  $("total").textContent=total.toLocaleString();
+  $("now").textContent=total.toLocaleString();
+  $("peak").textContent=peak.toLocaleString();
+
+  /* 粒子爆发位置：优先用点击坐标，否则用木鱼中心 */
+  let cx, cy;
+  if(e && e.clientX!==undefined){
+    const s=cv.parentElement.getBoundingClientRect();
+    cx=e.clientX-s.left;
+    cy=e.clientY-s.top;
+  }else{
+    const r=fish.getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+    cx=r.left-s.left+r.width/2;
+    cy=r.top-s.top+r.height/2;
+  }
+  spawn(cx,cy);
+  knockSound();
+}
+fish.addEventListener("pointerdown",e=>knock(e));
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();knock()}
+});
+
+/* ---------- 木鱼音效（Web Audio 合成"笃"声） ---------- */
+let actx=null;
+/* 音频预热：首次交互前创建 AudioContext 并播放静音解锁，避免第一次点击卡顿 */
+function prewarmAudio(){
+  try{
+    if(!actx){
+      actx=new (window.AudioContext||window.webkitAudioContext)();
+      /* 静音 buffer 播放，解锁浏览器音频策略 */
+      const buf=actx.createBuffer(1,1,22050);
+      const src=actx.createBufferSource();
+      src.buffer=buf;src.connect(actx.destination);src.start(0);
+    }
+    if(actx.state==="suspended")actx.resume();
+  }catch(e){}
+}
+["pointerdown","pointermove","keydown","touchstart"].forEach(ev=>{
+  document.addEventListener(ev,prewarmAudio,{once:true,passive:true});
+});
+function knockSound(){
+  if(muted)return;
+  try{
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    const t=actx.currentTime;
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="sine";
+    o.frequency.setValueAtTime(620,t);
+    o.frequency.exponentialRampToValueAtTime(140,t+.09);  /* 快速降频=木鱼"笃" */
+    g.gain.setValueAtTime(.5,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.13);
+    o.connect(g);g.connect(actx.destination);
+    o.start(t);o.stop(t+.15);
+  }catch(e){}
+}
+
+/* ---------- 工具 ---------- */
+let resetArmed=false,resetTimer=null;
+function reset(){
+  const btn=document.querySelector(".tbtn[onclick='reset()']");
+  if(!resetArmed){
+    /* 第一次点：进入待确认状态 */
+    resetArmed=true;
+    if(btn){btn.textContent="⚠️ 确认清零？";btn.style.borderColor="var(--red)";btn.style.color="var(--red)"}
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(()=>{
+      resetArmed=false;
+      if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
+    },3000);
+    return;
+  }
+  /* 第二次点：真清零 */
+  resetArmed=false;clearTimeout(resetTimer);
+  if(btn){btn.textContent="↺ 功德清零";btn.style.borderColor="";btn.style.color=""}
+  total=0;peak=0;
+  try{localStorage.setItem(KEY,JSON.stringify({total:0,peak:0}))}catch(e){console.warn("save fail",e)}
+  $("total").textContent="0";
+  $("now").textContent="0";
+  $("peak").textContent="0";
+  ensureLoop();
+  particles.push({type:"text",x:cv.width/devicePixelRatio/2,y:180,vx:0,vy:-1,g:0,life:1,decay:.008,txt:"🙏 功德清零，重新修行"});
+}
+function toggleMute(){
+  muted=!muted;
+  $("btnMute").textContent=muted?"🔇 音效关":"🔊 音效开";
+}
+function pray(){
+  const msgs=["愿代码无bug","愿需求不改","愿上线不炸","愿数据库不锁","愿周报好写","愿薪资翻倍","愿头发浓密"];
+  const m=msgs[Math.floor(Math.random()*msgs.length)];
+  const r=$("fish").getBoundingClientRect(),s=cv.parentElement.getBoundingClientRect();
+  ensureLoop();
+  particles.push({type:"text",x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2-20,vx:0,vy:-1.1,g:0,life:1,decay:.008,txt:"🙏 "+m});
+}
+function toggleAuto(){
+  autoOn=!autoOn;
+  $("autoRow").classList.toggle("on",autoOn);
+  clearInterval(autoTimer);
+  if(autoOn){
+    const hz=+$("hz").value;
+    autoTimer=setInterval(knock,1000/hz);
+  }
+}
+$("hz").addEventListener("input",()=>{
+  if(autoOn){clearInterval(autoTimer);autoTimer=setInterval(knock,1000/+$("hz").value)}
+});
+
+/* ---------- 启动 ---------- */
+$("total").textContent=total.toLocaleString();
+$("now").textContent=total.toLocaleString();
+$("peak").textContent=peak.toLocaleString();
+</script>
+</body>
+</html>

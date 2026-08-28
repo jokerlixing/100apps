@@ -211,7 +211,7 @@ const IDEAS=[
 ["日历应用","月视图+添加事件+今日高亮","2","https://jokerlixing.github.io/100apps/apps/030-calendar/"],
 ["抽奖转盘","可配置奖项与权重，转盘动画","2","https://jokerlixing.github.io/100apps/apps/031-lucky-wheel/"],
 ["模拟电商列表页","小满百货：商品搜索筛选+五种排序+购物车与运费计算","2","https://jokerlixing.github.io/100apps/apps/032-simulated-shop/"],
-["代码片段管理器","收藏代码片段，语法高亮+搜索","2"],
+["代码片段管理器","INDEX/33：本地语法高亮+组合检索+收藏与片段CRUD","2","https://jokerlixing.github.io/100apps/apps/033-code-snippet-manager/"],
 ["多任务倒计时","多个计时器并行，到点提醒","2"],
 ["随机分组工具","名单导入随机分组，适合团建","2"],
 ["人生进度条","年龄/年度/目标进度可视化","2"],
@@ -283,21 +283,22 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}
   apps=IDEAS.map((a,i)=>({id:i+1,name:a[0],desc:a[1],lv:+a[2],st:INIT_DONE[i+1]||"todo",custom:false,link:a[3]||""}));
   save();
 }
-/* 同步官方进度：内置应用的链接与完成态以代码为准（自定义点子不受影响） */
+/* 同步官方资料：内置应用的名称、说明、等级、链接与完成态以代码为准（自定义点子不受影响） */
 function syncOfficial(){
   let dirty=false;
   apps.forEach(a=>{
     if(a.custom)return;
     const idea=IDEAS[a.id-1];
     if(!idea)return;
-    if(idea[3]&&!a.link){a.link=idea[3];dirty=true}
+    const official={name:idea[0],desc:idea[1],lv:+idea[2],link:idea[3]||""};
+    Object.entries(official).forEach(([key,value])=>{if(a[key]!==value){a[key]=value;dirty=true}});
     if(INIT_DONE[a.id]==="done"&&a.st!=="done"){a.st="done";dirty=true}
   });
   if(dirty)save();

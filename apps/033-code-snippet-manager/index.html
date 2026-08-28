@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#102a36">
+<title>INDEX/33 · 代码片段管理器</title>
+<style>
+:root{
+  --paper:#e8edf0;--white:#f9fbfa;--ink:#102a36;--blue:#2364e8;
+  --orange:#ff5c35;--acid:#dfff4f;--code:#111820;--line:#aebbc1;--muted:#61727a;
+  --shadow:5px 5px 0 var(--ink);--radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{min-height:100vh;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif;background-color:var(--paper);background-image:linear-gradient(rgba(16,42,54,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(16,42,54,.055) 1px,transparent 1px);background-size:24px 24px}
+body.modal-open{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+
+.topline{height:30px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:42px;font:700 10px/1 "Cascadia Code",Consolas,monospace;letter-spacing:1.7px;white-space:nowrap;overflow:hidden}
+.topline b{color:var(--acid);font-weight:800}
+.site-header{max-width:1240px;margin:auto;padding:22px 24px 18px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:3px solid var(--ink);background:rgba(232,237,240,.9);backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-index{width:92px;height:54px;background:var(--blue);color:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);display:grid;place-items:center;font:900 20px/1 "Arial Black",sans-serif;letter-spacing:-1px;transform:skew(-5deg)}
+.brand-index span{color:var(--acid)}
+.brand-copy strong{display:block;font:900 18px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:1.5px}
+.brand-copy small{display:block;margin-top:7px;color:var(--muted);font:700 9px/1 "Cascadia Code",Consolas,monospace;letter-spacing:1.3px}
+.header-right{display:flex;align-items:center;gap:16px}
+.header-stats{display:flex;gap:18px;text-align:right}
+.stat{font:700 9px/1.35 "Cascadia Code",Consolas,monospace;color:var(--muted);letter-spacing:.8px}.stat b{display:block;font-size:17px;color:var(--ink)}
+.new-btn{height:44px;border:2px solid var(--ink);background:var(--acid);padding:0 18px;border-radius:8px;font-weight:900;box-shadow:3px 3px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.new-btn:hover{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+
+.intro{max-width:1240px;margin:auto;padding:38px 24px 28px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:30px}
+.intro-label{font:800 10px/1 "Cascadia Code",Consolas,monospace;color:var(--blue);letter-spacing:2px;margin-bottom:12px}
+.intro h1{font:900 clamp(34px,5vw,62px)/.98 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-2.5px}
+.intro h1 em{font-style:normal;color:var(--blue);text-decoration:underline;text-decoration-color:var(--orange);text-decoration-thickness:7px;text-underline-offset:6px}
+.shortcut-card{min-width:230px;border:2px solid var(--ink);background:var(--white);padding:15px 18px;box-shadow:var(--shadow);transform:rotate(1.5deg)}
+.shortcut-card p{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin:7px 0}.shortcut-card kbd{min-width:30px;background:var(--ink);color:#fff;border-radius:5px;padding:5px 8px;text-align:center;font:800 10px/1 "Cascadia Code",Consolas,monospace;box-shadow:0 2px 0 var(--blue)}
+
+.app-shell{max-width:1240px;margin:0 auto;padding:0 24px 70px}
+.filter-bar{position:sticky;top:0;z-index:12;display:grid;grid-template-columns:minmax(230px,1fr) auto auto 185px;gap:12px;align-items:center;padding:15px 0;background:rgba(232,237,240,.96);backdrop-filter:blur(12px);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.search-wrap{position:relative}.search-wrap input{width:100%;height:43px;border:2px solid var(--ink);background:var(--white);border-radius:8px;padding:0 42px 0 14px;font-size:13px;font-weight:650}.search-wrap span{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.lang-chips{display:flex;gap:6px;flex-wrap:wrap}.lang-chip,.favorite-filter{height:37px;border:2px solid var(--ink);background:var(--white);border-radius:999px;padding:0 12px;font:800 10px/1 "Cascadia Code",Consolas,monospace;white-space:nowrap}.lang-chip:hover,.favorite-filter:hover{background:var(--acid)}.lang-chip.active{background:var(--blue);color:#fff}.favorite-filter.active{background:var(--orange);color:#fff}
+.sort-select{height:43px;border:2px solid var(--ink);background:var(--white);border-radius:8px;padding:0 10px;font-size:11px;font-weight:800}
+
+.workspace{display:grid;grid-template-columns:350px minmax(0,1fr);gap:18px;margin-top:20px;align-items:start}
+.library-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}.library-head h2{font:900 16px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:1px}.library-head span{font:800 10px/1 "Cascadia Code",Consolas,monospace;color:var(--muted)}
+.snippet-list{display:flex;flex-direction:column;gap:11px}
+.snippet-card{position:relative;display:grid;grid-template-columns:1fr 42px;background:var(--white);border:2px solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 rgba(16,42,54,.35);overflow:visible;transition:transform .18s,box-shadow .18s}
+.snippet-card::before,.snippet-card::after{content:"";position:absolute;left:-7px;width:12px;height:12px;border:2px solid var(--ink);border-radius:50%;background:var(--paper);z-index:2}.snippet-card::before{top:18px}.snippet-card::after{bottom:18px}
+.snippet-card:hover{transform:translateX(4px)}.snippet-card.active{background:#fff;box-shadow:5px 5px 0 var(--blue);transform:translateX(3px)}
+.snippet-main{border:0;background:transparent;text-align:left;padding:15px 10px 14px 19px;min-width:0}.card-top{display:flex;align-items:center;gap:8px;margin-bottom:9px}.lang-tab{display:inline-flex;align-items:center;height:23px;padding:0 9px;background:var(--lang);color:var(--langInk);border:1.5px solid var(--ink);border-radius:4px;font:900 9px/1 "Cascadia Code",Consolas,monospace}.specimen-no{font:700 9px/1 "Cascadia Code",Consolas,monospace;color:var(--muted);letter-spacing:1px}.snippet-main h3{font-size:14px;line-height:1.35;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-desc{font-size:11px;line-height:1.45;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.card-tags{display:flex;gap:5px;margin-top:10px;overflow:hidden}.tag{display:inline-block;background:var(--paper);border:1px solid var(--line);padding:3px 7px;border-radius:999px;font:700 8.5px/1 "Cascadia Code",Consolas,monospace;color:var(--muted);white-space:nowrap}.card-star{border:0;border-left:1px dashed var(--line);background:transparent;color:var(--line);font-size:20px}.card-star:hover,.card-star.on{color:var(--orange);background:rgba(255,92,53,.07)}
+
+.detail-panel{min-height:600px;background:var(--white);border:2px solid var(--ink);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.detail-head{padding:21px 22px 17px;border-bottom:2px solid var(--ink);display:flex;align-items:flex-start;justify-content:space-between;gap:18px;background:#fff}.detail-title-wrap{min-width:0}.detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:10px}.detail-title-wrap h2{font:900 clamp(22px,3vw,34px)/1.1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-1px;word-break:break-word}.detail-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.action-btn{height:37px;border:2px solid var(--ink);background:var(--white);border-radius:7px;padding:0 12px;font-size:11px;font-weight:900;white-space:nowrap}.action-btn:hover{background:var(--acid)}.action-btn.primary{background:var(--blue);color:#fff}.action-btn.danger:hover,.action-btn.danger.armed{background:var(--orange);color:#fff}.action-btn.favorite.on{background:var(--orange);color:#fff}
+.code-window{background:var(--code);color:#e7edf0;margin:20px;border:2px solid var(--ink);border-radius:10px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.code-toolbar{height:42px;border-bottom:1px solid #2c3a40;background:#192329;display:flex;align-items:center;justify-content:space-between;padding:0 14px}.window-dots{display:flex;gap:6px}.window-dots i{width:9px;height:9px;border-radius:50%;background:#44545c}.window-dots i:nth-child(1){background:var(--orange)}.window-dots i:nth-child(2){background:var(--acid)}.window-dots i:nth-child(3){background:#5ed2a0}.code-toolbar span{font:700 9px/1 "Cascadia Code",Consolas,monospace;color:#829199;letter-spacing:1.4px}
+.code-body{max-height:480px;overflow:auto;padding:14px 0 17px;scrollbar-color:#41515a #111820}.code-line{display:grid;grid-template-columns:48px minmax(max-content,1fr);min-height:22px;font:500 12.5px/1.72 "Cascadia Code",Consolas,monospace}.code-line:hover{background:rgba(255,255,255,.035)}.line-no{padding-right:13px;text-align:right;color:#52636b;user-select:none;border-right:1px solid #29363c}.code-line code{display:block;padding:0 18px;white-space:pre}.tok-comment{color:#71848b;font-style:italic}.tok-string{color:#dfff85}.tok-keyword{color:#78a8ff;font-weight:700}.tok-number{color:#ff9e7f}.tok-tag{color:#68d6c1}.tok-prop{color:#ffcf70}
+.detail-notes{padding:0 22px 22px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:start}.detail-description{font-size:13px;line-height:1.75;color:var(--muted)}.meta-stamp{border-left:2px solid var(--line);padding-left:16px;min-width:180px;font:700 9px/1.7 "Cascadia Code",Consolas,monospace;color:var(--muted)}.meta-stamp b{color:var(--ink)}
+.empty-state{min-height:520px;display:grid;place-items:center;text-align:center;padding:40px}.empty-state .empty-mark{font:900 64px/1 "Arial Black",sans-serif;color:var(--line);margin-bottom:15px}.empty-state h3{font-size:19px;margin-bottom:8px}.empty-state p{max-width:380px;color:var(--muted);font-size:12px;line-height:1.7}.empty-state button{margin-top:18px}
+
+.modal-overlay{position:fixed;inset:0;z-index:40;background:rgba(16,42,54,.6);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,visibility .2s;display:grid;place-items:center;padding:18px}.modal-overlay.show{opacity:1;visibility:visible;pointer-events:auto}
+.editor-modal{width:min(760px,100%);max-height:min(850px,94vh);overflow:auto;background:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);transform:translateY(18px);transition:transform .2s}.modal-overlay.show .editor-modal{transform:translateY(0)}
+.modal-head{position:sticky;top:0;z-index:2;background:var(--acid);border-bottom:2px solid var(--ink);padding:17px 20px;display:flex;justify-content:space-between;align-items:center}.modal-head h2{font:900 18px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:1px}.modal-close{width:34px;height:34px;border:2px solid var(--ink);background:#fff;border-radius:50%;font-size:18px;font-weight:900}
+.editor-form{padding:20px;display:grid;grid-template-columns:1fr 180px;gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font:800 10px/1 "Cascadia Code",Consolas,monospace;letter-spacing:.8px;color:var(--muted)}.field input,.field select,.field textarea{width:100%;border:2px solid var(--ink);background:#fff;border-radius:8px;padding:10px 12px;font-size:13px}.field textarea{resize:vertical;min-height:70px;line-height:1.55}.field textarea.code-input{min-height:270px;background:var(--code);color:#e8eef1;font:500 12.5px/1.65 "Cascadia Code",Consolas,monospace;tab-size:2}.form-hint{font-size:10px;color:var(--muted);line-height:1.5}.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;border-top:2px dashed var(--line);padding-top:16px}.form-actions button{height:42px;border:2px solid var(--ink);border-radius:8px;padding:0 18px;font-weight:900}.cancel-btn{background:#fff}.save-btn{background:var(--blue);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.toast{position:fixed;left:50%;bottom:26px;z-index:80;transform:translate(-50%,24px);opacity:0;background:var(--ink);color:#fff;border:2px solid #fff;box-shadow:4px 4px 0 var(--orange);border-radius:999px;padding:11px 19px;font-size:12px;font-weight:800;pointer-events:none;transition:opacity .2s,transform .2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+.footer{background:var(--ink);color:#fff;border-top:3px solid var(--blue);padding:25px 20px;text-align:center;font:700 10px/1.8 "Cascadia Code",Consolas,monospace;letter-spacing:.6px}.footer b{color:var(--acid)}
+
+@media(max-width:1060px){.filter-bar{grid-template-columns:1fr 185px}.lang-chips{grid-column:1/-1;grid-row:2}.favorite-filter{grid-column:1}.sort-select{grid-column:2;grid-row:3}.workspace{grid-template-columns:310px minmax(0,1fr)}.detail-head{flex-direction:column}.detail-actions{justify-content:flex-start}.code-window{margin:15px}.detail-notes{grid-template-columns:1fr}.meta-stamp{border-left:0;border-top:2px solid var(--line);padding:12px 0 0}}
+@media(max-width:760px){.site-header{padding:16px}.header-stats{display:none}.brand-index{width:76px}.brand-copy small{display:none}.intro{grid-template-columns:1fr;padding:32px 16px 25px}.shortcut-card{display:none}.app-shell{padding:0 14px 55px}.filter-bar{position:relative}.workspace{grid-template-columns:1fr}.detail-panel{min-height:0}.library{max-height:none}.snippet-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.snippet-card{min-width:0}.detail-panel{margin-top:4px}}
+@media(max-width:520px){.topline{justify-content:flex-start;padding-left:12px}.brand-copy strong{font-size:15px}.new-btn{width:43px;padding:0;font-size:0}.new-btn::after{content:"+";font-size:23px}.intro h1{font-size:38px}.filter-bar{grid-template-columns:1fr}.search-wrap{grid-column:1}.lang-chips{grid-column:1;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:none}.lang-chips::-webkit-scrollbar{display:none}.favorite-filter{grid-column:1}.sort-select{grid-column:1;grid-row:4}.snippet-list{grid-template-columns:1fr}.detail-head{padding:17px}.detail-actions{display:grid;grid-template-columns:repeat(2,1fr);width:100%}.action-btn{padding:0 8px}.code-window{margin:10px}.code-line{font-size:11.5px;grid-template-columns:39px minmax(max-content,1fr)}.line-no{padding-right:9px}.code-line code{padding:0 12px}.detail-notes{padding:5px 16px 18px}.editor-form{grid-template-columns:1fr;padding:16px}.field.full,.form-actions{grid-column:1}.editor-modal{max-height:96vh}.form-actions button{flex:1;padding:0 9px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="topline" aria-hidden="true"><span>LOCAL ARCHIVE</span><span><b>●</b> ZERO CLOUD</span><span>SPECIMEN SERIES / 033</span></div>
+
+<header class="site-header">
+  <div class="brand"><div class="brand-index">INDEX/<span>33</span></div><div class="brand-copy"><strong>代码样本柜</strong><small>CODE SPECIMEN CABINET</small></div></div>
+  <div class="header-right"><div class="header-stats"><div class="stat"><b id="totalStat">0</b>SPECIMENS</div><div class="stat"><b id="favoriteStat">0</b>STARRED</div></div><button class="new-btn" type="button" onclick="openEditor()">＋ 新建片段</button></div>
+</header>
+
+<main>
+  <section class="intro" aria-labelledby="pageTitle">
+    <div><p class="intro-label">PERSONAL CODE ARCHIVE · 本地代码档案</p><h1 id="pageTitle">把好用的代码，<br><em>装进抽屉。</em></h1></div>
+    <aside class="shortcut-card" aria-label="键盘快捷键"><p><span>聚焦搜索</span><kbd>/</kbd></p><p><span>新建片段</span><kbd>N</kbd></p><p><span>关闭窗口</span><kbd>ESC</kbd></p></aside>
+  </section>
+
+  <section class="app-shell" aria-label="代码片段工作区">
+    <div class="filter-bar">
+      <div class="search-wrap"><input id="searchInput" type="search" placeholder="搜索标题、标签或代码…" aria-label="搜索代码片段" autocomplete="off"><span aria-hidden="true">⌕</span></div>
+      <div class="lang-chips" id="languageChips" aria-label="语言筛选"></div>
+      <button class="favorite-filter" id="favoriteFilter" type="button" onclick="toggleFavoriteFilter()" aria-pressed="false">☆ 仅收藏</button>
+      <select class="sort-select" id="sortSelect" aria-label="片段排序">
+        <option value="updated">排序：最近更新</option><option value="name">排序：名称 A–Z</option><option value="created">排序：最早归档</option>
+      </select>
+    </div>
+
+    <div class="workspace">
+      <aside class="library" aria-labelledby="libraryTitle"><div class="library-head"><h2 id="libraryTitle">档案抽屉</h2><span id="resultCount" aria-live="polite">0 MATCHES</span></div><div class="snippet-list" id="snippetList"></div></aside>
+      <section class="detail-panel" id="detailPanel" aria-live="polite"></section>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">100 Apps Challenge · App #033 · <b>代码片段管理器</b><br>本地语法高亮 · 搜索与语言筛选 · 收藏 / 复制 / CRUD · localStorage 持久化</footer>
+
+<div class="modal-overlay" id="editorOverlay" onclick="if(event.target===this)closeEditor()" aria-hidden="true">
+  <section class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="modal-head"><h2 id="editorTitle">归档新片段</h2><button class="modal-close" id="modalClose" type="button" onclick="closeEditor()" aria-label="关闭编辑窗口">×</button></div>
+    <form class="editor-form" id="editorForm" onsubmit="saveEditor(event)">
+      <div class="field"><label for="titleInput">片段标题 *</label><input id="titleInput" maxlength="50" placeholder="例如：防抖函数" required></div>
+      <div class="field"><label for="languageInput">语言</label><select id="languageInput"></select></div>
+      <div class="field full"><label for="tagsInput">标签</label><input id="tagsInput" maxlength="80" placeholder="多个标签用逗号分隔，例如：utils, performance"><span class="form-hint">最多保留 5 个标签，每个标签不超过 16 个字符。</span></div>
+      <div class="field full"><label for="descriptionInput">使用说明</label><textarea id="descriptionInput" maxlength="180" placeholder="这段代码解决什么问题？"></textarea></div>
+      <div class="field full"><label for="codeInput">代码内容 *</label><textarea class="code-input" id="codeInput" spellcheck="false" placeholder="粘贴代码…" required></textarea></div>
+      <div class="form-actions"><button class="cancel-btn" type="button" onclick="closeEditor()">取消</button><button class="save-btn" id="saveBtn" type="submit">保存片段</button></div>
+    </form>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   核心知识点：安全的本地语法高亮
+   1. 用户代码永远先经过 escapeHtml()，禁止成为真实 DOM。
+   2. tokenizer 只识别当前行里的注释/字符串/关键词/数字等 token。
+   3. 最终输出 = 已转义普通文本 + 带 class 的已转义 token。
+   ============================================================ */
+const LANGUAGES={
+  javascript:{label:"JavaScript",short:"JS",color:"#f4df66",ink:"#3d3300"},
+  typescript:{label:"TypeScript",short:"TS",color:"#78a8ff",ink:"#0d2860"},
+  python:{label:"Python",short:"PY",color:"#8fd0a7",ink:"#164b2a"},
+  css:{label:"CSS",short:"CSS",color:"#e59cf0",ink:"#57205f"},
+  html:{label:"HTML",short:"HTML",color:"#ff9b7e",ink:"#66210e"},
+  sql:{label:"SQL",short:"SQL",color:"#70d8d1",ink:"#0f4f4a"},
+  json:{label:"JSON",short:"JSON",color:"#dfff4f",ink:"#304300"}
+};
+const DEFAULT_SNIPPETS=[
+  {id:"sample-js",title:"可取消的防抖函数",lang:"javascript",tags:["utils","performance"],description:"高频输入场景使用，返回函数附带 cancel 方法，可主动取消尚未执行的任务。",favorite:true,createdAt:"2026-08-20T08:10:00.000Z",updatedAt:"2026-08-28T04:20:00.000Z",code:`function debounce(fn, wait = 300) {
+  let timer = null;
+
+  function debounced(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  }
+
+  debounced.cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  return debounced;
+}`},
+  {id:"sample-ts",title:"按字段分组",lang:"typescript",tags:["array","generic"],description:"类型安全的 groupBy，支持字符串、数字和 symbol 类型的分组键。",favorite:false,createdAt:"2026-08-21T02:30:00.000Z",updatedAt:"2026-08-27T09:40:00.000Z",code:`function groupBy<T, K extends PropertyKey>(
+  items: T[],
+  getKey: (item: T) => K
+): Record<K, T[]> {
+  return items.reduce((groups, item) => {
+    const key = getKey(item);
+    (groups[key] ??= []).push(item);
+    return groups;
+  }, {} as Record<K, T[]>);
+}`},
+  {id:"sample-py",title:"列表按长度分块",lang:"python",tags:["iterator","data"],description:"把大列表切成固定大小的小块，使用生成器避免一次性复制全部结果。",favorite:true,createdAt:"2026-08-22T06:15:00.000Z",updatedAt:"2026-08-26T11:25:00.000Z",code:`def chunked(items, size):
+    if size <= 0:
+        raise ValueError("size must be positive")
+
+    for index in range(0, len(items), size):
+        yield items[index:index + size]`},
+  {id:"sample-css",title:"自适应卡片网格",lang:"css",tags:["layout","responsive"],description:"不写媒体查询，让浏览器按卡片最小宽度自动决定一行放几列。",favorite:false,createdAt:"2026-08-23T03:05:00.000Z",updatedAt:"2026-08-25T08:50:00.000Z",code:`.card-grid {
+  --card-min: 16rem;
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(min(100%, var(--card-min)), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}`},
+  {id:"sample-html",title:"原生确认对话框",lang:"html",tags:["dialog","a11y"],description:"使用原生 dialog 元素构建具备语义的确认窗口，无需额外弹窗库。",favorite:false,createdAt:"2026-08-24T01:00:00.000Z",updatedAt:"2026-08-24T01:00:00.000Z",code:`<dialog id="confirmDialog">
+  <form method="dialog">
+    <h2>删除这条记录？</h2>
+    <p>删除后无法恢复。</p>
+    <button value="cancel">取消</button>
+    <button value="confirm">确认删除</button>
+  </form>
+</dialog>`},
+  {id:"sample-sql",title:"月度收入排行",lang:"sql",tags:["report","aggregation"],description:"按月份聚合已支付订单，并计算月收入及订单数量。",favorite:true,createdAt:"2026-08-24T09:45:00.000Z",updatedAt:"2026-08-24T09:45:00.000Z",code:`SELECT
+  DATE_TRUNC('month', paid_at) AS month,
+  SUM(amount) AS revenue,
+  COUNT(*) AS order_count
+FROM orders
+WHERE status = 'paid'
+GROUP BY DATE_TRUNC('month', paid_at)
+ORDER BY month DESC
+LIMIT 12;`},
+  {id:"sample-json",title:"Prettier 基础配置",lang:"json",tags:["config","format"],description:"适合小型前端项目的简洁格式化配置。",favorite:false,createdAt:"2026-08-25T05:20:00.000Z",updatedAt:"2026-08-25T05:20:00.000Z",code:`{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 90
+}`}
+];
+const STORE_KEY="code_specimen_cabinet_v1";
+const $=id=>document.getElementById(id);
+const state={query:"",lang:"all",favoritesOnly:false,sort:"updated",selectedId:null,editingId:null};
+let snippets=loadSnippets();
+let toastTimer=null,deleteArmed=null,deleteTimer=null;
+
+function cloneDefaults(){return JSON.parse(JSON.stringify(DEFAULT_SNIPPETS))}
+function cleanText(value,max){return String(value??"").slice(0,max)}
+function sanitizeSnippet(raw){
+  if(!raw||typeof raw!=="object"||!LANGUAGES[raw.lang])return null;
+  const title=cleanText(raw.title,50).trim(),code=cleanText(raw.code,50000);
+  if(!title||!code.trim())return null;
+  const tags=Array.isArray(raw.tags)?raw.tags.map(t=>cleanText(t,16).trim()).filter(Boolean).slice(0,5):[];
+  return{id:cleanText(raw.id,80)||makeId(),title,lang:raw.lang,tags:[...new Set(tags)],description:cleanText(raw.description,180).trim(),code,favorite:Boolean(raw.favorite),createdAt:validDate(raw.createdAt),updatedAt:validDate(raw.updatedAt)};
+}
+function validDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?new Date().toISOString():d.toISOString()}
+function loadSnippets(){
+  try{
+    const saved=localStorage.getItem(STORE_KEY);
+    if(saved===null)return cloneDefaults();
+    const parsed=JSON.parse(saved);if(!Array.isArray(parsed))throw new Error("invalid store");
+    return parsed.map(sanitizeSnippet).filter(Boolean);
+  }catch(e){return cloneDefaults()}
+}
+function saveSnippets(){try{localStorage.setItem(STORE_KEY,JSON.stringify(snippets))}catch(e){}}
+function makeId(){return crypto.randomUUID?crypto.randomUUID():"snippet-"+Date.now()+"-"+Math.random().toString(16).slice(2)}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]))}
+function langStyle(lang){const l=LANGUAGES[lang];return`--lang:${l.color};--langInk:${l.ink}`}
+function formatDate(value){return new Intl.DateTimeFormat("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value)).replaceAll("/","-")}
+
+const TOKEN_REGEX={
+  javascript:/(\/\/.*|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:const|let|var|function|return|if|else|for|while|async|await|class|new|import|from|export|default|try|catch|throw|true|false|null|undefined|this)\b|\b\d+(?:\.\d+)?\b)/g,
+  typescript:/(\/\/.*|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:const|let|var|function|return|if|else|for|while|async|await|class|new|import|from|export|interface|type|extends|keyof|typeof|as|true|false|null|undefined)\b|\b\d+(?:\.\d+)?\b)/g,
+  python:/(#.*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:def|return|if|elif|else|for|while|in|import|from|as|class|try|except|raise|True|False|None|with|lambda|yield|and|or|not)\b|\b\d+(?:\.\d+)?\b)/g,
+  css:/(\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[0-9a-fA-F]{3,8}\b|\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b|--?[\w-]+(?=\s*:)|\b[\w-]+(?=\s*:))/g,
+  html:/(<!--.*?-->|<\/?[a-zA-Z][^>]*>|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g,
+  sql:/(--.*|\/\*.*?\*\/|"(?:\\.|[^"\\])*"|'(?:''|[^'])*'|\b(?:SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP|BY|ORDER|HAVING|AS|AND|OR|NOT|NULL|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|LIMIT|DESC|ASC|COUNT|SUM|AVG|MAX|MIN|WITH|DATE_TRUNC)\b|\b\d+(?:\.\d+)?\b)/gi,
+  json:/("(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?\b)/g
+};
+function tokenClass(token,lang){
+  if((lang==="css"&&/^\/\*/.test(token))||/^(\/\/|\/\*|#(?![0-9a-f]{3,8}\b)|<!--|--)/i.test(token))return"tok-comment";
+  if(lang==="html"&&token.startsWith("<"))return"tok-tag";
+  if(/^["'`]/.test(token))return"tok-string";
+  if(/^-?\d/.test(token)||(lang==="css"&&/^#[0-9a-f]/i.test(token)))return"tok-number";
+  if(lang==="css")return"tok-prop";
+  if(lang==="json"&&/^(true|false|null)$/i.test(token))return"tok-keyword";
+  return"tok-keyword";
+}
+function highlightLine(line,lang){
+  const regex=TOKEN_REGEX[lang]||TOKEN_REGEX.javascript;regex.lastIndex=0;
+  let output="",last=0,match;
+  while((match=regex.exec(line))){output+=escapeHtml(line.slice(last,match.index));output+=`<span class="${tokenClass(match[0],lang)}">${escapeHtml(match[0])}</span>`;last=match.index+match[0].length;if(match[0].length===0)regex.lastIndex++}
+  return output+escapeHtml(line.slice(last));
+}
+function renderCode(snippet){
+  return snippet.code.replace(/\r/g,"").split("\n").map((line,index)=>`<div class="code-line"><span class="line-no">${index+1}</span><code>${highlightLine(line,snippet.lang)||"&nbsp;"}</code></div>`).join("");
+}
+
+function filteredSnippets(){
+  const query=state.query.trim().toLowerCase();
+  const list=snippets.filter(s=>(state.lang==="all"||s.lang===state.lang)&&(!state.favoritesOnly||s.favorite)&&(!query||[s.title,s.description,s.tags.join(" "),s.code,LANGUAGES[s.lang].label].join(" ").toLowerCase().includes(query)));
+  const sorters={updated:(a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt),name:(a,b)=>a.title.localeCompare(b.title,"zh-CN"),created:(a,b)=>new Date(a.createdAt)-new Date(b.createdAt)};
+  return list.sort(sorters[state.sort]);
+}
+function renderAll(){renderStats();renderLanguageChips();renderListAndDetail()}
+function renderStats(){$("totalStat").textContent=snippets.length;$(`favoriteStat`).textContent=snippets.filter(s=>s.favorite).length}
+function renderLanguageChips(){
+  const choices=[{id:"all",label:"ALL"},...Object.entries(LANGUAGES).map(([id,l])=>({id,label:l.short}))];
+  $("languageChips").innerHTML=choices.map(item=>`<button class="lang-chip ${state.lang===item.id?"active":""}" type="button" onclick="setLanguage('${item.id}')" aria-pressed="${state.lang===item.id}">${item.label}</button>`).join("");
+}
+function renderListAndDetail(){
+  const list=filteredSnippets();$("resultCount").textContent=`${list.length} MATCH${list.length===1?"":"ES"}`;
+  if(!list.some(s=>s.id===state.selectedId))state.selectedId=list[0]?.id||null;
+  if(!list.length){
+    $("snippetList").innerHTML=`<div class="empty-state" style="min-height:300px"><div><div class="empty-mark">∅</div><h3>这个抽屉是空的</h3><p>${snippets.length?"没有片段符合当前筛选条件。":"还没有任何代码片段，建立第一张样本卡吧。"}</p><button class="new-btn" type="button" onclick="${snippets.length?"resetFilters()":"openEditor()"}">${snippets.length?"重置筛选":"＋ 新建片段"}</button></div></div>`;
+    renderEmptyDetail();return;
+  }
+  $("snippetList").innerHTML=list.map((s,index)=>`<article class="snippet-card ${s.id===state.selectedId?"active":""}">
+    <button class="snippet-main" type="button" onclick="selectSnippet('${s.id}')" aria-label="查看${escapeHtml(s.title)}"><div class="card-top"><span class="lang-tab" style="${langStyle(s.lang)}">${LANGUAGES[s.lang].short}</span><span class="specimen-no">SPEC-${String(snippets.indexOf(s)+1).padStart(3,"0")}</span></div><h3>${escapeHtml(s.title)}</h3><p class="card-desc">${escapeHtml(s.description||"未填写使用说明")}</p><div class="card-tags">${s.tags.slice(0,3).map(tag=>`<span class="tag">#${escapeHtml(tag)}</span>`).join("")}</div></button>
+    <button class="card-star ${s.favorite?"on":""}" type="button" onclick="toggleFavorite('${s.id}',event)" aria-label="${s.favorite?"取消收藏":"收藏"}${escapeHtml(s.title)}" aria-pressed="${s.favorite}">${s.favorite?"★":"☆"}</button>
+  </article>`).join("");
+  renderDetail();
+}
+function renderEmptyDetail(){$("detailPanel").innerHTML=`<div class="empty-state"><div><div class="empty-mark">{ }</div><h3>等待一份代码样本</h3><p>选择左侧片段查看代码，或新建一张样本卡。</p></div></div>`}
+function renderDetail(){
+  const s=snippets.find(item=>item.id===state.selectedId);if(!s){renderEmptyDetail();return}
+  $("detailPanel").innerHTML=`<div class="detail-head"><div class="detail-title-wrap"><div class="detail-kicker"><span class="lang-tab" style="${langStyle(s.lang)}">${LANGUAGES[s.lang].label}</span>${s.tags.map(tag=>`<span class="tag">#${escapeHtml(tag)}</span>`).join("")}</div><h2>${escapeHtml(s.title)}</h2></div><div class="detail-actions"><button class="action-btn favorite ${s.favorite?"on":""}" type="button" onclick="toggleFavorite('${s.id}')">${s.favorite?"★ 已收藏":"☆ 收藏"}</button><button class="action-btn primary" type="button" onclick="copySelected()">复制代码</button><button class="action-btn" type="button" onclick="openEditor('${s.id}')">编辑</button><button class="action-btn danger" type="button" onclick="deleteSnippet('${s.id}',this)">删除</button></div></div>
+  <div class="code-window"><div class="code-toolbar"><div class="window-dots"><i></i><i></i><i></i></div><span>${LANGUAGES[s.lang].short} / ${s.code.replace(/\r/g,"").split("\n").length} LINES</span></div><div class="code-body">${renderCode(s)}</div></div>
+  <div class="detail-notes"><p class="detail-description">${escapeHtml(s.description||"这份片段还没有使用说明。")}</p><div class="meta-stamp">ARCHIVED <b>${formatDate(s.createdAt)}</b><br>UPDATED <b>${formatDate(s.updatedAt)}</b><br>STORAGE <b>LOCAL ONLY</b></div></div>`;
+}
+
+function selectSnippet(id){state.selectedId=id;renderListAndDetail();if(innerWidth<761)$("detailPanel").scrollIntoView({behavior:"smooth",block:"start"})}
+function setLanguage(lang){state.lang=lang;renderAll()}
+function toggleFavoriteFilter(){state.favoritesOnly=!state.favoritesOnly;const btn=$("favoriteFilter");btn.classList.toggle("active",state.favoritesOnly);btn.setAttribute("aria-pressed",state.favoritesOnly);btn.textContent=state.favoritesOnly?"★ 仅收藏":"☆ 仅收藏";renderListAndDetail()}
+function toggleFavorite(id,event){event?.stopPropagation();const s=snippets.find(item=>item.id===id);if(!s)return;s.favorite=!s.favorite;s.updatedAt=new Date().toISOString();saveSnippets();renderAll();toast(s.favorite?"已加入收藏":"已取消收藏")}
+function resetFilters(){state.query="";state.lang="all";state.favoritesOnly=false;state.sort="updated";$("searchInput").value="";$("sortSelect").value="updated";$("favoriteFilter").classList.remove("active");$("favoriteFilter").setAttribute("aria-pressed","false");$("favoriteFilter").textContent="☆ 仅收藏";renderAll();toast("筛选已重置")}
+
+function openEditor(id=null){
+  state.editingId=id;const s=id?snippets.find(item=>item.id===id):null;
+  $("editorTitle").textContent=s?"编辑代码样本":"归档新片段";$("saveBtn").textContent=s?"保存修改":"保存片段";
+  $("titleInput").value=s?.title||"";$("languageInput").value=s?.lang||"javascript";$("tagsInput").value=s?.tags.join(", ")||"";$("descriptionInput").value=s?.description||"";$("codeInput").value=s?.code||"";
+  $("editorOverlay").classList.add("show");$("editorOverlay").setAttribute("aria-hidden","false");document.body.classList.add("modal-open");requestAnimationFrame(()=>$(`titleInput`).focus());
+}
+function closeEditor(){$("editorOverlay").classList.remove("show");$("editorOverlay").setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");state.editingId=null}
+function normalizeTags(value){return[...new Set(value.split(/[,，]/).map(tag=>tag.trim().replace(/^#/,"").slice(0,16)).filter(Boolean))].slice(0,5)}
+function saveEditor(event){
+  event.preventDefault();const title=$("titleInput").value.trim(),code=$("codeInput").value;
+  if(!title){toast("请填写片段标题");$("titleInput").focus();return}if(!code.trim()){toast("请填写代码内容");$("codeInput").focus();return}
+  if(snippets.some(s=>s.title.toLowerCase()===title.toLowerCase()&&s.id!==state.editingId)){toast("已有同名片段，请换个标题");$("titleInput").focus();return}
+  const now=new Date().toISOString(),isEditing=Boolean(state.editingId);
+  if(state.editingId){const s=snippets.find(item=>item.id===state.editingId);if(!s)return;s.title=title;s.lang=$("languageInput").value;s.tags=normalizeTags($("tagsInput").value);s.description=$("descriptionInput").value.trim();s.code=code;s.updatedAt=now;state.selectedId=s.id}
+  else{const s={id:makeId(),title,lang:$("languageInput").value,tags:normalizeTags($("tagsInput").value),description:$("descriptionInput").value.trim(),code,favorite:false,createdAt:now,updatedAt:now};snippets.unshift(s);state.selectedId=s.id}
+  saveSnippets();closeEditor();resetViewForSaved();renderAll();toast(isEditing?"修改已保存":"片段已归档");
+}
+function resetViewForSaved(){state.query="";state.lang="all";state.favoritesOnly=false;state.sort="updated";$("searchInput").value="";$("sortSelect").value="updated";const fav=$("favoriteFilter");fav.classList.remove("active");fav.setAttribute("aria-pressed","false");fav.textContent="☆ 仅收藏"}
+function deleteSnippet(id,button){
+  if(deleteArmed!==id){deleteArmed=id;button.classList.add("armed");button.textContent="再次点击";clearTimeout(deleteTimer);deleteTimer=setTimeout(()=>{deleteArmed=null;if(button.isConnected){button.classList.remove("armed");button.textContent="删除"}},2300);return}
+  clearTimeout(deleteTimer);deleteArmed=null;snippets=snippets.filter(s=>s.id!==id);if(state.selectedId===id)state.selectedId=null;saveSnippets();renderAll();toast("片段已删除");
+}
+async function copySelected(){
+  const s=snippets.find(item=>item.id===state.selectedId);if(!s)return;
+  try{await navigator.clipboard.writeText(s.code)}catch(e){const area=document.createElement("textarea");area.value=s.code;area.style.cssText="position:fixed;opacity:0";document.body.appendChild(area);area.select();document.execCommand("copy");area.remove()}
+  toast("代码已复制");
+}
+function toast(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1700)}
+
+$("languageInput").innerHTML=Object.entries(LANGUAGES).map(([id,l])=>`<option value="${id}">${l.label}</option>`).join("");
+$("searchInput").addEventListener("input",event=>{state.query=event.target.value;renderListAndDetail()});
+$("sortSelect").addEventListener("change",event=>{state.sort=event.target.value;renderListAndDetail()});
+$("codeInput").addEventListener("keydown",event=>{if(event.key==="Tab"){event.preventDefault();const el=event.target,start=el.selectionStart,end=el.selectionEnd;el.value=el.value.slice(0,start)+"  "+el.value.slice(end);el.selectionStart=el.selectionEnd=start+2}});
+document.addEventListener("keydown",event=>{const typing=["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName);if(event.key==="Escape"&&$("editorOverlay").classList.contains("show")){closeEditor();return}if(!typing&&event.key==="/"){event.preventDefault();$("searchInput").focus()}if(!typing&&event.key.toLowerCase()==="n")openEditor()});
+state.selectedId=filteredSnippets()[0]?.id||null;renderAll();
+</script>
+</body>
+</html>

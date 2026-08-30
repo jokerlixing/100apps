@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PROOF/66 是隐私优先的 AI 简历证据编辑台，本地检查岗位匹配、成果证据与表达清晰度，并支持可选 AI 逐条改写。">
+  <meta name="theme-color" content="#dcebff">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>PROOF/66 · AI 简历证据编辑台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到简历编辑台</a>
+
+  <header class="topbar">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true">P/66</span>
+      <span><strong>PROOF</strong><small>resume evidence desk</small></span>
+    </a>
+    <div class="privacy-flag"><span aria-hidden="true">●</span> 本地分析 · 草稿不上传</div>
+    <button class="plain-button" id="open-settings" type="button">AI 接口设置</button>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">100 Apps / No. 066 / Proofing desk</p>
+        <h1 id="hero-title">把“负责”，<br><em>改成证据。</em></h1>
+        <p class="hero-lede">把简历和目标岗位放到同一张校样台上。先看缺什么，再逐条改到可以被验证。</p>
+        <ul class="hero-facts" aria-label="产品边界">
+          <li><b>0</b><span>无密钥也能分析</span></li>
+          <li><b>1</b><span>AI 只读取当前一条经历</span></li>
+          <li><b>∞</b><span>不替你编造数字</span></li>
+        </ul>
+      </div>
+      <div class="proof-specimen" aria-label="经历改写示例">
+        <span class="specimen-label">EVIDENCE SAMPLE / 校样 01</span>
+        <div class="specimen-row is-cut"><span>负责</span> 用户增长工作</div>
+        <div class="margin-note note-a">删掉职责词<br>写清具体动作</div>
+        <div class="specimen-row is-proof">设计新用户激活实验，<br>将 7 日留存率提升 <mark>12%</mark></div>
+        <div class="margin-note note-b">动作 + 对象<br>+ 可验证结果</div>
+        <div class="proof-stamp" aria-hidden="true">EVIDENCE<br>READY</div>
+      </div>
+    </section>
+
+    <section class="source-desk section-rule" aria-labelledby="source-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Source sheets</p>
+          <h2 id="source-title">把事实摆上桌</h2>
+        </div>
+        <p>支持粘贴文本或 UTF-8 的 TXT / MD 文件。PDF、DOCX 请先复制正文。</p>
+      </div>
+
+      <div class="source-grid">
+        <article class="source-sheet resume-sheet">
+          <div class="sheet-head">
+            <label for="resume-input">简历正文</label>
+            <span id="resume-count">0 字</span>
+          </div>
+          <textarea id="resume-input" rows="16" spellcheck="false" placeholder="粘贴简历正文。工作经历和项目经历建议每条以 - 开头。"></textarea>
+          <div class="sheet-actions">
+            <label class="file-button" for="resume-file">读取文本文件</label>
+            <input id="resume-file" type="file" accept=".txt,.md,text/plain,text/markdown">
+            <button class="text-button" id="load-sample" type="button">载入示例</button>
+            <button class="text-button danger-text" id="clear-inputs" type="button">清空</button>
+          </div>
+        </article>
+
+        <article class="source-sheet role-sheet">
+          <div class="sheet-head">
+            <label for="job-input">目标岗位说明</label>
+            <span id="job-count">0 字</span>
+          </div>
+          <textarea id="job-input" rows="16" spellcheck="false" placeholder="粘贴 JD：职责、必备能力、技术栈和业务目标。"></textarea>
+          <div class="role-hint">
+            <span class="hint-arrow" aria-hidden="true">↳</span>
+            <p><b>只比较真实出现的内容。</b>关键词缺失不等于能力缺失，先核对事实，再决定是否补写。</p>
+          </div>
+          <button class="analyze-button" id="analyze-button" type="button">
+            <span>运行证据分析</span><kbd>Ctrl ↵</kbd>
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <section class="analysis-desk section-rule" id="analysis" data-state="empty" aria-labelledby="analysis-title">
+      <div class="analysis-empty" id="analysis-empty">
+        <p class="empty-code">WAITING FOR SOURCE / 00</p>
+        <h2>校样台还没有材料</h2>
+        <p>载入示例或粘贴简历与岗位说明，然后运行证据分析。</p>
+        <button class="text-button" id="empty-sample" type="button">用示例看一次完整流程 →</button>
+      </div>
+
+      <div class="analysis-content" id="analysis-content" hidden>
+        <div class="section-heading analysis-heading">
+          <div>
+            <p class="eyebrow">Evidence report</p>
+            <h2 id="analysis-title">证据校样报告</h2>
+          </div>
+          <button class="report-button" id="download-report" type="button">下载文本报告</button>
+        </div>
+
+        <div class="score-board">
+          <div class="score-gauge">
+            <span class="score-label">编辑就绪度</span>
+            <strong id="total-score">0</strong><small>/100</small>
+            <div class="score-track" aria-hidden="true"><i id="score-fill"></i></div>
+            <p id="score-summary">等待分析</p>
+          </div>
+          <div class="score-facets" aria-label="四项分数">
+            <div><span>岗位匹配</span><b id="score-match">0</b></div>
+            <div><span>成果证据</span><b id="score-evidence">0</b></div>
+            <div><span>表达清晰</span><b id="score-clarity">0</b></div>
+            <div><span>结构完整</span><b id="score-structure">0</b></div>
+          </div>
+          <dl class="report-stats">
+            <div><dt>经历条目</dt><dd id="stat-bullets">0</dd></div>
+            <div><dt>量化成果</dt><dd id="stat-quantified">0</dd></div>
+            <div><dt>岗位词覆盖</dt><dd id="stat-keywords">0/0</dd></div>
+            <div><dt>待处理批注</dt><dd id="stat-issues">0</dd></div>
+          </dl>
+        </div>
+
+        <div class="keyword-ledger">
+          <div class="ledger-head">
+            <div><p class="eyebrow">Keyword ledger</p><h3>岗位语言账本</h3></div>
+            <div class="legend"><span class="matched-dot">已覆盖</span><span class="missing-dot">待核对</span></div>
+          </div>
+          <div class="keyword-groups">
+            <div><h4>简历已覆盖</h4><div class="chip-list" id="matched-keywords"></div></div>
+            <div><h4>岗位出现、简历未写</h4><div class="chip-list" id="missing-keywords"></div></div>
+          </div>
+        </div>
+
+        <div class="evidence-workspace">
+          <div class="evidence-column">
+            <div class="evidence-toolbar">
+              <div><p class="eyebrow">Margin proof</p><h3>逐条经历</h3></div>
+              <div class="filter-group" aria-label="筛选经历">
+                <button class="filter-button is-active" type="button" data-filter="all">全部</button>
+                <button class="filter-button" type="button" data-filter="issues">有批注</button>
+                <button class="filter-button" type="button" data-filter="strong">证据强</button>
+              </div>
+            </div>
+            <div class="evidence-list" id="evidence-list"></div>
+          </div>
+
+          <aside class="rewrite-inspector" id="rewrite-inspector" aria-labelledby="rewrite-title">
+            <div class="inspector-head">
+              <span>SELECTED PROOF</span>
+              <b id="selected-strength">--</b>
+            </div>
+            <h3 id="rewrite-title">选择一条经历开始改写</h3>
+            <p class="selected-original" id="selected-original">左侧每一条经历都带有证据刻度和具体批注。</p>
+            <div class="issue-stack" id="selected-issues"></div>
+            <label for="rewrite-output">改写草稿</label>
+            <textarea id="rewrite-output" rows="6" placeholder="选择经历后生成不编造事实的本地改写模板。"></textarea>
+            <div class="rewrite-actions">
+              <button class="primary-button" id="apply-rewrite" type="button" disabled>替换到简历</button>
+              <button class="secondary-button" id="copy-rewrite" type="button" disabled>复制草稿</button>
+            </div>
+            <div class="ai-divider"><span>可选 AI 精修</span></div>
+            <p class="ai-note">只发送当前经历与岗位说明。模型必须保留【待补充】，不能编造数字。</p>
+            <button class="ai-button" id="ai-rewrite" type="button" disabled><span aria-hidden="true">✦</span> 用我的接口精修这一条</button>
+            <p class="ai-status" id="ai-status">尚未配置接口；点击后可设置。</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>PROOF/66 · local-first resume evidence desk</span>
+    <a href="../../index.html">返回挑战追踪器 ↗</a>
+  </footer>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-head">
+        <div><p class="eyebrow">Bring your own model</p><h2 id="settings-title">AI 接口设置</h2></div>
+        <button class="dialog-close" value="cancel" aria-label="关闭设置">×</button>
+      </div>
+      <p class="dialog-intro">填写 OpenAI 兼容的 Chat Completions 地址。三项只保存在当前页面内存，刷新即清除。</p>
+      <label for="endpoint-input">接口地址</label>
+      <input id="endpoint-input" name="endpoint" type="url" value="https://api.openai.com/v1/chat/completions" autocomplete="off" required>
+      <label for="model-input">模型</label>
+      <input id="model-input" name="model" type="text" value="gpt-4.1-mini" autocomplete="off" required>
+      <label for="key-input">API Key</label>
+      <input id="key-input" name="key" type="password" placeholder="sk-…" autocomplete="off" required>
+      <p class="field-error" id="settings-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" value="cancel">取消</button>
+        <button class="primary-button" id="save-settings" value="default">仅本次使用</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="announcer" aria-live="polite"></div>
+  <script src="resume-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -291,11 +291,16 @@
   }
 
   function createLocalRewrite(value, keywords = []) {
-    const text = normalizeText(value).replace(/^(负责|参与|协助|配合|跟进)\s*/, '');
-    const keyword = keywords.find((item) => !includesKeyword(text, item)) || keywords[0] || '目标岗位能力';
-    const action = text || '核心工作';
+    const original = normalizeText(value);
+    if (/^围绕【(?:确认是否涉及|待补充)/.test(original)) return original;
+    const analysis = analyzeBullet(original, keywords);
+    if (analysis.hasMetric && analysis.hasAction && analysis.weakVerbs.length === 0) return original;
+    const text = original.replace(/^(负责|参与|协助|配合|跟进)\s*/, '');
+    const keyword = keywords.find((item) => !includesKeyword(text, item));
+    const scope = keyword ? `围绕【确认是否涉及：${keyword}】` : '围绕【待补充工作目标】';
+    const action = text || '【待补充具体动作】';
     const ending = /\d/.test(action) ? '' : '；结果：【待补充可验证指标】';
-    return `围绕${keyword}，推动${action}${ending}`.replace(/[；;]{2,}/g, '；');
+    return `${scope}，推动${action}${ending}`.replace(/[；;]{2,}/g, '；');
   }
 
   return {

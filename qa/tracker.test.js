@@ -28,6 +28,17 @@ test('app 061 is published and included in the official completion state', () =>
   assert.equal(doneIds.has(61), true, 'INIT_DONE must mark app 061 as done');
 });
 
+test('app 066 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app66 = ideas[65];
+
+  assert.equal(app66[0], 'AI简历优化器');
+  assert.match(app66[1], /^PROOF\/66/);
+  assert.equal(app66[3], 'https://jokerlixing.github.io/100apps/apps/066-resume-optimizer/');
+  assert.equal(doneIds.has(66), true, 'INIT_DONE must mark app 066 as done');
+});
+
 test('official completion state migrates stale browser cache entries', () => {
   const ideas = extractIdeas();
   const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);

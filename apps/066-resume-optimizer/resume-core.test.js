@@ -79,4 +79,5 @@ test('createLocalRewrite never invents a metric', () => {
   assert.match(rewrite, /用户增长/);
   assert.match(rewrite, /待补充/);
   assert.doesNotMatch(rewrite, /\d+%/);
+  assert.equal(Core.createLocalRewrite(rewrite, ['SQL']), rewrite, 'a generated placeholder must not be wrapped twice');
 });

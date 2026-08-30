@@ -197,4 +197,3 @@ Expected: branch is present on GitHub `origin`. Do not push to Gitee or any othe
 Run: `git ls-remote origin refs/heads/codex/app-062-ai-chat`
 
 Expected: remote hash equals local `HEAD`.
-

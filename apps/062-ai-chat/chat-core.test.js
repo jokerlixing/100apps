@@ -227,4 +227,3 @@ test('extracts text from string and content-part deltas safely', () => {
   assert.equal(Core.extractDeltaText({ choices: [] }), '');
   assert.equal(Core.extractDeltaText(null), '');
 });
-

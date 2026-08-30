@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172a3a">
+  <meta name="description" content="RAIL/75 是一个本地优先的团队冲刺项目管理看板，支持任务分配、拖拽流转、筛选和 JSON 备份。">
+  <title>RAIL/75 · 项目管理看板</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#board">跳到任务看板</a>
+
+  <header class="app-header">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps 追踪器">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><b>RAIL/75</b><small>SPRINT DISPATCH</small></span>
+    </a>
+    <div class="header-status" aria-label="数据模式">
+      <span class="signal-dot"></span>
+      <span><b>本地工作台</b><small>数据只保存在此浏览器</small></span>
+    </div>
+    <nav class="header-actions" aria-label="看板操作">
+      <button class="quiet-button" id="activityButton" type="button" aria-controls="activityPanel" aria-expanded="false">活动记录 <span id="activityCount">0</span></button>
+      <details class="data-tools" id="dataTools">
+        <summary class="quiet-button">数据 <span aria-hidden="true">⌄</span></summary>
+        <div class="data-menu">
+          <button type="button" id="exportButton">导出 JSON</button>
+          <label for="importInput">导入 JSON</label>
+          <input id="importInput" type="file" accept="application/json,.json" hidden>
+          <button class="danger-text" type="button" id="resetButton">恢复示例看板</button>
+          <p>导入会先校验，不会把损坏文件写入当前看板。</p>
+        </div>
+      </details>
+      <button class="primary-button" id="newTaskButton" type="button"><span aria-hidden="true">＋</span> 新建任务</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="project-console" aria-labelledby="projectTitle">
+      <div class="project-heading">
+        <p class="eyebrow">PROJECT DISPATCH · ACTIVE BOARD</p>
+        <div class="heading-line">
+          <h1 id="projectTitle">城市骑行路线发布</h1>
+          <span id="sprintLabel">SPRINT 06 · 发布准备</span>
+        </div>
+        <p>把每张任务卡送到下一站。拖动卡片，或使用卡片上的前进与后退按钮。</p>
+      </div>
+
+      <dl class="stats-grid" aria-label="项目统计">
+        <div><dt>全部任务</dt><dd id="totalStat">0</dd></div>
+        <div><dt>正在推进</dt><dd id="doingStat">0</dd></div>
+        <div><dt>已经到站</dt><dd id="doneStat">0</dd></div>
+        <div class="warning-stat"><dt>已经逾期</dt><dd id="overdueStat">0</dd></div>
+      </dl>
+
+      <div class="completion-meter" aria-label="冲刺完成进度">
+        <div class="meter-copy"><span>发布进度</span><strong id="completionLabel">0%</strong></div>
+        <div class="meter-track"><i id="completionBar"></i></div>
+        <p id="completionNote">任务开始流转后，这里会显示完成比例。</p>
+      </div>
+    </section>
+
+    <section class="board-controls" aria-label="任务筛选">
+      <label class="search-field" for="searchInput">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="搜索任务、标签或成员">
+      </label>
+      <div class="member-filters" id="memberFilters" aria-label="按成员筛选"></div>
+      <label class="select-field" for="priorityFilter">
+        <span>优先级</span>
+        <select id="priorityFilter">
+          <option value="">全部</option>
+          <option value="urgent">紧急</option>
+          <option value="high">高</option>
+          <option value="medium">普通</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <button class="clear-filter" id="clearFiltersButton" type="button" hidden>清除筛选</button>
+      <p class="filter-result" id="filterResult" aria-live="polite"></p>
+    </section>
+
+    <section class="board-shell" id="board" aria-label="项目任务看板">
+      <div class="board-scroll" id="boardScroll">
+        <div class="flow-rail" aria-hidden="true">
+          <div><i></i><span>01 / INBOX</span></div>
+          <div><i></i><span>02 / PLANNED</span></div>
+          <div><i></i><span>03 / IN MOTION</span></div>
+          <div><i></i><span>04 / ARRIVED</span></div>
+        </div>
+        <div class="board-grid">
+          <section class="board-column" data-status="inbox" aria-labelledby="column-inbox">
+            <header><div><span>01</span><h2 id="column-inbox">收件箱</h2></div><b data-count="inbox">0</b></header>
+            <p class="column-note">刚进入调度台，还未承诺日期</p>
+            <div class="task-list" data-status="inbox" role="list"></div>
+            <button class="column-add" type="button" data-add-status="inbox">＋ 添加到收件箱</button>
+          </section>
+          <section class="board-column" data-status="planned" aria-labelledby="column-planned">
+            <header><div><span>02</span><h2 id="column-planned">已排期</h2></div><b data-count="planned">0</b></header>
+            <p class="column-note">本次冲刺明确要交付的任务</p>
+            <div class="task-list" data-status="planned" role="list"></div>
+            <button class="column-add" type="button" data-add-status="planned">＋ 添加到已排期</button>
+          </section>
+          <section class="board-column" data-status="doing" aria-labelledby="column-doing">
+            <header><div><span>03</span><h2 id="column-doing">进行中</h2></div><b data-count="doing">0</b></header>
+            <p class="column-note">正在消耗团队注意力的工作</p>
+            <div class="task-list" data-status="doing" role="list"></div>
+            <button class="column-add" type="button" data-add-status="doing">＋ 添加到进行中</button>
+          </section>
+          <section class="board-column" data-status="done" aria-labelledby="column-done">
+            <header><div><span>04</span><h2 id="column-done">已完成</h2></div><b data-count="done">0</b></header>
+            <p class="column-note">已验收并离开当前工作流</p>
+            <div class="task-list" data-status="done" role="list"></div>
+            <button class="column-add" type="button" data-add-status="done">＋ 添加到已完成</button>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="activity-panel" id="activityPanel" aria-labelledby="activityTitle" hidden>
+    <header>
+      <div><p class="eyebrow">BOARD LOG / LAST 80</p><h2 id="activityTitle">活动记录</h2></div>
+      <button class="icon-button" id="closeActivityButton" type="button" aria-label="关闭活动记录">×</button>
+    </header>
+    <ol id="activityList"></ol>
+  </aside>
+  <button class="panel-scrim" id="panelScrim" type="button" aria-label="关闭活动记录" hidden></button>
+
+  <dialog class="task-dialog" id="taskDialog">
+    <form id="taskForm" method="dialog" novalidate>
+      <header>
+        <div><p class="eyebrow" id="dialogEyebrow">NEW CARD / INBOX</p><h2 id="dialogTitle">新建任务</h2></div>
+        <button class="icon-button" id="closeTaskButton" type="button" aria-label="关闭任务编辑">×</button>
+      </header>
+      <input id="taskId" type="hidden">
+      <input id="taskStatus" type="hidden" value="inbox">
+      <label class="full-field" for="taskTitle">
+        <span>任务标题 <b>必填</b></span>
+        <input id="taskTitle" name="title" maxlength="80" required placeholder="例如：验证夜骑路线">
+      </label>
+      <label class="full-field" for="taskDescription">
+        <span>说明 <small id="descriptionCounter">0 / 300</small></span>
+        <textarea id="taskDescription" name="description" rows="4" maxlength="300" placeholder="写清楚完成条件或下一步"></textarea>
+      </label>
+      <div class="form-grid">
+        <label for="taskMember"><span>负责人</span><select id="taskMember" name="memberId"></select></label>
+        <label for="taskPriority"><span>优先级</span><select id="taskPriority" name="priority"><option value="low">低</option><option value="medium">普通</option><option value="high">高</option><option value="urgent">紧急</option></select></label>
+        <label for="taskDueDate"><span>截止日期</span><input id="taskDueDate" name="dueDate" type="date"></label>
+        <label for="taskTags"><span>标签</span><input id="taskTags" name="tags" maxlength="90" placeholder="路线, QA（最多 5 个）"></label>
+      </div>
+      <p class="form-error" id="taskFormError" role="alert"></p>
+      <footer>
+        <button class="danger-button" id="deleteTaskButton" type="button" hidden>删除任务</button>
+        <span></span>
+        <button class="quiet-button" id="cancelTaskButton" type="button">取消</button>
+        <button class="primary-button" type="submit">保存任务</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirmDialog">
+    <form method="dialog">
+      <span class="confirm-signal" aria-hidden="true">!</span>
+      <p class="eyebrow">CONFIRM SWITCH</p>
+      <h2 id="confirmTitle">确认操作</h2>
+      <p id="confirmMessage"></p>
+      <footer><button class="quiet-button" id="cancelConfirmButton" type="button">取消</button><button class="danger-button" id="acceptConfirmButton" type="button">确认</button></footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="sr-only" id="liveRegion" aria-live="assertive"></div>
+
+  <script src="board-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+
+function extractIdeas() {
+  const match = html.match(/const IDEAS=(\[[\s\S]*?\]);\s*const KEY=/);
+  assert.ok(match, 'IDEAS should be present in the tracker');
+  return JSON.parse(match[1]);
+}
+
+function extractOfficialDoneIds() {
+  const match = html.match(/const INIT_DONE=\{([^}]*)\}/);
+  assert.ok(match, 'INIT_DONE should be present in the tracker');
+  return new Set([...match[1].matchAll(/(\d+):"done"/g)].map((entry) => Number(entry[1])));
+}
+
+test('app 061 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app61 = ideas[60];
+
+  assert.equal(app61[0], '每日壁纸应用');
+  assert.equal(app61[3], 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
+  assert.equal(doneIds.has(61), true, 'INIT_DONE must mark app 061 as done');
+});
+
+test('official completion state migrates stale browser cache entries', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  assert.ok(initMatch && start >= 0 && end > start, 'tracker migration source should be extractable');
+
+  const context = {};
+  vm.runInNewContext(`
+    let apps=[{id:61,name:"旧标题",desc:"旧说明",lv:3,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
+  assert.equal(context.result.didSave, true);
+});

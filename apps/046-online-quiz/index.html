@@ -73,6 +73,9 @@
     .panel-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 20px;border-bottom:2px solid var(--ink);background:var(--yellow)}
     .panel-head h2,.panel-head h3{margin:0;font:900 18px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.08em;text-transform:uppercase}
     .serial{font:700 10px Consolas,monospace;letter-spacing:.1em}
+    .panel-tools{display:flex;align-items:center;gap:10px}
+    .mini-btn{border:1px solid var(--ink);background:var(--paper-2);padding:6px 9px;cursor:pointer;font:800 10px/1 Consolas,monospace;letter-spacing:.04em}
+    .mini-btn:hover{background:var(--ink);color:#fff}
     .config-body{padding:26px}
     fieldset{border:0;padding:0;margin:0 0 26px;min-width:0}
     legend{width:100%;display:flex;justify-content:space-between;align-items:end;gap:12px;padding:0 0 11px;margin-bottom:12px;border-bottom:1px dashed var(--line);font-weight:800}
@@ -300,7 +303,13 @@
         </form>
 
         <aside class="panel" aria-labelledby="history-title">
-          <div class="panel-head"><h2 id="history-title">最近成绩</h2><span class="serial">LOCAL ONLY</span></div>
+          <div class="panel-head">
+            <h2 id="history-title">最近成绩</h2>
+            <div class="panel-tools">
+              <span class="serial">LOCAL ONLY</span>
+              <button id="clear-history-btn" class="mini-btn" type="button" hidden>清空记录</button>
+            </div>
+          </div>
           <div class="history-body"><div id="history-list"></div></div>
         </aside>
       </div>
@@ -521,6 +530,7 @@
       function renderHistory() {
         const history = safeRead(HISTORY_KEY, []);
         const list = Array.isArray(history) ? history.slice(0, MAX_HISTORY) : [];
+        $("#clear-history-btn").hidden = list.length === 0;
         if (!list.length) {
           $("#history-list").innerHTML = '<p class="history-empty">还没有成绩记录。完成第一张答题卡后，这里会显示最近 8 次扫描结果。</p>';
           return;
@@ -671,12 +681,25 @@
 
       function openModal(action) {
         state.modalAction = action;
+        if (action === "clear-history") {
+          const history = safeRead(HISTORY_KEY, []);
+          const count = Array.isArray(history) ? Math.min(history.length, MAX_HISTORY) : 0;
+          $("#modal-title").textContent = "清空最近成绩？";
+          $("#modal-copy").textContent = `将删除当前浏览器保存的 ${count} 条成绩记录。此操作不会影响题库和未完成答卷，但删除后无法恢复。`;
+          $("#modal-cancel").textContent = "保留记录";
+          $("#modal-confirm").textContent = "确认清空";
+          $("#modal-confirm").classList.add("submit-btn");
+          $("#modal-mask").hidden = false;
+          $("#modal-confirm").focus();
+          return;
+        }
         const unanswered = state.questions.filter(question => !(state.answers[question.id] || []).length).length;
         const submit = action === "submit";
         $("#modal-title").textContent = submit ? "确认交卷？" : "退出本次测验？";
         $("#modal-copy").textContent = submit
           ? (unanswered ? `还有 ${unanswered} 道题未作答，提交后将直接计为错误。仍要开始扫描判分吗？` : "所有题目都已作答。提交后本次答案将锁定，并进入逐题复盘。")
           : "退出会丢弃当前答题卡，已经填写的答案无法恢复。";
+        $("#modal-cancel").textContent = submit ? "返回检查" : "继续答题";
         $("#modal-confirm").textContent = submit ? "确认交卷" : "丢弃并退出";
         $("#modal-confirm").classList.toggle("submit-btn", !submit);
         $("#modal-mask").hidden = false;
@@ -762,6 +785,13 @@
         toast("已丢弃本次答题卡");
       }
 
+      function clearHistory() {
+        safeRemove(HISTORY_KEY);
+        closeModal();
+        renderHistory();
+        toast("最近成绩已清空");
+      }
+
       $("#config-form").addEventListener("change", updateAvailability);
       $("#config-form").addEventListener("submit", event => {
         event.preventDefault();
@@ -771,6 +801,7 @@
       });
       $("#resume-btn").addEventListener("click", resumeQuiz);
       $("#discard-btn").addEventListener("click", () => { safeRemove(DRAFT_KEY); renderResume(); toast("草稿已丢弃"); });
+      $("#clear-history-btn").addEventListener("click", () => openModal("clear-history"));
       $("#option-list").addEventListener("click", event => {
         const button = event.target.closest("[data-option]");
         if (button) selectOption(button.dataset.option);
@@ -784,7 +815,11 @@
       [$("#paper-submit-btn"), $("#side-submit-btn")].forEach(button => button.addEventListener("click", () => openModal("submit")));
       $("#exit-btn").addEventListener("click", () => openModal("exit"));
       $("#modal-cancel").addEventListener("click", closeModal);
-      $("#modal-confirm").addEventListener("click", () => state.modalAction === "submit" ? (closeModal(), finishQuiz("manual")) : abandonQuiz());
+      $("#modal-confirm").addEventListener("click", () => {
+        if (state.modalAction === "submit") { closeModal(); finishQuiz("manual"); }
+        else if (state.modalAction === "exit") abandonQuiz();
+        else if (state.modalAction === "clear-history") clearHistory();
+      });
       $("#modal-mask").addEventListener("click", event => { if (event.target === $("#modal-mask")) closeModal(); });
       document.addEventListener("keydown", event => { if (event.key === "Escape" && !$("#modal-mask").hidden) closeModal(); });
       $$(".filter-tab").forEach(button => button.addEventListener("click", () => {

@@ -491,3 +491,39 @@ test('app 082 is published and included in the official completion state', () =>
     assert.equal(doneIds.has(pendingId), false, `INIT_DONE must preserve pending app ${pendingId}`);
   }
 });
+
+test('app 094 online IDE is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app94 = ideas[93];
+
+  assert.equal(app94[0], '在线 IDE');
+  assert.equal(app94[1], 'BENCH/94：Web沙箱预览+JavaScript Worker+Pyodide Python运行');
+  assert.equal(app94[3], 'https://jokerlixing.github.io/100apps/apps/094-online-ide/');
+  assert.equal(doneIds.has(94), true, 'INIT_DONE must mark app 094 as done');
+});
+
+test('official completion state migrates a stale app 094 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:94,name:"在线IDE",desc:"代码编辑+多语言运行+预览",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, '在线 IDE');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^BENCH\/94/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/094-online-ide/');
+  assert.equal(context.result.didSave, true);
+});

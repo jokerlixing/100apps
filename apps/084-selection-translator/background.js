@@ -120,6 +120,26 @@
       };
     }
 
+    const bundled = Core.localTranslate(selection.text, pair.source, pair.target);
+    if (bundled.ok) {
+      await recordHistory(storage, {
+        sourceText: selection.text,
+        translatedText: bundled.text,
+        sourceLanguage: bundled.detectedSource,
+        targetLanguage: pair.target,
+        provider: 'local-phrasebook',
+      });
+      return {
+        ok: true,
+        text: bundled.text,
+        provider: 'local-phrasebook',
+        detectedSource: bundled.detectedSource,
+        targetLanguage: pair.target,
+        confidence: 1,
+        note: '精确命中内置示例短语；未发送网络请求。',
+      };
+    }
+
     const remote = await requestRemote(selection.text, pair.source, pair.target, fetchImpl, timeoutMs);
     if (remote.ok) {
       const detectedSource = remote.detectedSource || (pair.source === 'auto' ? Core.detectLanguage(selection.text) : pair.source);
@@ -147,26 +167,6 @@
         targetLanguage: pair.target,
         confidence: remote.confidence,
         note: '由 MyMemory 在线翻译返回。',
-      };
-    }
-
-    const local = Core.localTranslate(selection.text, pair.source, pair.target);
-    if (local.ok) {
-      await recordHistory(storage, {
-        sourceText: selection.text,
-        translatedText: local.text,
-        sourceLanguage: local.detectedSource,
-        targetLanguage: pair.target,
-        provider: 'local-phrasebook',
-      });
-      return {
-        ok: true,
-        text: local.text,
-        provider: 'local-phrasebook',
-        detectedSource: local.detectedSource,
-        targetLanguage: pair.target,
-        confidence: 1,
-        note: `在线服务不可用；已使用内置示例短语。${remote.message ? ` ${remote.message}` : ''}`,
       };
     }
 

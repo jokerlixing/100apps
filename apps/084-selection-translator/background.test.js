@@ -77,22 +77,24 @@ test('translateRequest reuses a cached result without another network request', 
   assert.equal(calls, 0);
 });
 
-test('translateRequest uses the labeled local phrasebook after a remote failure', async () => {
+test('translateRequest uses the labeled local phrasebook before making a remote request', async () => {
   const storage = createStorage();
+  let calls = 0;
   const result = await Background.translateRequest({
     text: 'Measure twice, translate once.',
     sourceLanguage: 'en',
     targetLanguage: 'zh-CN',
   }, {
     storage,
-    fetchImpl: async () => { throw new Error('offline'); },
+    fetchImpl: async () => { calls += 1; throw new Error('offline'); },
     timeoutMs: 10,
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.provider, 'local-phrasebook');
   assert.equal(result.text, '先确认两遍，再翻译一次。');
-  assert.match(result.note, /在线服务不可用/);
+  assert.match(result.note, /未发送网络请求/);
+  assert.equal(calls, 0);
 });
 
 test('translateRequest returns actionable errors and does not invent a fallback', async () => {

@@ -94,20 +94,13 @@
     }
   }
 
-  function sendMessage(message) {
-    return new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(message, (response) => {
-          if (chrome.runtime.lastError) {
-            resolve({ ok: false, code: 'runtime-unavailable', message: '扩展已更新，请刷新当前页面后再试。' });
-            return;
-          }
-          resolve(response || { ok: false, code: 'empty-response', message: '翻译后台没有返回结果。' });
-        });
-      } catch (_) {
-        resolve({ ok: false, code: 'runtime-unavailable', message: '扩展已更新，请刷新当前页面后再试。' });
-      }
-    });
+  async function sendMessage(message) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      return response || { ok: false, code: 'empty-response', message: '翻译后台没有返回结果。' };
+    } catch (_) {
+      return { ok: false, code: 'runtime-unavailable', message: '扩展已更新，请刷新当前页面后再试。' };
+    }
   }
 
   function setDirection(source, target) {
@@ -190,7 +183,10 @@
   ui.close.addEventListener('click', () => { card.hidden = true; });
   ui.copy.addEventListener('click', copyResult);
   ui.speak.addEventListener('click', speakResult);
-  document.addEventListener('mouseup', () => setTimeout(captureSelection), true);
+  document.addEventListener('mouseup', (event) => {
+    if (action.contains(event.target) || card.contains(event.target)) return;
+    setTimeout(captureSelection);
+  }, true);
   document.addEventListener('keyup', (event) => {
     if (event.key.startsWith('Arrow') || event.key === 'Shift') setTimeout(captureSelection);
   }, true);

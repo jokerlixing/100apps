@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2859d8">
+  <meta name="description" content="SHIFT/47 是一款支持本地图片、三档难度、计时与最佳纪录的经典滑块拼图。">
+  <title>SHIFT/47 · 滑块拼图</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="back-link" href="../../index.html" aria-label="返回 100 Apps 追踪器">← 100 APPS</a>
+    <p>POCKET REPAIR UNIT <span aria-hidden="true">/</span> APP 047</p>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">PICTURE RECOVERY PROTOCOL</p>
+      <h1 id="page-title">SHIFT<span>/47</span></h1>
+      <p class="intro-copy">移动空格旁的图块，把失真的信号重新拼回原位。每一步都算数。</p>
+    </section>
+
+    <section class="game-console" aria-label="滑块拼图游戏机">
+      <div class="screen-module">
+        <div class="screen-header">
+          <div>
+            <span class="signal-dot" aria-hidden="true"></span>
+            <span id="run-state">等待第一步</span>
+          </div>
+          <span id="image-name">内置信号塔</span>
+        </div>
+
+        <div class="telemetry" aria-label="本局数据">
+          <div class="telemetry-item">
+            <span>TIME</span>
+            <strong id="time-value">00:00</strong>
+          </div>
+          <div class="telemetry-item">
+            <span>MOVES</span>
+            <strong id="move-value">000</strong>
+          </div>
+          <div class="telemetry-item telemetry-best">
+            <span>BEST</span>
+            <strong id="best-value">--:--</strong>
+          </div>
+        </div>
+
+        <div class="puzzle-frame">
+          <div
+            id="puzzle-grid"
+            class="puzzle-grid"
+            role="grid"
+            tabindex="0"
+            aria-label="3 乘 3 滑块拼图，使用方向键移动空格"
+            aria-describedby="board-help"
+          ></div>
+          <div id="preview-layer" class="preview-layer" aria-hidden="true"></div>
+          <div class="screen-scanline" aria-hidden="true"></div>
+        </div>
+
+        <p id="board-help" class="screen-message">点击相邻方块，或用方向键移动空格。</p>
+      </div>
+
+      <aside class="control-module" aria-label="拼图控制台">
+        <div class="control-heading">
+          <span>CONTROL DECK</span>
+          <b>47</b>
+        </div>
+
+        <fieldset class="difficulty-control">
+          <legend>难度 / GRID</legend>
+          <div class="segment-control">
+            <label><input type="radio" name="difficulty" value="3" checked><span>3×3<small>热身</small></span></label>
+            <label><input type="radio" name="difficulty" value="4"><span>4×4<small>标准</small></span></label>
+            <label><input type="radio" name="difficulty" value="5"><span>5×5<small>极限</small></span></label>
+          </div>
+        </fieldset>
+
+        <div class="image-control">
+          <p class="control-label">图像 / SOURCE</p>
+          <div class="image-actions">
+            <button id="default-image-button" class="utility-button is-active" type="button">内置图</button>
+            <label class="utility-button upload-button" for="image-input">上传图片</label>
+            <input id="image-input" type="file" accept="image/*" hidden>
+          </div>
+          <p class="control-note">图片仅在本机处理，最大 8 MB。</p>
+        </div>
+
+        <div class="main-actions">
+          <button id="preview-button" class="preview-button" type="button">
+            <span aria-hidden="true">◉</span>
+            按住查看原图
+          </button>
+          <button id="shuffle-button" class="shuffle-button" type="button">
+            <span>重新打乱</span>
+            <span aria-hidden="true">↻</span>
+          </button>
+        </div>
+
+        <div id="confirm-strip" class="confirm-strip" hidden>
+          <p id="confirm-message">当前进度将丢失，继续吗？</p>
+          <div>
+            <button id="confirm-yes" type="button">继续</button>
+            <button id="confirm-no" type="button">保留本局</button>
+          </div>
+        </div>
+
+        <div class="key-guide" aria-label="操作说明">
+          <div class="key-arrows" aria-hidden="true"><i>↑</i><i>←</i><i>↓</i><i>→</i></div>
+          <p><b>方向键 / 点击 / 滑动</b><br>让空格靠近它应该在的位置。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="completion-dialog" class="completion-dialog">
+    <div class="completion-stamp" aria-hidden="true">RESTORED</div>
+    <p class="eyebrow">SIGNAL LOCKED</p>
+    <h2>图像修复完成</h2>
+    <p id="completion-copy">你用 00:00 和 0 步恢复了信号。</p>
+    <p id="record-copy" class="record-copy"></p>
+    <div class="dialog-actions">
+      <button id="play-again-button" type="button">再来一局</button>
+      <button id="close-dialog-button" type="button">查看成品</button>
+    </div>
+  </dialog>
+
+  <script src="puzzle-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

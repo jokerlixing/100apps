@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f3a">
+  <meta name="description" content="RELAY/68：从可编辑 FAQ 知识库中识别意图、引用依据并安全降级的智能客服工作台。">
+  <title>RELAY/68 · 智能客服机器人</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到客服会话</a>
+
+  <header class="topbar">
+    <div class="brand-lockup">
+      <span class="brand-jacks" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <p class="eyebrow">CUSTOMER SIGNAL DESK · APP 068</p>
+        <h1>RELAY<span>/68</span></h1>
+      </div>
+    </div>
+    <p class="header-note">先查知识，再组织答案。每条线路都有依据。</p>
+    <div class="header-actions">
+      <span class="mode-status" id="source-status"><i aria-hidden="true"></i>本地路由已就绪</span>
+      <button class="button button-quiet" id="clear-conversation" type="button">清空会话</button>
+      <button class="button button-copper" id="manage-knowledge" type="button">管理知识库</button>
+    </div>
+  </header>
+
+  <main class="workspace" id="main-content">
+    <section class="conversation-bay" aria-labelledby="conversation-title">
+      <header class="panel-heading conversation-heading">
+        <div>
+          <p class="panel-code">LINE 01 · ACTIVE</p>
+          <h2 id="conversation-title">会话线路</h2>
+        </div>
+        <dl class="session-stats" aria-label="本次会话统计">
+          <div><dt>消息</dt><dd id="message-count">0</dd></div>
+          <div><dt>已解决</dt><dd id="helpful-count">0</dd></div>
+          <div><dt>待跟进</dt><dd id="handoff-count">0</dd></div>
+        </dl>
+      </header>
+
+      <div class="conversation-log" id="conversation-log" role="log" aria-live="polite" aria-relevant="additions text">
+        <div class="welcome-state" id="welcome-state">
+          <span class="operator-seal" aria-hidden="true">R</span>
+          <p class="message-label">RELAY 值班台</p>
+          <h2>把客户的问题接进来。</h2>
+          <p>我会先识别意图，再从启用的知识卡里回答。没有可靠依据时，会把线路交给人工，不猜订单状态。</p>
+          <ul class="guardrails" aria-label="回答原则">
+            <li>回答引用知识卡</li>
+            <li>不读取真实订单</li>
+            <li>低置信度转人工</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="quick-questions" id="quick-questions" aria-label="常用提问">
+        <span>试接一条：</span>
+        <button type="button" data-question="我的订单发货了吗，在哪里查物流？">查询物流</button>
+        <button type="button" data-question="退款审核通过后多久能到账？">退款进度</button>
+        <button type="button" data-question="公司发票的抬头和税号怎么填写？">企业发票</button>
+      </div>
+
+      <form class="composer" id="composer-form">
+        <label for="message-input">客户问题</label>
+        <div class="composer-field">
+          <textarea id="message-input" rows="2" maxlength="120" placeholder="例如：包裹已经发货，怎么查看运单？" required></textarea>
+          <div class="composer-meta">
+            <span><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd> + <kbd>Enter</kbd> 换行</span>
+            <span id="character-count">0 / 120</span>
+          </div>
+        </div>
+        <button class="send-button" id="send-message" type="submit">
+          <span>接入线路</span><i aria-hidden="true">↗</i>
+        </button>
+      </form>
+    </section>
+
+    <aside class="routing-bay" aria-labelledby="routing-title">
+      <header class="panel-heading routing-heading">
+        <div>
+          <p class="panel-code">PATCH BAY · ROUTE</p>
+          <h2 id="routing-title">线路追踪</h2>
+        </div>
+        <span class="route-state" id="route-state">等待来电</span>
+      </header>
+
+      <section class="route-trace" id="route-trace" aria-label="回答路由">
+        <div class="route-stage is-idle" data-stage="incoming">
+          <span class="route-jack"><i aria-hidden="true"></i></span>
+          <div><small>来电</small><strong id="route-question">尚未接入</strong></div>
+        </div>
+        <span class="patch-cord" aria-hidden="true"></span>
+        <div class="route-stage is-idle" data-stage="intent">
+          <span class="route-jack"><i aria-hidden="true"></i></span>
+          <div><small>意图端口</small><strong id="route-intent">待识别</strong></div>
+        </div>
+        <span class="patch-cord" aria-hidden="true"></span>
+        <div class="route-stage is-idle" data-stage="source">
+          <span class="route-jack"><i aria-hidden="true"></i></span>
+          <div><small>知识插孔</small><strong id="route-source">待匹配</strong></div>
+        </div>
+      </section>
+
+      <section class="signal-card" aria-labelledby="signal-title">
+        <div class="signal-heading">
+          <div>
+            <p class="panel-code" id="signal-title">ROUTING CONFIDENCE</p>
+            <strong id="confidence-value">—</strong>
+          </div>
+          <span id="route-reason">发送问题后显示路由依据</span>
+        </div>
+        <div class="meter" id="confidence-meter" role="meter" aria-label="路由置信度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span></span>
+          <i style="--tick:0"></i><i style="--tick:1"></i><i style="--tick:2"></i><i style="--tick:3"></i><i style="--tick:4"></i>
+        </div>
+      </section>
+
+      <article class="source-card is-empty" id="source-card" aria-labelledby="source-card-title">
+        <header>
+          <p class="panel-code">CITED KNOWLEDGE</p>
+          <span class="source-intent" id="source-card-intent">未连接</span>
+        </header>
+        <h3 id="source-card-title">回答依据</h3>
+        <p class="source-question" id="source-card-question">匹配成功后，这里会显示被引用的 FAQ 知识卡。</p>
+        <p class="source-answer" id="source-card-answer" hidden></p>
+      </article>
+
+      <section class="resolution-panel" id="feedback-panel" aria-labelledby="resolution-title" hidden>
+        <div>
+          <p class="panel-code" id="resolution-title">RESOLUTION CHECK</p>
+          <strong>这条回答解决问题了吗？</strong>
+        </div>
+        <div class="resolution-actions">
+          <button type="button" data-feedback="helpful">有帮助</button>
+          <button type="button" data-feedback="unhelpful">还没解决</button>
+        </div>
+        <p id="feedback-status" aria-live="polite"></p>
+      </section>
+
+      <section class="handoff-panel" aria-labelledby="handoff-title">
+        <div>
+          <p class="panel-code">HUMAN LOOP</p>
+          <h3 id="handoff-title">人工接管</h3>
+          <p>把当前问题、识别意图和引用依据整理成待跟进摘要。</p>
+        </div>
+        <button class="button button-alarm" id="handoff-button" type="button" disabled>生成工单</button>
+      </section>
+
+      <section class="knowledge-drawer" aria-labelledby="knowledge-preview-title">
+        <header>
+          <div>
+            <p class="panel-code">KNOWLEDGE BANK</p>
+            <h3 id="knowledge-preview-title">当前知识卡</h3>
+          </div>
+          <span><b id="enabled-knowledge-count">0</b> 条启用</span>
+        </header>
+        <label class="search-field" for="knowledge-search">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">搜索知识卡</span>
+          <input id="knowledge-search" type="search" placeholder="搜索问题、关键词或意图">
+        </label>
+        <div class="knowledge-preview" id="knowledge-preview"></div>
+        <button class="button button-wide button-quiet" id="open-knowledge-bottom" type="button">打开完整知识库</button>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="page-footer">
+    <p><b>隐私边界</b> · 静态模式不上传对话；本工具不连接真实订单、支付或物流系统。</p>
+    <p>RELAY/68 · 100 Apps Challenge</p>
+  </footer>
+
+  <dialog class="knowledge-dialog" id="knowledge-dialog" aria-labelledby="knowledge-dialog-title">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div>
+          <p class="panel-code">FAQ PATCH LIBRARY</p>
+          <h2 id="knowledge-dialog-title">知识库管理</h2>
+          <p>启用的知识卡会参与本地路由，也会作为可选 AI 回答的唯一依据。</p>
+        </div>
+        <button class="icon-button" id="close-knowledge" type="button" aria-label="关闭知识库管理">×</button>
+      </header>
+
+      <div class="knowledge-manager">
+        <section class="manager-list" aria-labelledby="manager-list-title">
+          <div class="manager-toolbar">
+            <label for="manager-search" id="manager-list-title">知识卡列表</label>
+            <input id="manager-search" type="search" placeholder="筛选知识卡">
+          </div>
+          <div id="manager-faq-list" class="manager-faq-list"></div>
+        </section>
+
+        <section class="faq-editor" aria-labelledby="faq-editor-title">
+          <header>
+            <p class="panel-code">CARD EDITOR</p>
+            <h3 id="faq-editor-title">新增知识卡</h3>
+          </header>
+          <form id="faq-form">
+            <input id="faq-id" type="hidden">
+            <label>常见问题<input id="faq-question" name="question" maxlength="180" required placeholder="例如：修改收货地址需要什么条件？"></label>
+            <label>标准回答<textarea id="faq-answer" name="answer" rows="5" maxlength="1200" required placeholder="只写客服能够确认的规则，不填写真实订单状态。"></textarea></label>
+            <div class="form-row">
+              <label>意图
+                <select id="faq-intent" name="intent" required>
+                  <option value="order">订单处理</option>
+                  <option value="shipping">物流配送</option>
+                  <option value="return">退换货</option>
+                  <option value="refund">退款进度</option>
+                  <option value="payment">支付问题</option>
+                  <option value="invoice">发票服务</option>
+                  <option value="account">账户安全</option>
+                  <option value="product">商品咨询</option>
+                  <option value="coupon">优惠活动</option>
+                  <option value="contact">人工服务</option>
+                </select>
+              </label>
+              <label class="toggle-field"><input id="faq-enabled" name="enabled" type="checkbox" checked><span>启用这张知识卡</span></label>
+            </div>
+            <label>关键词<input id="faq-keywords" name="keywords" maxlength="240" placeholder="逗号分隔，如：改地址, 收货地址, 发货前"></label>
+            <label>相似问法<input id="faq-aliases" name="aliases" maxlength="320" placeholder="每行一个，或使用逗号分隔"></label>
+            <label>建议追问<input id="faq-suggestions" name="suggestions" maxlength="240" placeholder="最多三条，使用逗号分隔"></label>
+            <div class="editor-actions">
+              <button class="button button-copper" type="submit" id="save-faq">保存知识卡</button>
+              <button class="button button-quiet" type="button" id="cancel-faq-edit" hidden>取消编辑</button>
+            </div>
+          </form>
+          <button class="text-button danger-link" id="reset-knowledge" type="button">恢复默认知识库</button>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="handoff-dialog" id="handoff-dialog" aria-labelledby="handoff-dialog-title">
+    <div class="handoff-sheet">
+      <p class="panel-code">FOLLOW-UP TICKET</p>
+      <h2 id="handoff-dialog-title">人工待跟进摘要</h2>
+      <pre id="handoff-summary"></pre>
+      <div class="dialog-actions">
+        <button class="button button-copper" id="copy-handoff" type="button">复制摘要</button>
+        <button class="button button-quiet" id="close-handoff" type="button">关闭</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="live-region" aria-live="polite"></div>
+
+  <script src="support-core.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

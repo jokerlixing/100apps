@@ -798,6 +798,7 @@
     renderResumeNotice();
     showScreen('setup');
     window.setInterval(updateElapsed, 1000);
+    document.body.classList.add('ready');
   }
 
   boot();

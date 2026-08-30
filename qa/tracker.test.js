@@ -591,7 +591,6 @@ test('official completion state migrates a stale app 091 cache entry', () => {
     syncOfficial();
     result={apps,didSave};
   `, context);
-
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^PULSEWATCH\/91/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/091-crawler-dashboard/');

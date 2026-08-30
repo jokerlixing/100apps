@@ -1,8 +1,11 @@
 (function (root, factory) {
-  const bank = factory();
+  const extraQuestions = typeof module === "object" && module.exports
+    ? require("./question-bank-extra.js")
+    : root.QuizBankExtra;
+  const bank = factory(extraQuestions);
   if (typeof module === "object" && module.exports) module.exports = bank;
   root.QuizBank = bank;
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+})(typeof globalThis !== "undefined" ? globalThis : this, function (extraQuestions) {
   "use strict";
 
   const questions = [
@@ -200,5 +203,5 @@
     }
   ];
 
-  return { version: "2026.08.30-1", questions };
+  return { version: "2026.08.30-1", questions: questions.concat(extraQuestions || []) };
 });

@@ -4,14 +4,17 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const Core = require("./quiz-core.js");
 const Bank = require("./question-bank.js");
+const ExtraQuestions = require("./question-bank-extra.js");
 
 test("整库题目都能通过规范化", () => {
-  assert.equal(Bank.questions.length, 32);
+  assert.equal(ExtraQuestions.length, 100);
+  assert.equal(Bank.questions.length, 132);
   const normalized = Bank.questions.map(Core.normalizeQuestion);
-  assert.equal(new Set(normalized.map(question => question.id)).size, 32);
+  assert.equal(new Set(normalized.map(question => question.id)).size, 132);
   assert.deepEqual(new Set(normalized.map(question => question.category)), new Set(["Web", "科学", "逻辑", "常识"]));
   for (const category of ["Web", "科学", "逻辑", "常识"]) {
-    assert.equal(normalized.filter(question => question.category === category).length, 8);
+    assert.equal(normalized.filter(question => question.category === category).length, 33);
+    assert.equal(ExtraQuestions.filter(question => question.category === category).length, 25);
   }
 });
 
@@ -26,19 +29,19 @@ test("相同种子得到相同试卷，不同种子改变题序", () => {
 
 test("组卷会遵守分类、难度和题量", () => {
   const quiz = Core.buildQuiz(Bank.questions, {
-    count: 4,
+    count: 16,
     categories: ["科学"],
     difficulty: "advanced",
     seed: "science"
   });
-  assert.equal(quiz.length, 4);
+  assert.equal(quiz.length, 16);
   assert.ok(quiz.every(question => question.category === "科学" && question.difficulty === "advanced"));
   assert.throws(() => Core.buildQuiz(Bank.questions, {
-    count: 5,
+    count: 17,
     categories: ["科学"],
     difficulty: "advanced",
     seed: "too-many"
-  }), /只有 4 道题/);
+  }), /只有 16 道题/);
 });
 
 test("最高档位可以生成 30 道不重复题目", () => {

@@ -7,8 +7,8 @@
 
 ## Step 2：准备稳定题库
 
-- Output：`question-bank.js`，包含覆盖 Web、科学、逻辑与常识的 32 道单选、多选、判断题，以及答案和解析。
-- Test：整库通过核心校验；四个分类各 8 题，最高可生成 30 道不重复题目。
+- Output：`question-bank.js` 与 `question-bank-extra.js`，共包含覆盖 Web、科学、逻辑与常识的 132 道题，其中扩展题库恰好 100 道。
+- Test：整库通过核心校验；四个分类各 33 题，ID 全局唯一，最高可生成 30 道不重复题目。
 
 ## Step 3：完成 SCAN/46 页面
 

@@ -233,7 +233,7 @@
           <h1 id="setup-title">SCAN<span>把知识放上扫描台</span></h1>
           <p>选定范围，生成一张属于你的测验答题卡。限时作答、自动保存、即时判分，再用逐题解析把每个失分点找回来。</p>
           <div class="hero-metrics" aria-label="题库概览">
-            <div class="metric"><b>32</b><span>精选题目</span></div>
+            <div class="metric"><b>132</b><span>精选题目</span></div>
             <div class="metric"><b>04</b><span>知识分类</span></div>
             <div class="metric"><b>03</b><span>混合题型</span></div>
           </div>
@@ -410,6 +410,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="./quiz-core.js"></script>
+  <script src="./question-bank-extra.js"></script>
   <script src="./question-bank.js"></script>
   <script>
     (() => {
@@ -500,20 +501,15 @@
         ).length;
         $("#available-count").textContent = `${available.toString().padStart(2, "0")} 道题符合当前条件`;
         const startButton = $("#config-form button[type=submit]");
-        startButton.disabled = !config.categories.length || available < 5;
-        startButton.title = startButton.disabled ? "当前条件不足 5 题" : "生成答题卡";
-        $$("input[name=count]").forEach(input => { input.disabled = Number(input.value) > available; });
-        const selected = $("input[name=count]:checked");
-        if (!selected || selected.disabled) {
-          const next = $$("input[name=count]").filter(input => !input.disabled).sort((a, b) => Number(b.value) - Number(a.value))[0];
-          if (next) next.checked = true;
-        }
+        startButton.disabled = !config.categories.length;
+        startButton.title = startButton.disabled ? "请至少选择一个分类" : "生成答题卡";
+        $$("input[name=count]").forEach(input => { input.disabled = false; });
         const note = $("#setup-note");
         if (!config.categories.length) {
           note.textContent = "请至少选择一个知识分类。";
           note.classList.add("error");
-        } else if (available < 5) {
-          note.textContent = "当前组合不足 5 题，请增加分类或选择混合难度。";
+        } else if (available < config.count) {
+          note.textContent = `当前筛选有 ${available} 题，少于所选的 ${config.count} 题；题量不会被禁用，请放宽分类或难度后生成。`;
           note.classList.add("error");
         } else {
           note.textContent = "多选题需选全且不多选才得分；答卷会自动保存在本机。";
@@ -567,6 +563,15 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
 
+      function randomSeed() {
+        if (window.crypto?.getRandomValues) {
+          const values = new Uint32Array(4);
+          window.crypto.getRandomValues(values);
+          return [...values].map(value => value.toString(16).padStart(8, "0")).join("-");
+        }
+        return `${Date.now()}-${Math.random()}-${performance.now()}`;
+      }
+
       function startQuiz(config, fixedQuestions) {
         if (!config.categories?.length) { updateAvailability(); toast("请至少选择一个分类"); return; }
         let questions;
@@ -575,7 +580,7 @@
             count: config.count,
             categories: config.categories,
             difficulty: config.difficulty,
-            seed: `${Date.now()}-${Math.random()}`
+            seed: randomSeed()
           });
         } catch (error) {
           $("#setup-note").textContent = error.message;

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="DEPOT/78：浏览器本地私人资料库，支持真实文件上传、下载、分享口令、回收站与配额台账。">
+  <title>DEPOT/78 · 私人网盘</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="file-core.js"></script>
+  <script defer src="storage.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#file-ledger">跳到文件台账</a>
+
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="DEPOT/78 首页">
+      <span class="brand-mark" aria-hidden="true">D/78</span>
+      <span><strong>DEPOT</strong><small>私人资料库 · 第 078 号应用</small></span>
+    </a>
+    <p class="privacy-note"><span aria-hidden="true">●</span> 文件只保存在当前浏览器，不上传第三方</p>
+    <div class="header-actions">
+      <span class="storage-status" id="storage-status" role="status">正在开启库房…</span>
+      <button class="primary-button" id="upload-button" type="button">文件入库</button>
+      <input id="file-input" type="file" multiple hidden>
+    </div>
+  </header>
+
+  <main class="archive-shell">
+    <aside class="cabinet-panel" aria-label="资料库索引">
+      <div class="panel-label">柜列索引 / INDEX</div>
+      <nav class="archive-nav" aria-label="文件视图">
+        <button class="nav-button is-active" data-view="all" type="button"><span>全部资料</span><b data-count="all">0</b></button>
+        <button class="nav-button" data-view="recent" type="button"><span>最近入库</span><b data-count="recent">0</b></button>
+        <button class="nav-button" data-view="shared" type="button"><span>借出共享</span><b data-count="shared">0</b></button>
+        <button class="nav-button" data-view="trash" type="button"><span>回收站</span><b data-count="trash">0</b></button>
+      </nav>
+
+      <section class="folder-section" aria-labelledby="folder-heading">
+        <div class="section-heading">
+          <h2 id="folder-heading">资料夹</h2>
+          <button class="icon-button" id="new-folder-button" type="button" aria-label="新建资料夹">＋</button>
+        </div>
+        <div class="folder-list" id="folder-list"></div>
+      </section>
+
+      <section class="capacity-ledger" aria-labelledby="capacity-heading">
+        <div class="section-heading">
+          <h2 id="capacity-heading">容量台账</h2>
+          <span id="usage-percent">0%</span>
+        </div>
+        <div class="capacity-ruler" aria-hidden="true">
+          <div class="capacity-fill" id="capacity-fill">
+            <i data-kind="document"></i><i data-kind="image"></i><i data-kind="media"></i><i data-kind="other"></i>
+          </div>
+          <span class="tick t25">25</span><span class="tick t50">50</span><span class="tick t75">75</span><span class="tick t100">100%</span>
+        </div>
+        <p class="usage-copy"><strong id="usage-total">0 B</strong> / <span id="usage-limit">512 MB</span></p>
+        <ul class="usage-key" id="usage-key"></ul>
+        <p class="capacity-note">回收站中的文件仍占容量。</p>
+      </section>
+    </aside>
+
+    <section class="ledger-panel" aria-labelledby="ledger-title">
+      <div class="intake-zone" id="drop-zone" tabindex="0" role="button" aria-label="拖放或选择文件入库">
+        <span class="intake-stamp" aria-hidden="true">IN</span>
+        <div>
+          <p class="eyebrow">入库轨道 / INTAKE RAIL</p>
+          <h1 id="ledger-title">把资料放回自己手里。</h1>
+          <p>拖入文件，或按 Enter 选择。上传前会检查同名文件与剩余配额。</p>
+        </div>
+        <span class="rail-arrow" aria-hidden="true">→</span>
+      </div>
+
+      <div class="toolbar" aria-label="文件筛选">
+        <label class="search-field">
+          <span class="sr-only">搜索文件名</span>
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="搜索文件名" autocomplete="off">
+        </label>
+        <label>
+          <span class="sr-only">筛选文件类型</span>
+          <select id="kind-filter">
+            <option value="">全部类型</option>
+            <option value="document">文档</option>
+            <option value="image">图片</option>
+            <option value="media">影音</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">文件排序</span>
+          <select id="sort-filter">
+            <option value="newest">最新入库</option>
+            <option value="oldest">最早入库</option>
+            <option value="name">按名称</option>
+            <option value="size">按大小</option>
+          </select>
+        </label>
+        <span class="record-count" id="record-count">0 份记录</span>
+      </div>
+
+      <div class="table-wrap" id="file-ledger" tabindex="-1">
+        <table>
+          <thead>
+            <tr><th scope="col">档号 / 名称</th><th scope="col">归档</th><th scope="col">容量</th><th scope="col">入库时间</th><th scope="col">状态</th></tr>
+          </thead>
+          <tbody id="file-list"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" hidden>
+          <span aria-hidden="true">□</span>
+          <h2>这一柜还没有资料</h2>
+          <p>调整筛选，或把第一份文件送上入库轨道。</p>
+          <button class="secondary-button" data-action="open-upload" type="button">选择文件</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog class="inspection-panel" id="detail-dialog" open aria-labelledby="detail-title">
+      <div class="inspection-header">
+        <span class="panel-label">借阅卡 / FILE SLIP</span>
+        <button class="detail-close" id="detail-close" type="button" aria-label="关闭文件详情">×</button>
+      </div>
+      <div class="no-selection" id="no-selection">
+        <span aria-hidden="true">↳</span>
+        <h2>选择一份资料</h2>
+        <p>这里会显示预览、所在资料夹、分享口令和文件操作。</p>
+      </div>
+      <article class="file-detail" id="file-detail" hidden>
+        <div class="detail-number" id="detail-number">DEP-0000</div>
+        <div class="type-seal" id="detail-seal">DOC</div>
+        <h2 id="detail-title">文件名称</h2>
+        <p class="detail-meta" id="detail-meta">—</p>
+        <div class="preview-stage" id="preview-stage"></div>
+        <dl class="detail-ledger">
+          <div><dt>所在资料夹</dt><dd id="detail-folder">总库</dd></div>
+          <div><dt>入库时间</dt><dd id="detail-date">—</dd></div>
+          <div><dt>分享状态</dt><dd id="detail-share">未分享</dd></div>
+        </dl>
+        <div class="folder-move" id="folder-move">
+          <label for="move-folder">移动到</label>
+          <select id="move-folder"></select>
+          <button class="small-button" id="move-button" type="button">归档</button>
+        </div>
+        <div class="detail-actions" id="active-actions">
+          <button class="secondary-button" id="download-button" type="button">下载</button>
+          <button class="secondary-button" id="share-button" type="button">生成分享口令</button>
+          <button class="danger-button" id="trash-button" type="button">移入回收站</button>
+        </div>
+        <div class="detail-actions" id="trash-actions" hidden>
+          <button class="secondary-button" id="restore-button" type="button">恢复资料</button>
+          <button class="danger-button" id="destroy-button" type="button">永久删除</button>
+        </div>
+      </article>
+    </dialog>
+  </main>
+
+  <button class="mobile-detail-button" id="mobile-detail-button" type="button" hidden>查看所选资料</button>
+
+  <dialog class="form-dialog" id="folder-dialog" aria-labelledby="folder-dialog-title">
+    <form method="dialog" id="folder-form">
+      <div class="dialog-heading"><span>NEW DRAWER</span><button value="cancel" aria-label="关闭">×</button></div>
+      <h2 id="folder-dialog-title">新建资料夹</h2>
+      <label for="folder-name">资料夹名称</label>
+      <input id="folder-name" name="folderName" maxlength="40" autocomplete="off" required>
+      <p class="form-hint">名称只保存在当前浏览器。</p>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="primary-button" value="default">建立资料夹</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="form-dialog share-dialog" id="share-dialog" aria-labelledby="share-dialog-title">
+    <form method="dialog" id="share-form">
+      <div class="dialog-heading"><span>LOCAL LOAN PASS</span><button value="cancel" aria-label="关闭">×</button></div>
+      <h2 id="share-dialog-title">生成本地分享口令</h2>
+      <p class="boundary-warning">链接不含文件内容，只能在保存了这份资料的当前浏览器中打开。</p>
+      <label for="share-days">有效期</label>
+      <select id="share-days">
+        <option value="1">1 天</option><option value="7" selected>7 天</option><option value="30">30 天</option><option value="0">长期有效</option>
+      </select>
+      <div class="share-result" id="share-result" hidden>
+        <span>分享链接</span>
+        <input id="share-link" readonly>
+        <strong id="share-token">—</strong>
+      </div>
+      <div class="dialog-actions">
+        <button class="text-button" id="revoke-share-button" type="button" hidden>撤销口令</button>
+        <button class="secondary-button" id="copy-share-button" type="button" hidden>复制链接</button>
+        <button class="primary-button" id="create-share-button" type="button">生成口令</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="form-dialog confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog">
+      <div class="dialog-heading"><span>VERIFY ACTION</span><button value="cancel" aria-label="关闭">×</button></div>
+      <h2 id="confirm-title">确认操作</h2>
+      <p id="confirm-copy">此操作无法撤销。</p>
+      <div class="dialog-actions"><button class="secondary-button" value="cancel">返回</button><button class="danger-button" id="confirm-button" value="default">确认</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="live-region" aria-live="polite"></div>
+</body>
+</html>

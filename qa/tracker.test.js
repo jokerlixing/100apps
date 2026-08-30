@@ -479,77 +479,6 @@ test('official completion state migrates a stale app 083 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
-test('app 100 is published as INDEX/100 and officially complete', () => {
-  const ideas = extractIdeas();
-  const doneIds = extractOfficialDoneIds();
-  const app100 = ideas[99];
-
-  assert.equal(app100[0], '个人作品集网站');
-  assert.match(app100[1], /^INDEX\/100/);
-  assert.equal(app100[3], 'https://jokerlixing.github.io/100apps/apps/100-portfolio/');
-  assert.equal(doneIds.has(100), true, 'INIT_DONE must mark app 100 as done');
-});
-
-test('official completion state migrates a stale app 100 cache entry', () => {
-  const ideas = extractIdeas();
-  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
-  const start = html.indexOf('function syncOfficial(){');
-  const end = html.indexOf('\nfunction save()', start);
-  const context = {};
-
-  vm.runInNewContext(`
-    let apps=[{id:100,name:"个人作品集网站",desc:"旧说明",lv:5,st:"todo",custom:false,link:""}];
-    const IDEAS=${JSON.stringify(ideas)};
-    const INIT_DONE=${initMatch[1]};
-    let didSave=false;
-    function save(){didSave=true}
-    ${html.slice(start, end)}
-    syncOfficial();
-    result={apps,didSave};
-  `, context);
-
-  assert.equal(context.result.apps[0].name, '个人作品集网站');
-  assert.equal(context.result.apps[0].st, 'done');
-  assert.match(context.result.apps[0].desc, /^INDEX\/100/);
-  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/100-portfolio/');
-  assert.equal(context.result.didSave, true);
-});
-
-test('app 092 resume application assistant is published and officially complete', () => {
-  const ideas = extractIdeas();
-  const doneIds = extractOfficialDoneIds();
-  const app92 = ideas[91];
-
-  assert.equal(app92[0], '简历投递助手');
-  assert.equal(app92[1], 'FITROOM/92：母版资料+岗位关键词合身尺+多版本快照与打印');
-  assert.equal(app92[3], 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
-  assert.equal(doneIds.has(92), true, 'INIT_DONE must mark app 092 as done');
-});
-
-test('official completion state migrates a stale app 092 cache entry', () => {
-  const ideas = extractIdeas();
-  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
-  const start = html.indexOf('function syncOfficial(){');
-  const end = html.indexOf('\nfunction save()', start);
-  const context = {};
-
-  vm.runInNewContext(`
-    let apps=[{id:92,name:"简历投递助手",desc:"一份数据生成多版本简历",lv:5,st:"todo",custom:false,link:""}];
-    const IDEAS=${JSON.stringify(ideas)};
-    const INIT_DONE=${initMatch[1]};
-    let didSave=false;
-    function save(){didSave=true}
-    ${html.slice(start, end)}
-    syncOfficial();
-    result={apps,didSave};
-  `, context);
-
-  assert.equal(context.result.apps[0].st, 'done');
-  assert.match(context.result.apps[0].desc, /^FITROOM\/92/);
-  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
-  assert.equal(context.result.didSave, true);
-});
-
 test('app 097 smart home control is published and officially complete', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -621,6 +550,41 @@ test('official completion state migrates a stale app 087 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 092 resume application assistant is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app92 = ideas[91];
+
+  assert.equal(app92[0], '简历投递助手');
+  assert.equal(app92[1], 'FITROOM/92：母版资料+岗位关键词合身尺+多版本快照与打印');
+  assert.equal(app92[3], 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
+  assert.equal(doneIds.has(92), true, 'INIT_DONE must mark app 092 as done');
+});
+
+test('official completion state migrates a stale app 092 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:92,name:"简历投递助手",desc:"一份数据生成多版本简历",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^FITROOM\/92/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 082 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -671,6 +635,41 @@ test('official completion state migrates a stale app 094 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 093 collaborative whiteboard is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app93 = ideas[92];
+
+  assert.equal(app93[0], '团队协作白板');
+  assert.match(app93[1], /^ROOM\/93/);
+  assert.equal(app93[3], 'https://jokerlixing.github.io/100apps/apps/093-collab-whiteboard/');
+  assert.equal(doneIds.has(93), true, 'INIT_DONE must mark app 093 as done');
+});
+
+test('official completion state migrates a stale app 093 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:93,name:"团队协作白板",desc:"旧说明",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^ROOM\/93/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/093-collab-whiteboard/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 091 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -699,7 +698,6 @@ test('official completion state migrates a stale app 091 cache entry', () => {
     syncOfficial();
     result={apps,didSave};
   `, context);
-
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^PULSEWATCH\/91/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/091-crawler-dashboard/');
@@ -847,5 +845,76 @@ test('official completion state migrates a stale app 089 cache entry', () => {
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^LOOM\/89/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/089-knowledge-wiki/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('app 084 selection translator is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app84 = ideas[83];
+
+  assert.equal(app84[0], '划词翻译插件');
+  assert.equal(app84[1], 'MARGIN/84：网页选区批注+本地示例+在线翻译与隐私边界');
+  assert.equal(app84[3], 'https://jokerlixing.github.io/100apps/apps/084-selection-translator/');
+  assert.equal(doneIds.has(84), true, 'INIT_DONE must mark app 084 as done');
+});
+
+test('official completion state migrates a stale app 084 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:84,name:"划词翻译插件",desc:"浏览器插件，选中即翻译",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^MARGIN\/84/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/084-selection-translator/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('app 100 is published as INDEX/100 and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app100 = ideas[99];
+
+  assert.equal(app100[0], '个人作品集网站');
+  assert.match(app100[1], /^INDEX\/100/);
+  assert.equal(app100[3], 'https://jokerlixing.github.io/100apps/apps/100-portfolio/');
+  assert.equal(doneIds.has(100), true, 'INIT_DONE must mark app 100 as done');
+});
+
+test('official completion state migrates a stale app 100 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:100,name:"个人作品集网站",desc:"旧说明",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, '个人作品集网站');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^INDEX\/100/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/100-portfolio/');
   assert.equal(context.result.didSave, true);
 });

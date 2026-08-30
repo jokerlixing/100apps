@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MARGIN 设置</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="popup-head">
+    <div class="mini-mark" aria-hidden="true">M</div>
+    <div><p>MARGIN / 84</p><h1>划词翻译台</h1></div>
+    <span class="state-stamp" id="stateStamp">ACTIVE</span>
+  </header>
+
+  <main>
+    <section class="controls" aria-labelledby="settingsTitle">
+      <p class="kicker">PROOF SETTINGS</p>
+      <h2 id="settingsTitle">翻译方向</h2>
+      <div class="language-row">
+        <label><span>源语言</span><select id="sourceLanguage"></select></label>
+        <i aria-hidden="true">→</i>
+        <label><span>目标语言</span><select id="targetLanguage"></select></label>
+      </div>
+      <label class="toggle-row">
+        <span><b>选完立即翻译</b><small>关闭时点击选区旁的批注签</small></span>
+        <input id="autoTranslate" type="checkbox"><i aria-hidden="true"></i>
+      </label>
+      <label class="toggle-row pause-row">
+        <span><b>暂停页面批注</b><small>设置与历史仍保留在本机</small></span>
+        <input id="paused" type="checkbox"><i aria-hidden="true"></i>
+      </label>
+    </section>
+
+    <section class="recent" aria-labelledby="recentTitle">
+      <div class="section-head"><div><p class="kicker">LOCAL LEDGER</p><h2 id="recentTitle">最近批注</h2></div><button id="clearHistory" type="button">清空</button></div>
+      <ol id="historyList"><li class="empty">尚无翻译记录。</li></ol>
+    </section>
+
+    <section class="network-note">
+      <p class="kicker">NETWORK BOUNDARY</p>
+      <p>只有你明确选择的文字会发送给 MyMemory。设置、缓存和最近批注保存在浏览器本地。</p>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://jokerlixing.github.io/100apps/apps/084-selection-translator/" target="_blank" rel="noreferrer">打开可检查演示 <span>↗</span></a>
+    <span id="saveState" role="status" aria-live="polite">设置已同步</span>
+  </footer>
+  <script src="translator-core.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

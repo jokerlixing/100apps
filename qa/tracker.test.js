@@ -861,6 +861,41 @@ test('official completion state migrates a stale app 089 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 084 selection translator is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app84 = ideas[83];
+
+  assert.equal(app84[0], '划词翻译插件');
+  assert.equal(app84[1], 'MARGIN/84：网页选区批注+本地示例+在线翻译与隐私边界');
+  assert.equal(app84[3], 'https://jokerlixing.github.io/100apps/apps/084-selection-translator/');
+  assert.equal(doneIds.has(84), true, 'INIT_DONE must mark app 084 as done');
+});
+
+test('official completion state migrates a stale app 084 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:84,name:"划词翻译插件",desc:"浏览器插件，选中即翻译",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^MARGIN\/84/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/084-selection-translator/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('official completion state migrates a stale app 085 cache entry', () => {
   const ideas = extractIdeas();
   const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);

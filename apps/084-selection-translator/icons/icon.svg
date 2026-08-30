@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="MARGIN 84">
+  <rect width="128" height="128" rx="18" fill="#f3f0e8"/>
+  <path d="M28 18h72v92H28z" fill="#fcfcf8" stroke="#17212b" stroke-width="6"/>
+  <path d="M43 18v92" stroke="#d6523c" stroke-width="5"/>
+  <path d="M55 43h34M55 59h27M55 75h34" stroke="#194b7a" stroke-width="6" stroke-linecap="square"/>
+  <path d="M19 32h30v27H19z" fill="#e9c75d" stroke="#17212b" stroke-width="5"/>
+  <text x="34" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="900" fill="#17212b">M</text>
+  <text x="77" y="99" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#d6523c">84</text>
+</svg>

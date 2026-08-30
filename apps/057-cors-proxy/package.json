@@ -1,0 +1,13 @@
+{
+  "name": "relay-bench-057",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Localhost-only allowlisted CORS proxy and request workbench",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test *.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

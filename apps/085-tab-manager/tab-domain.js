@@ -79,7 +79,8 @@ export function colorForDomain(domain) {
 }
 
 function eligibleForGrouping(tab) {
-  return Number.isInteger(tab?.id) && !tab.pinned && Boolean(domainFromUrl(tab.url));
+  const isUngrouped = tab?.groupId == null || tab.groupId === -1;
+  return Number.isInteger(tab?.id) && !tab.pinned && isUngrouped && Boolean(domainFromUrl(tab.url));
 }
 
 export function buildGroupPlan(tabs, { minGroupSize = 2 } = {}) {

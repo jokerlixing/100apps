@@ -53,6 +53,15 @@ test("buildGroupPlan groups eligible domains and protects pinned or internal tab
   ]);
 });
 
+test("buildGroupPlan leaves tabs that already belong to a group untouched", () => {
+  const tabs = [
+    { id: 1, index: 0, url: "https://example.com/one", pinned: false, groupId: 7 },
+    { id: 2, index: 1, url: "https://example.com/two", pinned: false, groupId: 7 },
+  ];
+
+  assert.deepEqual(buildGroupPlan(tabs), []);
+});
+
 test("findDuplicateTabs keeps the active copy and never removes pinned tabs", () => {
   const tabs = [
     { id: 1, index: 0, url: "https://example.com/read?utm_source=mail", active: false, pinned: false },

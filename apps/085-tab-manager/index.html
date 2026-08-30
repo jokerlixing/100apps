@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tabloom 是一个把杂乱浏览器标签页一键整理成网站分组的 Chrome 扩展。">
+  <title>Tabloom · 把标签页排成清晰航线</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-brand" href="./" aria-label="Tabloom 首页">
+      <span aria-hidden="true"><i></i><i></i><i></i></span>
+      <strong>Tabloom</strong>
+    </a>
+    <div class="header-meta">
+      <span>App 085</span>
+      <a href="https://github.com/jokerlixing/100apps/tree/main/apps/085-tab-manager">查看源代码 ↗</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="kicker">Chrome tab dispatch / Manifest V3</p>
+        <h1 id="hero-title">把 37 个标签页，<br>排成 6 条清晰航线。</h1>
+        <p class="lede">Tabloom 按网站自动分组当前窗口，保留置顶页，清理重复页，并把稍后要回来的工作现场留在本机。</p>
+
+        <div class="proof-row" aria-label="产品特点">
+          <span><b>01</b> 一键整理</span>
+          <span><b>02</b> 本地保存</span>
+          <span><b>03</b> 零页面注入</span>
+        </div>
+
+        <a class="primary-link" href="#install">安装到 Chrome <span>→</span></a>
+
+        <div class="route-note">
+          <span class="route-signal" aria-hidden="true"></span>
+          <p><strong>路线原则</strong> 只整理当前窗口；置顶标签和浏览器内部页面始终留在原位。</p>
+        </div>
+      </div>
+
+      <div class="preview-column" aria-label="Tabloom 交互演示">
+        <div class="browser-frame">
+          <div class="browser-bar" aria-hidden="true">
+            <span class="window-dots"><i></i><i></i><i></i></span>
+            <span class="address">chrome-extension://tabloom/popup.html</span>
+            <span class="extension-pin">T</span>
+          </div>
+          <iframe src="popup.html?demo=1" title="Tabloom 交互演示"></iframe>
+        </div>
+        <p class="preview-caption"><span>LIVE DEMO</span> 试试搜索、整理或清理重复页。这里使用示例数据，不会读取你的浏览器。</p>
+      </div>
+    </section>
+
+    <section class="install" id="install" aria-labelledby="install-title">
+      <div class="install-heading">
+        <p class="kicker">Installation runway</p>
+        <h2 id="install-title">三步起飞，不需要商店账号。</h2>
+        <p>下载仓库后，以“加载已解压的扩展程序”方式安装。Chrome 会明确展示 Tabloom 申请的权限。</p>
+      </div>
+      <ol class="install-steps">
+        <li>
+          <span>01</span>
+          <div>
+            <strong>准备目录</strong>
+            <p>下载或克隆仓库，找到 <code>apps/085-tab-manager</code>。</p>
+          </div>
+        </li>
+        <li>
+          <span>02</span>
+          <div>
+            <strong>打开扩展页</strong>
+            <p>访问 <code>chrome://extensions</code>，打开右上角“开发者模式”。</p>
+          </div>
+        </li>
+        <li>
+          <span>03</span>
+          <div>
+            <strong>加载并固定</strong>
+            <p>选择“加载已解压的扩展程序”，选中该目录，再把 Tabloom 固定到工具栏。</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="permission-ledger" aria-labelledby="permission-title">
+      <div>
+        <p class="kicker">Permission ledger</p>
+        <h2 id="permission-title">权限各有一件明确的事。</h2>
+      </div>
+      <dl>
+        <div>
+          <dt><code>tabs</code></dt>
+          <dd>读取当前窗口的标题和网址，执行切换、关闭与释放。</dd>
+        </div>
+        <div>
+          <dt><code>tabGroups</code></dt>
+          <dd>创建 Chrome 原生分组，并设置组名与颜色。</dd>
+        </div>
+        <div>
+          <dt><code>storage</code></dt>
+          <dd>把最近一次窗口快照保存到本机扩展存储。</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+
+  <footer>
+    <span>Tabloom / App 085 / 100 Apps Challenge</span>
+    <span>页面内容不会被读取或注入脚本。</span>
+  </footer>
+</body>
+</html>

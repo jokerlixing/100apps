@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#172542">
+  <meta name="description" content="CUT/39 链路切片台：生成本地短链接，管理地址并统计本机点击。">
+  <title>CUT/39 · 短链接服务</title>
+  <style>
+    :root {
+      --paper: #dcecff;
+      --ink: #172542;
+      --orange: #ff6542;
+      --lime: #c8f05a;
+      --cyan: #55c7cf;
+      --white: #ffffff;
+      --mist: #f5f9ff;
+      --muted: #65718a;
+      --line: rgba(23, 37, 66, .2);
+      --shadow: 7px 7px 0 var(--ink);
+      --display: "Arial Black", "Microsoft YaHei", sans-serif;
+      --body: "Segoe UI", "Microsoft YaHei", sans-serif;
+      --mono: "Cascadia Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(23,37,66,.045) 1px, transparent 1px),
+        linear-gradient(rgba(23,37,66,.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 30px 30px;
+      font-family: var(--body);
+      line-height: 1.5;
+    }
+    button, input, select { font: inherit; }
+    button, select { cursor: pointer; }
+    button { color: inherit; }
+    a { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 4px solid var(--lime);
+      outline-offset: 3px;
+    }
+    [hidden] { display: none !important; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 24px;
+      min-height: 74px;
+      padding: 11px clamp(18px, 4vw, 62px);
+      color: var(--white);
+      background: rgba(23, 37, 66, .97);
+      border-bottom: 3px solid var(--ink);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-family: var(--display); letter-spacing: -.04em; }
+    .brand-mark { display: grid; place-items: center; width: 45px; aspect-ratio: 1; color: var(--ink); background: var(--lime); border: 3px solid var(--white); clip-path: polygon(9% 0,91% 0,100% 9%,100% 91%,91% 100%,9% 100%,0 91%,0 9%); }
+    .brand small { display: block; color: var(--cyan); font-family: var(--mono); font-size: .67rem; letter-spacing: .16em; }
+    .topnav { justify-self: center; display: flex; gap: 4px; }
+    .topnav a { padding: 9px 13px; color: rgba(255,255,255,.72); border-radius: 9px; text-decoration: none; font-weight: 800; }
+    .topnav a:hover { color: var(--ink); background: var(--lime); }
+    .local-badge { padding: 8px 12px; border: 2px solid var(--cyan); border-radius: 9px; color: var(--cyan); font-family: var(--mono); font-size: .7rem; font-weight: 900; letter-spacing: .08em; }
+
+    .shell { width: min(1220px, calc(100% - 36px)); margin: 0 auto; padding: 34px 0 72px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 25px;
+      border: 3px solid var(--ink);
+      border-radius: 27px;
+      background: var(--white);
+      box-shadow: var(--shadow);
+    }
+    .hero-head { display: grid; grid-template-columns: 1fr 270px; min-height: 300px; border-bottom: 3px solid var(--ink); }
+    .hero-copy { padding: clamp(30px, 5vw, 60px); }
+    .eyebrow { margin: 0 0 13px; color: var(--orange); font-family: var(--mono); font-size: .74rem; font-weight: 900; letter-spacing: .17em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: 0; font-family: var(--display); font-size: clamp(2.7rem, 6.4vw, 6rem); line-height: .95; letter-spacing: -.075em; }
+    .hero-copy > p:last-child { max-width: 650px; margin: 21px 0 0; color: var(--muted); font-size: clamp(1rem, 1.8vw, 1.18rem); }
+    .routing-art { position: relative; overflow: hidden; background: var(--cyan); border-left: 3px solid var(--ink); }
+    .routing-art::before { content: ""; position: absolute; inset: 26px; border: 3px dashed var(--ink); border-radius: 50%; }
+    .routing-art::after { content: "CUT"; position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; display: grid; place-items: center; width: 120px; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 50%; color: var(--white); background: var(--orange); box-shadow: 0 0 0 14px var(--lime); font-family: var(--display); font-size: 1.7rem; transform: rotate(-8deg); }
+    .route-number { position: absolute; right: 14px; bottom: 12px; font-family: var(--mono); font-size: .72rem; font-weight: 900; writing-mode: vertical-rl; }
+
+    .cutter { padding: clamp(20px, 4vw, 36px); background: var(--mist); }
+    .cutter-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 11px; font-family: var(--mono); font-size: .72rem; font-weight: 900; }
+    .cutter-label span:last-child { color: var(--orange); }
+    .route-track { position: relative; height: 18px; margin: 0 30px 20px; border-top: 3px solid var(--ink); background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 28px); }
+    .blade { position: absolute; left: 67%; top: -14px; width: 25px; height: 42px; color: var(--orange); font-size: 2rem; line-height: 1; transform: rotate(-8deg); }
+    .link-form { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(190px, .65fr) auto; gap: 11px; align-items: end; }
+    .form-secondary { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    label.field { display: grid; gap: 6px; min-width: 0; color: var(--ink); font-size: .82rem; font-weight: 900; }
+    label.field span small { color: var(--muted); font-weight: 600; }
+    input[type="url"], input[type="text"], input[type="search"], select {
+      width: 100%;
+      min-height: 48px;
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--ink);
+      background: var(--white);
+    }
+    .slug-wrap { display: flex; align-items: stretch; border: 2px solid var(--ink); border-radius: 10px; background: var(--white); overflow: hidden; }
+    .slug-prefix { display: flex; align-items: center; padding: 0 9px; color: var(--muted); background: var(--paper); border-right: 1px solid var(--line); font-family: var(--mono); font-size: .75rem; }
+    .slug-wrap input { min-width: 0; border: 0; border-radius: 0; }
+    .primary, .secondary, .danger {
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 900;
+    }
+    .primary { min-height: 48px; color: var(--ink); background: var(--orange); box-shadow: 4px 4px 0 var(--ink); }
+    .secondary { background: var(--white); }
+    .danger { color: var(--white); background: #ae3c51; }
+    .primary:hover, .secondary:hover, .danger:hover { transform: translate(-1px, -1px); }
+    .submit-zone { display: flex; gap: 8px; align-items: flex-end; }
+    .form-error { grid-column: 1 / -1; margin: 0; padding: 10px 12px; color: #942b17; border-left: 5px solid var(--orange); background: #fff0eb; border-radius: 0 8px 8px 0; font-weight: 800; }
+
+    .ticket-output { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; margin-top: 23px; padding: 18px 20px; color: var(--ink); background: var(--lime); border: 3px solid var(--ink); border-radius: 13px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 9px calc(100% - 12px), 0 calc(100% - 24px), 9px calc(100% - 36px), 0 calc(100% - 48px)); animation: ticket-in .34s ease both; }
+    .ticket-output small { display: block; margin-bottom: 4px; font-family: var(--mono); font-size: .68rem; font-weight: 900; letter-spacing: .12em; }
+    .ticket-link { display: block; overflow: hidden; font-family: var(--display); font-size: clamp(1.1rem, 2.4vw, 1.75rem); text-overflow: ellipsis; white-space: nowrap; }
+    .ticket-actions { display: flex; gap: 8px; }
+
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin: 30px 0; }
+    .metric { position: relative; overflow: hidden; min-height: 112px; padding: 18px; border: 2px solid var(--ink); border-radius: 15px; background: var(--white); box-shadow: 4px 4px 0 rgba(23,37,66,.15); }
+    .metric::after { content: ""; position: absolute; right: -17px; bottom: -25px; width: 75px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 50%; background: var(--metric-color, var(--cyan)); opacity: .65; }
+    .metric strong { display: block; font-family: var(--display); font-size: 2rem; line-height: 1; }
+    .metric span { color: var(--muted); font-family: var(--mono); font-size: .68rem; font-weight: 900; }
+    .metric b { display: block; overflow: hidden; max-width: calc(100% - 38px); margin-top: 8px; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; }
+
+    .dashboard { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(310px, .55fr); gap: 22px; align-items: start; }
+    .panel { border: 3px solid var(--ink); border-radius: 20px; background: var(--white); box-shadow: 6px 6px 0 rgba(23,37,66,.16); }
+    .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 22px; border-bottom: 2px solid var(--ink); }
+    .panel-head h2, .analytics-card h2 { margin: 0; font-family: var(--display); font-size: clamp(1.45rem, 3vw, 2.25rem); line-height: 1; letter-spacing: -.045em; }
+    .panel-head p { margin: 7px 0 0; color: var(--muted); }
+    .count-chip { flex: 0 0 auto; padding: 7px 10px; color: var(--white); background: var(--ink); border-radius: 99px; font-family: var(--mono); font-size: .69rem; }
+    .library-tools { display: grid; grid-template-columns: 1fr 180px; gap: 10px; padding: 16px 22px; border-bottom: 1px dashed var(--line); background: var(--mist); }
+    .link-list { display: grid; gap: 13px; padding: 18px; }
+    .link-card { position: relative; overflow: hidden; padding: 18px 18px 16px 24px; border: 2px solid var(--ink); border-radius: 14px; background: var(--white); }
+    .link-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 7px; background: var(--tag-color, var(--cyan)); }
+    .link-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+    .link-title { margin: 0; font-size: 1rem; }
+    .short-code { display: inline-block; margin: 5px 0 0; padding: 3px 7px; background: var(--lime); border-radius: 5px; font-family: var(--mono); font-size: .82rem; font-weight: 900; }
+    .click-count { min-width: 66px; text-align: right; }
+    .click-count strong { display: block; font-family: var(--display); font-size: 1.8rem; line-height: 1; }
+    .click-count span { color: var(--muted); font-family: var(--mono); font-size: .64rem; }
+    .destination { display: block; overflow: hidden; margin: 12px 0; color: var(--muted); font-family: var(--mono); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+    .link-bottom { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .link-meta { display: flex; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: .72rem; }
+    .tag { padding: 3px 7px; color: var(--ink); background: var(--paper); border-radius: 99px; font-weight: 800; }
+    .card-actions { display: flex; gap: 6px; }
+    .icon-btn { min-width: 34px; min-height: 34px; border: 2px solid var(--ink); border-radius: 8px; background: var(--white); font-weight: 900; }
+    .icon-btn:hover { background: var(--lime); }
+    .icon-btn[data-armed="true"] { color: var(--white); background: #ae3c51; }
+    .empty { margin: 0; padding: 32px 20px; color: var(--muted); background: var(--mist); border-radius: 12px; text-align: center; }
+
+    .analytics-stack { display: grid; gap: 18px; position: sticky; top: 96px; }
+    .analytics-card { padding: 21px; }
+    .analytics-card .eyebrow { margin-bottom: 8px; }
+    .chart { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; align-items: end; height: 190px; margin-top: 20px; padding-top: 20px; border-bottom: 2px solid var(--ink); background: repeating-linear-gradient(to top, transparent 0 43px, rgba(23,37,66,.08) 44px); }
+    .chart-col { display: grid; grid-template-rows: 1fr auto; align-items: end; gap: 7px; height: 100%; text-align: center; }
+    .bar { position: relative; min-height: 5px; border: 2px solid var(--ink); border-bottom: 0; border-radius: 7px 7px 0 0; background: var(--cyan); }
+    .chart-col:nth-child(6) .bar, .chart-col:nth-child(7) .bar { background: var(--orange); }
+    .bar strong { position: absolute; inset: -21px 0 auto; font-family: var(--mono); font-size: .68rem; }
+    .chart-col span { font-family: var(--mono); font-size: .62rem; }
+    .ranking { display: grid; gap: 10px; margin-top: 18px; }
+    .rank-row { display: grid; grid-template-columns: 27px minmax(0,1fr) auto; gap: 9px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+    .rank-number { display: grid; place-items: center; width: 27px; aspect-ratio: 1; color: var(--ink); background: var(--lime); border-radius: 50%; font-family: var(--mono); font-size: .72rem; font-weight: 900; }
+    .rank-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-row b { font-family: var(--mono); color: var(--orange); }
+    .boundary { padding: 19px; color: var(--ink); background: var(--lime); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); }
+    .boundary strong { display: block; margin-bottom: 5px; font-family: var(--display); }
+    .boundary p { margin: 0; font-size: .84rem; }
+
+    .route-gate { min-height: 100vh; display: grid; place-items: center; padding: 30px 18px; color: var(--white); background: var(--ink); }
+    .gate-card { width: min(720px, 100%); overflow: hidden; color: var(--ink); background: var(--white); border: 3px solid var(--white); border-radius: 25px; box-shadow: 13px 13px 0 var(--orange); }
+    .gate-stripe { height: 22px; border-bottom: 3px solid var(--ink); background: repeating-linear-gradient(135deg, var(--lime) 0 18px, var(--ink) 18px 22px); }
+    .gate-body { padding: clamp(28px, 7vw, 62px); text-align: center; }
+    .gate-badge { display: grid; place-items: center; width: 86px; aspect-ratio: 1; margin: 0 auto 20px; border: 3px solid var(--ink); border-radius: 50%; background: var(--cyan); font-family: var(--display); font-size: 1.4rem; transform: rotate(-7deg); }
+    .gate-body h1 { margin-inline: auto; font-size: clamp(2.2rem, 8vw, 4.8rem); }
+    .gate-body > p { max-width: 540px; margin: 16px auto; color: var(--muted); }
+    .gate-destination { overflow: hidden; margin: 24px 0; padding: 13px 15px; border: 2px dashed var(--ink); border-radius: 10px; background: var(--paper); font-family: var(--mono); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+    .gate-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .gate-actions a { text-decoration: none; }
+    .recorded { color: #286f55 !important; font-weight: 900; }
+    .toast { position: fixed; z-index: 50; right: 22px; bottom: 22px; max-width: min(390px, calc(100% - 44px)); padding: 13px 17px; color: var(--white); background: var(--ink); border: 2px solid var(--white); border-radius: 10px; box-shadow: 5px 5px 0 var(--orange); transform: translateY(150%); opacity: 0; transition: .22s ease; }
+    .toast[data-show="true"] { transform: translateY(0); opacity: 1; }
+
+    @keyframes ticket-in { from { opacity: 0; transform: translateX(18px) rotate(1deg); } }
+    @media (max-width: 980px) {
+      .dashboard { grid-template-columns: 1fr; }
+      .analytics-stack { position: static; grid-template-columns: repeat(2, 1fr); }
+      .boundary { grid-column: 1 / -1; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .topbar { grid-template-columns: auto auto; padding-inline: 15px; }
+      .topnav { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+      .hero-head { grid-template-columns: 1fr; }
+      .routing-art { min-height: 170px; border-top: 3px solid var(--ink); border-left: 0; }
+      .routing-art::before { inset: 18px 20%; }
+      .routing-art::after { width: 82px; }
+      .link-form { grid-template-columns: 1fr; }
+      .form-secondary { grid-template-columns: 1fr; }
+      .submit-zone, .form-error { grid-column: 1; }
+      .ticket-output { grid-template-columns: 1fr; }
+      .ticket-actions { justify-content: flex-start; }
+      .analytics-stack { grid-template-columns: 1fr; }
+      .boundary { grid-column: auto; }
+    }
+    @media (max-width: 540px) {
+      .shell { width: min(100% - 24px, 1220px); padding-top: 22px; }
+      .brand-text { font-size: .9rem; }
+      .local-badge { padding: 7px; font-size: .62rem; }
+      .hero { border-radius: 20px; box-shadow: 5px 5px 0 var(--ink); }
+      .hero-copy { padding: 27px 20px; }
+      h1 { font-size: clamp(2.55rem, 14vw, 3.8rem); }
+      .cutter { padding: 20px 15px; }
+      .route-track { margin-inline: 10px; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric { min-height: 105px; padding: 15px; }
+      .metric strong { font-size: 1.7rem; }
+      .panel-head { padding: 18px 15px; }
+      .library-tools { grid-template-columns: 1fr; padding-inline: 15px; }
+      .link-list { padding: 13px; }
+      .link-card { padding: 16px 13px 15px 20px; }
+      .link-top { grid-template-columns: 1fr auto; }
+      .link-bottom { align-items: flex-start; flex-direction: column; }
+      .card-actions { width: 100%; }
+      .card-actions .icon-btn { flex: 1; }
+      .gate-body { padding-inline: 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="appView">
+    <header class="topbar">
+      <div class="brand" aria-label="CUT 39 链路切片台"><span class="brand-mark">39</span><span class="brand-text">CUT/39<small>链路切片台</small></span></div>
+      <nav class="topnav" aria-label="页面导航"><a href="#create">创建短签</a><a href="#library">链接库</a><a href="#analytics">数据台</a></nav>
+      <span class="local-badge">● LOCAL ROUTER</span>
+    </header>
+
+    <main class="shell">
+      <section id="create" class="hero" aria-labelledby="heroTitle">
+        <div class="hero-head">
+          <div class="hero-copy"><p class="eyebrow">ROUTE STATION · APP 039</p><h1 id="heroTitle">把一条很长的路，折成一枚短签。</h1><p>整理地址、命名入口、记录点击。每一条链路都在当前浏览器里，清楚知道它从哪里出发。</p></div>
+          <div class="routing-art" aria-hidden="true"><span class="route-number">LONG → SHORT · 039</span></div>
+        </div>
+        <div class="cutter">
+          <div class="cutter-label"><span>URL CUTTING TRACK / 链路切片轨道</span><span id="formMode">NEW LABEL</span></div>
+          <div class="route-track" aria-hidden="true"><span class="blade">✂</span></div>
+          <form id="linkForm" class="link-form" novalidate>
+            <label class="field"><span>目标网址 <small>仅支持 http / https</small></span><input id="destination" type="url" placeholder="https://example.com/a/very/long/path" maxlength="2000" autocomplete="url" required></label>
+            <label class="field"><span>短别名 <small>3–24 字符</small></span><span class="slug-wrap"><span class="slug-prefix">/</span><input id="slug" type="text" placeholder="自动生成" maxlength="24" autocomplete="off" spellcheck="false"></span></label>
+            <div class="submit-zone"><button id="submitLink" class="primary" type="submit">生成短签 →</button><button id="cancelEdit" class="secondary" type="button" data-action="cancel-edit" hidden>取消</button></div>
+            <div class="form-secondary">
+              <label class="field"><span>显示标题 <small>方便自己识别</small></span><input id="linkTitle" type="text" placeholder="例如：秋季活动报名页" maxlength="80" autocomplete="off"></label>
+              <label class="field"><span>标签 <small>可选</small></span><input id="linkTag" type="text" placeholder="活动 / 作品 / 资料" maxlength="24" autocomplete="off"></label>
+            </div>
+            <p id="formError" class="form-error" role="alert" hidden></p>
+          </form>
+          <div id="ticketOutput" class="ticket-output" aria-live="polite" hidden></div>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="本地短链摘要">
+        <div class="metric" style="--metric-color:var(--cyan)"><strong id="metricLinks">0</strong><span>LOCAL LABELS</span><b>本地短签</b></div>
+        <div class="metric" style="--metric-color:var(--orange)"><strong id="metricClicks">0</strong><span>TOTAL ROUTES</span><b>累计点击</b></div>
+        <div class="metric" style="--metric-color:var(--lime)"><strong id="metricToday">0</strong><span>TODAY</span><b>今日点击</b></div>
+        <div class="metric" style="--metric-color:var(--cyan)"><strong id="metricTop">—</strong><span>HOTTEST LABEL</span><b id="metricTopTitle">等待第一条链路</b></div>
+      </section>
+
+      <div class="dashboard">
+        <section id="library" class="panel" aria-labelledby="libraryTitle">
+          <div class="panel-head"><div><h2 id="libraryTitle">短签链接库</h2><p>查找、复制或测试已经切好的链路。</p></div><span id="libraryCount" class="count-chip">0 LABELS</span></div>
+          <div class="library-tools"><label class="field"><span>搜索链接</span><input id="searchLinks" type="search" placeholder="搜索标题、别名、域名或标签"></label><label class="field"><span>标签筛选</span><select id="tagFilter"><option value="all">全部标签</option></select></label></div>
+          <div id="linkList" class="link-list" aria-live="polite"></div>
+        </section>
+
+        <aside id="analytics" class="analytics-stack" aria-label="点击数据台">
+          <section class="panel analytics-card"><p class="eyebrow">LAST 7 DAYS</p><h2>路由流量</h2><div id="weekChart" class="chart" aria-label="最近七日点击柱状图"></div></section>
+          <section class="panel analytics-card"><p class="eyebrow">TOP ROUTES</p><h2>短签排行</h2><div id="ranking" class="ranking"></div></section>
+          <section class="boundary"><strong>LOCAL ONLY</strong><p>短签目录和点击统计只保存在当前浏览器。跨设备不会同步，也没有数据上传。</p></section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <section id="routeGate" class="route-gate" hidden aria-live="polite"></section>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "cut39-links-v2";
+      const TAG_COLORS = ["#55c7cf", "#ff6542", "#c8f05a", "#8fa9ff"];
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const escapeHTML = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+      const truncate = (value, max) => String(value ?? "").trim().slice(0, max);
+      const uid = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
+      function safeUrl(value) {
+        try {
+          const url = new URL(String(value).trim());
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch { return ""; }
+      }
+
+      function slugify(value) {
+        return String(value ?? "").normalize("NFKD").toLowerCase().replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24);
+      }
+
+      function normalizeClick(raw) {
+        const at = new Date(raw?.at);
+        return Number.isNaN(at.getTime()) ? null : { at: at.toISOString(), source: truncate(raw?.source, 20) || "route" };
+      }
+
+      function normalizeLink(raw, index = 0) {
+        const url = safeUrl(raw?.url) || "https://example.com/";
+        const fallbackSlug = slugify(new URL(url).hostname.replace(/^www\./, "")) || `link-${index + 1}`;
+        const createdAt = new Date(raw?.createdAt);
+        const clicks = Array.isArray(raw?.clicks) ? raw.clicks.map(normalizeClick).filter(Boolean).slice(-1000) : [];
+        return {
+          id: /^[a-zA-Z0-9_-]{1,80}$/.test(String(raw?.id || "")) ? String(raw.id) : uid("link"),
+          slug: slugify(raw?.slug) || fallbackSlug,
+          url,
+          title: truncate(raw?.title, 80) || new URL(url).hostname.replace(/^www\./, ""),
+          tag: truncate(raw?.tag, 24) || "未分类",
+          createdAt: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
+          clicks
+        };
+      }
+
+      const dayOffset = (days, hour = 10) => { const date = new Date(); date.setHours(hour, 0, 0, 0); date.setDate(date.getDate() - days); return date.toISOString(); };
+
+      function sampleLinks() {
+        return [
+          normalizeLink({ id: "link-portfolio", slug: "build-log", url: "https://github.com/jokerlixing/100apps", title: "100 Apps 构建日志", tag: "作品", createdAt: dayOffset(12), clicks: [{at:dayOffset(6),source:"route"},{at:dayOffset(3),source:"route"},{at:dayOffset(1),source:"route"},{at:dayOffset(0,9),source:"route"}] }),
+          normalizeLink({ id: "link-tracker", slug: "apps-track", url: "https://jokerlixing.github.io/100apps/", title: "挑战进度追踪器", tag: "挑战", createdAt: dayOffset(9), clicks: [{at:dayOffset(5),source:"route"},{at:dayOffset(2),source:"route"},{at:dayOffset(0,12),source:"route"}] }),
+          normalizeLink({ id: "link-reference", slug: "web-ref", url: "https://developer.mozilla.org/zh-CN/", title: "Web 开发参考", tag: "资料", createdAt: dayOffset(5), clicks: [{at:dayOffset(4),source:"route"},{at:dayOffset(2,16),source:"route"}] })
+        ];
+      }
+
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (!saved || !Array.isArray(saved.links)) return { links: sampleLinks() };
+          const seen = new Set();
+          const links = saved.links.map(normalizeLink).filter(link => !seen.has(link.slug) && seen.add(link.slug)).slice(0, 200);
+          return { links };
+        } catch { return { links: sampleLinks() }; }
+      }
+
+      let state = loadState();
+      let search = "";
+      let activeTag = "all";
+      let editingId = null;
+      let newestId = state.links[0]?.id || null;
+      let deleteArmed = null;
+      let toastTimer = null;
+      let routeRecordedFor = null;
+
+      const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const shortLink = link => `${location.href.split("#")[0]}#go=${encodeURIComponent(link.slug)}`;
+      const localDateKey = value => { const date = new Date(value); return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; };
+
+      function uniqueSlug(base, excludingId = null) {
+        const root = slugify(base) || "short-link";
+        let candidate = root;
+        let suffix = 2;
+        while (state.links.some(link => link.slug === candidate && link.id !== excludingId)) {
+          const tail = `-${suffix++}`;
+          candidate = `${root.slice(0, 24 - tail.length)}${tail}`;
+        }
+        return candidate;
+      }
+
+      function autoSlug(url, title) {
+        const titleSlug = slugify(title);
+        if (titleSlug.length >= 3) return uniqueSlug(titleSlug);
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace(/^www\./, "").split(".")[0];
+        const pathPart = parsed.pathname.split("/").filter(Boolean).at(-1) || "";
+        return uniqueSlug(slugify(`${host}-${pathPart}`) || "short-link");
+      }
+
+      function validateDraft({ url, slug }, excludingId = null) {
+        const normalizedUrl = safeUrl(url);
+        if (!normalizedUrl) return { error: "请输入以 http:// 或 https:// 开头的有效网址。" };
+        if (String(slug).trim()) {
+          const normalizedSlug = slugify(slug);
+          if (normalizedSlug.length < 3) return { error: "短别名至少需要 3 个字母、数字或短横线。" };
+          if (state.links.some(link => link.slug === normalizedSlug && link.id !== excludingId)) return { error: `短别名 /${normalizedSlug} 已经被使用，请换一个。` };
+          return { url: normalizedUrl, slug: normalizedSlug };
+        }
+        return { url: normalizedUrl, slug: "" };
+      }
+
+      function allClicks(link) { return Array.isArray(link.clicks) ? link.clicks : []; }
+      function totalClicks() { return state.links.reduce((sum, link) => sum + allClicks(link).length, 0); }
+
+      function dateSeries(days = 7) {
+        const result = [];
+        for (let offset = days - 1; offset >= 0; offset--) {
+          const date = new Date();
+          date.setHours(0,0,0,0);
+          date.setDate(date.getDate() - offset);
+          const key = localDateKey(date);
+          const count = state.links.reduce((sum, link) => sum + allClicks(link).filter(click => localDateKey(click.at) === key).length, 0);
+          result.push({ key, label: `${date.getMonth()+1}/${date.getDate()}`, count });
+        }
+        return result;
+      }
+
+      function filteredLinks() {
+        const needle = search.toLowerCase();
+        return state.links.filter(link => {
+          const tagMatch = activeTag === "all" || link.tag === activeTag;
+          const text = `${link.title} ${link.slug} ${link.url} ${link.tag}`.toLowerCase();
+          return tagMatch && (!needle || text.includes(needle));
+        }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+
+      function colorForTag(tag) {
+        const index = [...String(tag)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % TAG_COLORS.length;
+        return TAG_COLORS[index];
+      }
+
+      function formatDate(value) {
+        return new Intl.DateTimeFormat("zh-CN", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" }).format(new Date(value));
+      }
+
+      function showToast(message) {
+        const toast = $("#toast");
+        toast.textContent = message;
+        toast.dataset.show = "true";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toast.dataset.show = "false"; }, 2400);
+      }
+
+      function renderTicket() {
+        const box = $("#ticketOutput");
+        const link = state.links.find(item => item.id === newestId);
+        if (!link) { box.hidden = true; return; }
+        box.hidden = false;
+        box.innerHTML = `<div><small>ROUTE LABEL READY · ${escapeHTML(link.title)}</small><span class="ticket-link">/${escapeHTML(link.slug)}</span></div><div class="ticket-actions"><button class="secondary" type="button" data-action="copy" data-id="${link.id}">复制短链</button><button class="primary" type="button" data-action="open" data-id="${link.id}">测试跳转 ↗</button></div>`;
+      }
+
+      function renderMetrics() {
+        const total = totalClicks();
+        const todayKey = localDateKey(new Date());
+        const today = state.links.reduce((sum, link) => sum + allClicks(link).filter(click => localDateKey(click.at) === todayKey).length, 0);
+        const ranked = [...state.links].sort((a,b) => allClicks(b).length - allClicks(a).length || new Date(b.createdAt) - new Date(a.createdAt));
+        const top = ranked[0];
+        $("#metricLinks").textContent = state.links.length;
+        $("#metricClicks").textContent = total;
+        $("#metricToday").textContent = today;
+        $("#metricTop").textContent = top ? `/${top.slug}` : "—";
+        $("#metricTopTitle").textContent = top ? `${allClicks(top).length} 次 · ${top.title}` : "等待第一条链路";
+      }
+
+      function renderTagFilter() {
+        const tags = [...new Set(state.links.map(link => link.tag))].sort((a,b) => a.localeCompare(b,"zh-CN"));
+        if (activeTag !== "all" && !tags.includes(activeTag)) activeTag = "all";
+        $("#tagFilter").innerHTML = `<option value="all">全部标签</option>${tags.map(tag => `<option value="${escapeHTML(tag)}" ${tag === activeTag ? "selected" : ""}>${escapeHTML(tag)}</option>`).join("")}`;
+      }
+
+      function renderLibrary() {
+        const links = filteredLinks();
+        $("#libraryCount").textContent = `${links.length} LABELS`;
+        const list = $("#linkList");
+        if (!links.length) {
+          list.innerHTML = `<p class="empty">没有找到匹配的短签。调整搜索或标签，或者回到上方创建一条。</p>`;
+          return;
+        }
+        list.innerHTML = links.map(link => {
+          const lastClick = allClicks(link).at(-1)?.at;
+          const armed = deleteArmed === link.id;
+          return `<article class="link-card" style="--tag-color:${colorForTag(link.tag)}"><div class="link-top"><div><h3 class="link-title">${escapeHTML(link.title)}</h3><span class="short-code">/${escapeHTML(link.slug)}</span></div><div class="click-count"><strong>${allClicks(link).length}</strong><span>CLICKS</span></div></div><span class="destination" title="${escapeHTML(link.url)}">${escapeHTML(link.url)}</span><div class="link-bottom"><div class="link-meta"><span class="tag">${escapeHTML(link.tag)}</span><span>创建 ${formatDate(link.createdAt)}</span>${lastClick ? `<span>最近 ${formatDate(lastClick)}</span>` : ""}</div><div class="card-actions"><button class="icon-btn" type="button" data-action="copy" data-id="${link.id}" aria-label="复制 ${escapeHTML(link.title)} 的短链">⧉</button><button class="icon-btn" type="button" data-action="open" data-id="${link.id}" aria-label="测试 ${escapeHTML(link.title)} 的短链">↗</button><button class="icon-btn" type="button" data-action="edit" data-id="${link.id}" aria-label="编辑 ${escapeHTML(link.title)}">✎</button><button class="icon-btn" type="button" data-action="delete" data-id="${link.id}" data-armed="${armed}" aria-label="${armed ? "再次点击确认删除" : `删除 ${escapeHTML(link.title)}`}">${armed ? "确定" : "×"}</button></div></div></article>`;
+        }).join("");
+      }
+
+      function renderAnalytics() {
+        const series = dateSeries();
+        const max = Math.max(1, ...series.map(day => day.count));
+        $("#weekChart").innerHTML = series.map(day => `<div class="chart-col" title="${day.label}：${day.count} 次"><div class="bar" style="height:${Math.max(4, day.count / max * 100)}%"><strong>${day.count}</strong></div><span>${day.label}</span></div>`).join("");
+        const ranked = [...state.links].sort((a,b) => allClicks(b).length - allClicks(a).length || new Date(b.createdAt) - new Date(a.createdAt)).slice(0,5);
+        $("#ranking").innerHTML = ranked.length ? ranked.map((link,index) => `<div class="rank-row"><span class="rank-number">${index+1}</span><strong>/${escapeHTML(link.slug)}</strong><b>${allClicks(link).length}</b></div>`).join("") : `<p class="empty">还没有可排名的短签。</p>`;
+      }
+
+      function renderAll() {
+        renderTicket();
+        renderMetrics();
+        renderTagFilter();
+        renderLibrary();
+        renderAnalytics();
+      }
+
+      function clearForm() {
+        editingId = null;
+        $("#linkForm").reset();
+        $("#formMode").textContent = "NEW LABEL";
+        $("#submitLink").textContent = "生成短签 →";
+        $("#cancelEdit").hidden = true;
+        $("#formError").hidden = true;
+      }
+
+      function showFormError(message) {
+        const error = $("#formError");
+        error.textContent = message;
+        error.hidden = false;
+      }
+
+      function submitLink(event) {
+        event.preventDefault();
+        const draft = { url: $("#destination").value, slug: $("#slug").value, title: $("#linkTitle").value, tag: $("#linkTag").value };
+        const result = validateDraft(draft, editingId);
+        if (result.error) { showFormError(result.error); return; }
+        const old = state.links.find(link => link.id === editingId);
+        const finalSlug = result.slug || autoSlug(result.url, draft.title);
+        const normalized = normalizeLink({ id: old?.id || uid("link"), slug: finalSlug, url: result.url, title: draft.title, tag: draft.tag, createdAt: old?.createdAt || new Date().toISOString(), clicks: old?.clicks || [] });
+        if (old) state.links = state.links.map(link => link.id === old.id ? normalized : link);
+        else state.links.unshift(normalized);
+        newestId = normalized.id;
+        save();
+        const message = old ? `/${normalized.slug} 已更新。` : `/${normalized.slug} 已生成。`;
+        clearForm(); renderAll(); showToast(message);
+      }
+
+      function startEdit(id) {
+        const link = state.links.find(item => item.id === id);
+        if (!link) return;
+        editingId = id;
+        $("#destination").value = link.url;
+        $("#slug").value = link.slug;
+        $("#linkTitle").value = link.title;
+        $("#linkTag").value = link.tag === "未分类" ? "" : link.tag;
+        $("#formMode").textContent = `EDIT /${link.slug}`;
+        $("#submitLink").textContent = "保存短签 →";
+        $("#cancelEdit").hidden = false;
+        $("#formError").hidden = true;
+        $("#create").scrollIntoView({ behavior:"smooth", block:"start" });
+        setTimeout(() => $("#linkTitle").focus(), 300);
+      }
+
+      async function copyLink(id) {
+        const link = state.links.find(item => item.id === id);
+        if (!link) return;
+        const value = shortLink(link);
+        try { await navigator.clipboard.writeText(value); }
+        catch { const input = document.createElement("input"); input.value = value; document.body.append(input); input.select(); document.execCommand("copy"); input.remove(); }
+        showToast(`/${link.slug} 的短链已复制。`);
+      }
+
+      function openLink(id) {
+        const link = state.links.find(item => item.id === id);
+        if (link) window.open(shortLink(link), "_blank", "noopener");
+      }
+
+      function deleteLink(id) {
+        if (deleteArmed !== id) {
+          deleteArmed = id; renderLibrary(); showToast("再点一次“确定”删除这枚短签。");
+          setTimeout(() => { if (deleteArmed === id) { deleteArmed = null; renderLibrary(); } }, 3500);
+          return;
+        }
+        state.links = state.links.filter(link => link.id !== id);
+        if (newestId === id) newestId = state.links[0]?.id || null;
+        deleteArmed = null; save(); renderAll(); showToast("短签与它的本地点击记录已删除。");
+      }
+
+      function renderGate(link, found = true) {
+        $("#appView").hidden = true;
+        const gate = $("#routeGate");
+        gate.hidden = false;
+        if (!found) {
+          gate.innerHTML = `<article class="gate-card"><div class="gate-stripe"></div><div class="gate-body"><div class="gate-badge">404</div><p class="eyebrow">ROUTE NOT FOUND</p><h1>这枚短签不在本机。</h1><p>短链目录只保存在创建它的浏览器。请检查别名，或者回到链路切片台重新创建。</p><div class="gate-actions"><a class="primary" href="${escapeHTML(location.href.split("#")[0])}">返回切片台</a></div></div></article>`;
+          return;
+        }
+        const host = new URL(link.url).hostname;
+        gate.innerHTML = `<article class="gate-card"><div class="gate-stripe"></div><div class="gate-body"><div class="gate-badge">/${escapeHTML(link.slug)}</div><p class="eyebrow">ROUTE LABEL FOUND</p><h1>链路已经接通。</h1><p class="recorded">✓ 本次打开已记录为 1 次本地点击</p><p>即将前往 ${escapeHTML(host)}。目标地址会在新页面打开，由你决定何时继续。</p><div class="gate-destination" title="${escapeHTML(link.url)}">${escapeHTML(link.url)}</div><div class="gate-actions"><a class="primary" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer">继续访问 ↗</a><a class="secondary" href="${escapeHTML(location.href.split("#")[0])}">返回切片台</a></div></div></article>`;
+      }
+
+      function handleRoute() {
+        if (!location.hash.startsWith("#go=")) {
+          routeRecordedFor = null;
+          $("#appView").hidden = false;
+          $("#routeGate").hidden = true;
+          renderAll();
+          return false;
+        }
+        let decodedSlug = "";
+        try { decodedSlug = decodeURIComponent(location.hash.slice(4)); }
+        catch { renderGate({ slug: "invalid" }, false); return true; }
+        const slug = slugify(decodedSlug);
+        const link = state.links.find(item => item.slug === slug);
+        if (!link) { renderGate({ slug }, false); return true; }
+        if (routeRecordedFor !== slug) {
+          link.clicks.push({ at: new Date().toISOString(), source: "route" });
+          link.clicks = link.clicks.slice(-1000);
+          routeRecordedFor = slug;
+          save();
+        }
+        renderGate(link, true);
+        return true;
+      }
+
+      document.addEventListener("click", event => {
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === "copy") copyLink(button.dataset.id);
+        if (action === "open") openLink(button.dataset.id);
+        if (action === "edit") startEdit(button.dataset.id);
+        if (action === "delete") deleteLink(button.dataset.id);
+        if (action === "cancel-edit") { clearForm(); showToast("已取消编辑。"); }
+      });
+
+      $("#linkForm").addEventListener("submit", submitLink);
+      $("#linkForm").addEventListener("input", () => { $("#formError").hidden = true; });
+      $("#searchLinks").addEventListener("input", event => { search = event.target.value.trim(); renderLibrary(); });
+      $("#tagFilter").addEventListener("change", event => { activeTag = event.target.value; renderLibrary(); });
+      window.addEventListener("hashchange", handleRoute);
+
+      window.cut39 = { safeUrl, slugify, normalizeLink, uniqueSlug, autoSlug, validateDraft, dateSeries };
+      renderAll();
+      handleRoute();
+    })();
+  </script>
+</body>
+</html>

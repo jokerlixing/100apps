@@ -18,14 +18,19 @@ function extractOfficialDoneIds() {
   return new Set([...match[1].matchAll(/(\d+):"done"/g)].map((entry) => Number(entry[1])));
 }
 
-test('app 061 is published and included in the official completion state', () => {
+test('published apps 061 and 063 are included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
   const app61 = ideas[60];
+  const app63 = ideas[62];
 
   assert.equal(app61[0], '每日壁纸应用');
   assert.equal(app61[3], 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
   assert.equal(doneIds.has(61), true, 'INIT_DONE must mark app 061 as done');
+  assert.equal(app63[0], 'AI写作助手');
+  assert.match(app63[1], /MARGIN\/63/);
+  assert.equal(app63[3], 'https://jokerlixing.github.io/100apps/apps/063-ai-writer/');
+  assert.equal(doneIds.has(63), true, 'INIT_DONE must mark app 063 as done');
 });
 
 test('app 066 is published and included in the official completion state', () => {
@@ -59,7 +64,10 @@ test('official completion state migrates stale browser cache entries', () => {
 
   const context = {};
   vm.runInNewContext(`
-    let apps=[{id:61,name:"旧标题",desc:"旧说明",lv:3,st:"todo",custom:false,link:""}];
+    let apps=[
+      {id:61,name:"旧标题",desc:"旧说明",lv:3,st:"todo",custom:false,link:""},
+      {id:63,name:"AI写作助手",desc:"旧说明",lv:4,st:"todo",custom:false,link:""}
+    ];
     const IDEAS=${JSON.stringify(ideas)};
     const INIT_DONE=${initMatch[1]};
     let didSave=false;
@@ -71,5 +79,7 @@ test('official completion state migrates stale browser cache entries', () => {
 
   assert.equal(context.result.apps[0].st, 'done');
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
+  assert.equal(context.result.apps[1].st, 'done');
+  assert.equal(context.result.apps[1].link, 'https://jokerlixing.github.io/100apps/apps/063-ai-writer/');
   assert.equal(context.result.didSave, true);
 });

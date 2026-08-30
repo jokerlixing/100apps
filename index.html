@@ -240,7 +240,7 @@ const IDEAS=[
 ["字幕时间轴编辑器","CUT/59：本地视频预览+SRT/VTT逐条校准+走片尺导出","3","https://jokerlixing.github.io/100apps/apps/059-subtitle-editor/"],
 ["在线图片编辑器","PRISM/60：本地裁剪+非破坏调色+文字导出","3","https://jokerlixing.github.io/100apps/apps/060-image-editor/"],
 ["每日壁纸应用","LUMEN/61：Bing每日图+八日胶片+收藏与固定首页","3","https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/"],
-["AI聊天助手","接入LLM API，流式输出对话","4"],
+["AI聊天助手","WIRE/62：兼容接口+流式报文+本地多会话与临时密钥","4","https://jokerlixing.github.io/100apps/apps/062-ai-chat/"],
 ["AI写作助手","润色/扩写/翻译/改风格","4"],
 ["AI识图取字","OCR图片转文字，支持批量","4"],
 ["AI语音转文字","SCRIBE/65：实时听写+本地录音+逐段校对+TXT/SRT导出","4","https://jokerlixing.github.io/100apps/apps/065-ai-transcriber/"],
@@ -283,7 +283,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",65:"done",66:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",62:"done",65:"done",66:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

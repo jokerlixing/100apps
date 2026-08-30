@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#26343d">
+  <meta name="description" content="REEL/79 是一台本地优先的浏览器音乐播放器，支持歌单、本地音频、同步 LRC 歌词和离线样带。">
+  <title>REEL/79 · 本地音乐播放器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#transport">跳到播放器</a>
+
+  <header class="masthead">
+    <div class="brand-block">
+      <span class="brand-code">100 APPS · UNIT 079</span>
+      <h1>REEL<span>/79</span></h1>
+      <p>本地音乐档案台</p>
+    </div>
+    <div class="mast-actions">
+      <p id="storage-status" class="storage-status">正在检查本地存储…</p>
+      <label class="button primary file-button" for="audio-input">导入音频</label>
+      <input id="audio-input" class="visually-hidden" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm" multiple>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <aside class="archive panel" aria-labelledby="playlist-heading">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">PLAYLIST ARCHIVE</span>
+          <h2 id="playlist-heading">歌单档案盒</h2>
+        </div>
+        <button id="new-playlist" class="icon-button" type="button" aria-label="新建歌单">＋</button>
+      </div>
+      <nav id="playlist-list" class="playlist-list" aria-label="歌单"></nav>
+      <div class="archive-actions">
+        <button id="rename-playlist" class="text-button" type="button">重命名</button>
+        <button id="delete-playlist" class="text-button danger" type="button">删除歌单</button>
+      </div>
+
+      <section class="library" aria-labelledby="library-heading">
+        <div class="library-heading">
+          <div>
+            <span class="eyebrow">LOCAL SHELF</span>
+            <h2 id="library-heading">本地曲库</h2>
+          </div>
+          <span id="library-count" class="count-badge">0</span>
+        </div>
+        <div id="library-list" class="library-list"></div>
+      </section>
+    </aside>
+
+    <section id="transport" class="transport panel" aria-labelledby="now-title" tabindex="-1">
+      <div class="deck-label">
+        <span id="deck-source">SAMPLE REEL · TYPE I</span>
+        <span id="deck-counter">A-01</span>
+      </div>
+
+      <div id="cassette" class="cassette" aria-hidden="true">
+        <div class="cassette-strip">
+          <span>REEL/79 ORIGINAL</span><span>STEREO</span><span>60 μs EQ</span>
+        </div>
+        <div class="tape-window">
+          <div class="reel reel-left"><i></i><b></b></div>
+          <div class="tape-path"><span></span></div>
+          <div class="reel reel-right"><i></i><b></b></div>
+        </div>
+        <div class="cassette-foot"><span>LOCAL AUDIO ONLY</span><span>NO CLOUD UPLOAD</span></div>
+      </div>
+
+      <div class="now-playing">
+        <div class="track-copy">
+          <span class="eyebrow">NOW PLAYING</span>
+          <h2 id="now-title">准备样带</h2>
+          <p><span id="now-artist">REEL/79 Studio</span> <i>·</i> <span id="now-album">浏览器合成样带</span></p>
+        </div>
+        <button id="favorite-button" class="favorite-button" type="button" aria-label="收藏当前曲目" aria-pressed="false">☆</button>
+      </div>
+
+      <div class="timeline">
+        <span id="current-time" class="timecode">00:00</span>
+        <label class="visually-hidden" for="seek">播放进度</label>
+        <input id="seek" type="range" min="0" max="1000" value="0" step="1">
+        <span id="duration" class="timecode">00:00</span>
+      </div>
+
+      <div class="transport-controls" aria-label="播放控制">
+        <button id="previous-button" class="transport-button secondary" type="button" aria-label="上一首">│◀</button>
+        <button id="play-button" class="transport-button play" type="button" aria-label="播放">▶</button>
+        <button id="next-button" class="transport-button secondary" type="button" aria-label="下一首">▶│</button>
+      </div>
+
+      <div class="utility-controls">
+        <button id="mode-button" class="mode-button" type="button" aria-label="切换播放模式">顺序播放</button>
+        <div class="volume-control">
+          <button id="mute-button" class="mute-button" type="button" aria-label="静音" aria-pressed="false">VOL</button>
+          <label class="visually-hidden" for="volume">音量</label>
+          <input id="volume" type="range" min="0" max="100" value="78" step="1">
+          <output id="volume-output" for="volume">78</output>
+        </div>
+      </div>
+
+      <section class="queue-section" aria-labelledby="queue-heading">
+        <div class="queue-heading">
+          <div>
+            <span class="eyebrow">RUNNING ORDER</span>
+            <h2 id="queue-heading">播放队列</h2>
+          </div>
+          <span id="queue-summary">0 首 · 00:00</span>
+        </div>
+        <ol id="queue-list" class="queue-list"></ol>
+      </section>
+    </section>
+
+    <aside class="lyrics panel" aria-labelledby="lyrics-heading">
+      <div class="panel-heading lyric-heading">
+        <div>
+          <span class="eyebrow">CUE SHEET</span>
+          <h2 id="lyrics-heading">同步词页</h2>
+        </div>
+        <label id="lrc-label" class="button compact file-button disabled" for="lrc-input" aria-disabled="true">导入 LRC</label>
+        <input id="lrc-input" class="visually-hidden" type="file" accept=".lrc,text/plain" disabled>
+      </div>
+      <p id="lyric-note" class="lyric-note">点击时间码可以跳转到对应位置。</p>
+      <div id="lyric-list" class="lyric-list" aria-label="同步歌词" aria-live="off"></div>
+      <div class="shortcut-card">
+        <span class="eyebrow">KEY COMMANDS</span>
+        <dl>
+          <div><dt>Space</dt><dd>播放 / 暂停</dd></div>
+          <div><dt>← / →</dt><dd>后退 / 前进 5 秒</dd></div>
+          <div><dt>M</dt><dd>静音</dd></div>
+        </dl>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="privacy-strip">
+    <strong>本地播放承诺</strong>
+    <span>你的音频和歌词只保存在当前浏览器，不会上传到网络。清除站点数据会删除导入内容。</span>
+  </footer>
+
+  <audio id="audio-player" preload="metadata"></audio>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog id="playlist-dialog" aria-labelledby="playlist-dialog-title">
+    <form id="playlist-form" method="dialog">
+      <span class="eyebrow">ARCHIVE LABEL</span>
+      <h2 id="playlist-dialog-title">新建歌单</h2>
+      <label for="playlist-name">歌单名称</label>
+      <input id="playlist-name" name="playlistName" maxlength="48" autocomplete="off" required>
+      <div class="dialog-actions">
+        <button class="button" type="button" data-close="playlist-dialog">取消</button>
+        <button class="button primary" type="submit">保存歌单</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <div class="dialog-body">
+      <span class="eyebrow">CONFIRM ACTION</span>
+      <h2 id="confirm-title">确认操作</h2>
+      <p id="confirm-message"></p>
+      <div class="dialog-actions">
+        <button class="button" type="button" data-close="confirm-dialog">取消</button>
+        <button id="confirm-action" class="button danger-fill" type="button">确认删除</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="player-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

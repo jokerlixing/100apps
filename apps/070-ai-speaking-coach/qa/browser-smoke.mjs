@@ -14,6 +14,7 @@ const baseUrl = `http://127.0.0.1:${appPort}/apps/070-ai-speaking-coach/`;
 const failingAiEndpoint = `http://127.0.0.1:${appPort + 1000}/v1`;
 const outputDir = path.resolve(process.argv[2] || path.join(appDir, 'assets'));
 const profile = path.resolve(os.tmpdir(), `codex-app70-smoke-${process.pid}`);
+const downloadDir = path.resolve(os.tmpdir(), `codex-app70-downloads-${process.pid}`);
 const sentinelKey = 'talkback-secret-must-not-persist';
 const chromeCandidates = [
   path.join(process.env.PROGRAMFILES || '', 'Google/Chrome/Application/chrome.exe'),
@@ -152,6 +153,7 @@ async function run() {
   assert.ok(chrome, 'Chrome or Edge was not found');
   assert.ok(profile.startsWith(`${path.resolve(os.tmpdir())}${path.sep}`), 'Browser profile must stay inside the temp directory');
   mkdirSync(outputDir, { recursive: true });
+  mkdirSync(downloadDir, { recursive: true });
 
   const server = createStaticServer();
   await new Promise((resolve, reject) => {
@@ -180,7 +182,10 @@ async function run() {
       if (type === 'error') runtimeErrors.push(args.map((arg) => arg.value || arg.description).join(' '));
     });
     await Promise.all([client.send('Page.enable'), client.send('Runtime.enable'), client.send('Network.enable')]);
-    await client.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: outputDir });
+    await client.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir });
+    await client.send('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+    });
 
     await client.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
     await navigate(client, baseUrl, runtimeErrors);
@@ -231,11 +236,10 @@ async function run() {
     assert.equal(await evaluate(client, `document.querySelectorAll('.report-summary > div').length`), 4);
     assert.match(await evaluate(client, `document.querySelector('#report-content').textContent`), /下一轮训练目标/);
     await evaluate(client, `document.querySelector('#download-report').click()`);
-    const reportFile = await waitFor(() => readdirSync(outputDir).find((name) => /^talkback70-.*\.txt$/.test(name)), 5000, 'report download');
-    const reportText = readFileSync(path.join(outputDir, reportFile), 'utf8');
+    const reportFile = await waitFor(() => readdirSync(downloadDir).find((name) => /^talkback70-.*\.txt$/.test(name)), 5000, 'report download');
+    const reportText = readFileSync(path.join(downloadDir, reportFile), 'utf8');
     assert.match(reportText, /TALKBACK\/70 口语训练报告/);
     assert.doesNotMatch(reportText, /API|密钥/);
-    rmSync(path.join(outputDir, reportFile), { force: true });
     await evaluate(client, `document.querySelector('#close-report').click()`);
 
     await evaluate(client, `location.reload()`);
@@ -313,6 +317,9 @@ async function run() {
     await sleep(350);
     if (profile.startsWith(`${path.resolve(os.tmpdir())}${path.sep}`)) {
       try { rmSync(profile, { recursive: true, force: true }); } catch {}
+    }
+    if (downloadDir.startsWith(`${path.resolve(os.tmpdir())}${path.sep}`)) {
+      try { rmSync(downloadDir, { recursive: true, force: true }); } catch {}
     }
   }
 }

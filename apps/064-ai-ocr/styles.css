@@ -850,9 +850,7 @@ body[data-state="running"] .scan-beam {
   border: 1px solid var(--ink);
   border-radius: 0;
   color: var(--ink);
-  background:
-    linear-gradient(90deg, transparent 35px, rgba(216, 78, 120, 0.25) 35px 36px, transparent 36px),
-    repeating-linear-gradient(var(--white) 0 31px, rgba(24, 35, 44, 0.1) 31px 32px);
+  background: repeating-linear-gradient(var(--white) 0 31px, rgba(24, 35, 44, 0.1) 31px 32px);
   font: 500 14px/32px var(--mono);
 }
 

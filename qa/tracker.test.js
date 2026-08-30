@@ -291,3 +291,14 @@ test('official completion state migrates a stale app 080 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/080-video-site/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 075 project board is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app75 = ideas[74];
+
+  assert.equal(app75[0], '项目管理看板');
+  assert.match(app75[1], /^RAIL\/75/);
+  assert.equal(app75[3], 'https://jokerlixing.github.io/100apps/apps/075-project-board/');
+  assert.equal(doneIds.has(75), true, 'INIT_DONE must mark app 075 as done');
+});

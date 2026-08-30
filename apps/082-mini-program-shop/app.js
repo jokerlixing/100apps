@@ -236,12 +236,15 @@
       chestnut: '<path d="M63 179c20-90 78-130 137-112 28 9 51 31 61 67-46 69-132 99-198 45Z" fill="var(--accent)"/><path d="M109 198c15-75 54-115 109-120 33 41 27 92-18 135-35 10-65 5-91-15Z" fill="var(--highlight)"/><path d="M89 164c42 22 91 18 139-21"/>',
     };
     const safeName = escapeHtml(product.name);
+    const artwork = shapes[product.art]
+      .replaceAll('var(--accent)', accent)
+      .replaceAll('var(--highlight)', highlight);
     return `
-      <svg viewBox="0 0 310 270" role="img" aria-label="${safeName}包装插画" style="--bg:${background};--accent:${accent};--highlight:${highlight}">
-        <rect width="310" height="270" fill="var(--bg)"/>
+      <svg viewBox="0 0 310 270" role="img" aria-label="${safeName}包装插画">
+        <rect width="310" height="270" fill="${background}"/>
         <path d="M0 214 73 147l54 46 48-84 48 60 38-32 49 51v82H0Z" fill="rgba(23,60,53,.12)"/>
-        <circle cx="258" cy="49" r="31" fill="var(--highlight)" stroke="#173c35" stroke-width="3"/>
-        <g stroke="#173c35" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${shapes[product.art]}</g>
+        <circle cx="258" cy="49" r="31" fill="${highlight}" stroke="#173c35" stroke-width="3"/>
+        <g stroke="#173c35" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">${artwork}</g>
         ${compact ? '' : `<rect x="18" y="213" width="142" height="37" rx="4" fill="#fffdf6" stroke="#173c35" stroke-width="2"/><text x="31" y="238" fill="#173c35" font-family="KaiTi,serif" font-size="18" font-weight="700">${safeName}</text>`}
       </svg>`;
   }
@@ -533,8 +536,8 @@
         state.couponCode = '';
         lastOrder = order;
         saveState();
-        renderAll();
         $('#checkoutDialog').close();
+        renderAll();
         renderSuccess(order);
         openDialog($('#successDialog'));
       } finally {
@@ -701,6 +704,7 @@
     $('#receiptDate').textContent = new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', weekday: 'short' }).format(new Date());
     bindEvents();
     renderAll();
+    document.body.classList.add('ready');
   }
 
   init();

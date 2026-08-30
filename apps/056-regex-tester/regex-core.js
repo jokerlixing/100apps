@@ -109,10 +109,21 @@
     const safeLimit = Math.max(1, Math.min(1000, Number(limit) || 300));
 
     if (!pattern) {
+      const emptyPattern = compilePattern("", flags);
+      if (!emptyPattern.ok) {
+        return {
+          ok: false,
+          empty: true,
+          flags: emptyPattern.flags,
+          matches: [],
+          truncated: false,
+          error: emptyPattern.error,
+        };
+      }
       return {
         ok: true,
         empty: true,
-        flags: normalizeFlags(flags),
+        flags: emptyPattern.flags,
         matches: [],
         truncated: false,
         error: null,
@@ -215,4 +226,3 @@
     replacePattern,
   };
 });
-

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pattern Lab 是一款支持实时匹配高亮、捕获组检查和替换预览的本地正则表达式测试器。">
+  <meta name="theme-color" content="#f3f6f4">
+  <title>Pattern Lab / 056 · 正则表达式测试器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="masthead">
+      <div class="brand-block">
+        <a class="back-link" href="../../index.html" aria-label="返回 100 Apps Challenge">
+          <span aria-hidden="true">←</span> 100 APPS
+        </a>
+        <div class="lab-mark" aria-hidden="true">
+          <span>PL</span>
+          <small>056</small>
+        </div>
+        <div class="title-copy">
+          <p class="eyebrow">PATTERN INSPECTION DESK · LOCAL ONLY</p>
+          <h1>Pattern Lab</h1>
+          <p>把文字送进模式显微镜。边写边看，每一次命中都有据可查。</p>
+        </div>
+      </div>
+
+      <div class="live-meter" aria-label="实时分析统计">
+        <div class="meter-cell meter-state">
+          <span class="meter-label">STATE</span>
+          <strong id="stateMetric" data-state="waiting">WAITING</strong>
+        </div>
+        <div class="meter-cell">
+          <span class="meter-label">MATCHES</span>
+          <strong id="matchMetric">0</strong>
+        </div>
+        <div class="meter-cell">
+          <span class="meter-label">SCAN TIME</span>
+          <strong id="timeMetric">—</strong>
+        </div>
+        <div class="meter-cell">
+          <span class="meter-label">CHARACTERS</span>
+          <strong id="charMetric">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="pattern-panel lab-panel" aria-labelledby="patternHeading">
+        <div class="section-heading">
+          <div>
+            <p class="section-code">01 / DEFINE</p>
+            <h2 id="patternHeading">编写模式</h2>
+          </div>
+          <button class="text-button" id="restoreSampleButton" type="button">恢复示例
+          </button>
+        </div>
+
+        <div class="expression-row">
+          <label class="expression-box" id="expressionBox" for="patternInput">
+            <span class="slash" aria-hidden="true">/</span>
+            <input
+              id="patternInput"
+              name="pattern"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              maxlength="500"
+              aria-describedby="patternMessage"
+              placeholder="(?&lt;name&gt;pattern)"
+            >
+            <span class="slash" aria-hidden="true">/</span>
+          </label>
+
+          <fieldset class="flag-bank">
+            <legend>标志</legend>
+            <label class="flag-toggle"><input type="checkbox" value="g" checked><span>g</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="i"><span>i</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="m"><span>m</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="s"><span>s</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="u"><span>u</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="v"><span>v</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="y"><span>y</span></label>
+            <label class="flag-toggle"><input type="checkbox" value="d"><span>d</span></label>
+          </fieldset>
+        </div>
+
+        <div class="pattern-message" id="patternMessage" role="status" aria-live="polite">
+          输入表达式后即时检验。
+        </div>
+
+        <div class="preset-block">
+          <div class="preset-label">
+            <span>COMMON PATTERNS</span>
+            <small>选择一个样例开始拆解</small>
+          </div>
+          <div class="preset-list" id="presetList" aria-label="常用正则库"></div>
+        </div>
+      </section>
+
+      <div class="bench-grid">
+        <section class="material-panel lab-panel" aria-labelledby="materialHeading">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="section-code">02 / MATERIAL</p>
+              <h2 id="materialHeading">测试文本</h2>
+            </div>
+            <div class="heading-actions">
+              <span id="textCount">0 / 50,000</span>
+              <button class="text-button" id="clearTextButton" type="button">清空文本</button>
+            </div>
+          </div>
+
+          <div class="editor-shell" id="editorShell">
+            <pre class="highlight-layer" id="highlightLayer" aria-hidden="true"><code id="highlightContent"></code></pre>
+            <textarea
+              id="testText"
+              name="testText"
+              aria-label="待测试文本"
+              maxlength="50000"
+              spellcheck="false"
+              wrap="soft"
+              placeholder="粘贴或输入需要检查的文本…"
+            ></textarea>
+            <div class="editor-ruler" aria-hidden="true">
+              <span>0</span><span>10k</span><span>20k</span><span>30k</span><span>40k</span><span>50k</span>
+            </div>
+          </div>
+          <p class="keyboard-tip"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 立即重新检验 · 内容不会离开浏览器</p>
+        </section>
+
+        <aside class="inspection-panel" aria-labelledby="inspectionHeading">
+          <div class="inspection-head">
+            <div>
+              <p class="section-code">03 / INSPECT</p>
+              <h2 id="inspectionHeading">匹配检验带</h2>
+            </div>
+            <span class="result-pill" id="resultPill">0 命中</span>
+          </div>
+          <div class="match-list" id="matchList" aria-live="polite"></div>
+        </aside>
+      </div>
+
+      <section class="replace-panel lab-panel" aria-labelledby="replaceHeading">
+        <div class="replace-controls">
+          <div class="replace-title">
+            <p class="section-code">04 / REPLACE</p>
+            <h2 id="replaceHeading">替换预览</h2>
+            <p>支持 <code>$&amp;</code>、<code>$1</code> 和 <code>$&lt;name&gt;</code> 等 JavaScript 替换标记。</p>
+          </div>
+          <label class="replacement-field" for="replacementInput">
+            <span>替换为</span>
+            <input
+              id="replacementInput"
+              type="text"
+              maxlength="500"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="$&lt;name&gt;"
+            >
+          </label>
+          <button class="copy-button" id="copyResultButton" type="button">
+            复制结果
+          </button>
+        </div>
+        <pre class="replacement-output" id="replacementOutput" tabindex="0" aria-label="替换结果"></pre>
+      </section>
+    </main>
+
+    <footer>
+      <span>PATTERN LAB / APP 056</span>
+      <p>纯前端计算 · 无网络请求 · 无数据上传</p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>需要启用 JavaScript 才能运行正则表达式检验。</noscript>
+  <script src="regex-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

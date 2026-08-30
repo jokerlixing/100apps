@@ -21,6 +21,12 @@ test("returns a readable compile error without throwing", () => {
   assert.match(result.error, /regular expression|character class|unterminated/i);
 });
 
+test("validates flags even when the source is empty", () => {
+  const result = analyzePattern({ source: "", flags: "z", text: "sample" });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Unsupported regular expression flag: z/);
+});
+
 test("respects global and first-match modes", () => {
   const first = analyzePattern({ source: "cat", flags: "i", text: "Cat cat" });
   const every = analyzePattern({ source: "cat", flags: "gi", text: "Cat cat" });
@@ -91,4 +97,3 @@ test("previews native replacement tokens", () => {
     error: null,
   });
 });
-

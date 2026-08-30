@@ -154,6 +154,7 @@ async function run() {
     await evaluate(client, `localStorage.clear(); location.reload()`);
     await waitForExpression(client, `document.body && document.body.classList.contains('ready')`);
     await evaluate(client, `(() => {
+      Date.now = () => 1788100000000;
       document.querySelector('#question-count').value = '3';
       document.querySelector('#focus').value = '性能优化、跨团队沟通';
       document.querySelector('#job-description').value = '负责复杂前端应用、性能与工程质量。';
@@ -247,7 +248,7 @@ async function run() {
     await navigate(client, `${baseUrl}?offline=1`, runtimeErrors);
     await evaluate(client, `localStorage.clear(); location.reload()`);
     await waitForExpression(client, `document.body && document.body.classList.contains('ready')`);
-    await evaluate(client, `document.querySelector('#question-count').value = '3'; document.querySelector('#setup-form').requestSubmit()`);
+    await evaluate(client, `Date.now = () => 1788100000000; document.querySelector('#question-count').value = '3'; document.querySelector('#setup-form').requestSubmit()`);
     await waitForExpression(client, `!document.querySelector('#interview-screen').hidden`);
 
     const mobile = await evaluate(client, `(() => {

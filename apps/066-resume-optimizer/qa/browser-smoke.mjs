@@ -159,6 +159,14 @@ async function run() {
 
     await evaluate(client, `document.querySelector('#open-settings').click()`);
     assert.equal(await evaluate(client, `document.querySelector('#settings-dialog').open`), true);
+    const closeButtons = await evaluate(client, `([...document.querySelectorAll('#settings-form button[value="cancel"]')].map((button) => ({
+      type: button.type,
+      formNoValidate: button.formNoValidate
+    })))`);
+    assert.deepEqual(closeButtons, [
+      { type: 'submit', formNoValidate: true },
+      { type: 'submit', formNoValidate: true },
+    ]);
     await screenshot(client, 'app66-settings-dialog-cdp.png');
     await evaluate(client, `document.querySelector('.dialog-close').click()`);
     await waitForExpression(client, `!document.querySelector('#settings-dialog').open`);

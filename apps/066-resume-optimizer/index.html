@@ -179,7 +179,7 @@
     <form method="dialog" id="settings-form">
       <div class="dialog-head">
         <div><p class="eyebrow">Bring your own model</p><h2 id="settings-title">AI 接口设置</h2></div>
-        <button class="dialog-close" type="button" data-close-settings aria-label="关闭设置">×</button>
+        <button class="dialog-close" type="submit" value="cancel" formnovalidate aria-label="关闭设置">×</button>
       </div>
       <p class="dialog-intro">填写 OpenAI 兼容的 Chat Completions 地址。三项只保存在当前页面内存，刷新即清除。</p>
       <label for="endpoint-input">接口地址</label>
@@ -190,7 +190,7 @@
       <input id="key-input" name="key" type="password" placeholder="sk-…" autocomplete="off" required>
       <p class="field-error" id="settings-error" role="alert"></p>
       <div class="dialog-actions">
-        <button class="secondary-button" type="button" data-close-settings>取消</button>
+        <button class="secondary-button" type="submit" value="cancel" formnovalidate>取消</button>
         <button class="primary-button" id="save-settings" type="submit" value="default">仅本次使用</button>
       </div>
     </form>
@@ -199,6 +199,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="sr-only" id="announcer" aria-live="polite"></div>
   <script src="resume-core.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=dialog-close-2"></script>
 </body>
 </html>

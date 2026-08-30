@@ -381,6 +381,10 @@ SQL、A/B 测试、数据分析、用户研究、Figma、项目管理
 
   function saveSettings(event) {
     event.preventDefault();
+    if (event.submitter?.value === 'cancel') {
+      closeSettings();
+      return;
+    }
     try {
       const endpoint = Core.validateEndpoint(refs.endpoint.value);
       const model = Core.normalizeText(refs.model.value).slice(0, 120);
@@ -473,7 +477,6 @@ SQL、A/B 测试、数据分析、用户研究、Figma、项目管理
     refs.analyze.addEventListener('click', analyze);
     $('#download-report').addEventListener('click', downloadReport);
     $('#open-settings').addEventListener('click', () => openSettings(false));
-    document.querySelectorAll('[data-close-settings]').forEach((button) => button.addEventListener('click', closeSettings));
     refs.dialog.addEventListener('cancel', (event) => {
       event.preventDefault();
       closeSettings();

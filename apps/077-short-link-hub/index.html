@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ROUTE/77 短链聚合平台：创建自定义短链、二维码并查看渠道访问统计。">
+  <meta name="theme-color" content="#071721">
+  <title>ROUTE/77 · 短链聚合平台</title>
+  <link rel="stylesheet" href="styles.css?v=20260831">
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" crossorigin="anonymous"></script>
+  <script defer src="route-core.js?v=20260831"></script>
+  <script defer src="app.js?v=20260831"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">跳到工作区</a>
+  <div class="route-app">
+    <aside class="control-rail" aria-label="工作区概览">
+      <a class="brand" href="./" aria-label="ROUTE 77 首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><b>ROUTE</b><em>/77</em></span>
+      </a>
+
+      <div class="mode-panel">
+        <span class="signal" aria-hidden="true"></span>
+        <div>
+          <small>当前线路模式</small>
+          <strong id="modeLabel">正在接入…</strong>
+        </div>
+      </div>
+
+      <dl class="rail-metrics">
+        <div><dt>已建路线</dt><dd id="railRoutes">—</dd></div>
+        <div><dt>累计抵达</dt><dd id="railVisits">—</dd></div>
+        <div><dt>运行中</dt><dd id="railActive">—</dd></div>
+      </dl>
+
+      <div class="rail-map" aria-hidden="true">
+        <span class="map-line"></span>
+        <span class="map-stop stop-a"></span>
+        <span class="map-stop stop-b"></span>
+        <span class="map-stop stop-c"></span>
+        <span class="map-stop stop-d"></span>
+        <b class="map-label label-a">入口</b>
+        <b class="map-label label-b">别名</b>
+        <b class="map-label label-c">分发</b>
+        <b class="map-label label-d">抵达</b>
+      </div>
+
+      <div class="boundary-note">
+        <span>数据边界</span>
+        <p id="boundaryCopy">此页面的数据只保存在当前浏览器，不会同步到其他设备。</p>
+      </div>
+
+      <footer>100 Apps Challenge<br>App #077 · build 01</footer>
+    </aside>
+
+    <main id="workspace" class="workspace">
+      <header class="workspace-head">
+        <div>
+          <p class="eyebrow"><span>线路调度台</span> / LINK OPERATIONS</p>
+          <h1>把每次抵达，<br><em>接回一条清晰线路。</em></h1>
+          <p class="head-copy">创建可辨认的短链，随手带走二维码，并从渠道和设备两端看清访问从哪里来。</p>
+        </div>
+        <div class="head-actions">
+          <button class="text-button" id="exportButton" type="button">导出工作区 <span aria-hidden="true">↗</span></button>
+          <button class="text-button danger-text" id="resetButton" type="button">恢复演示数据</button>
+        </div>
+      </header>
+
+      <section class="composer" aria-labelledby="createTitle">
+        <form id="routeForm" class="route-form" novalidate>
+          <div class="section-kicker">
+            <span class="line-number">新路线</span>
+            <span class="line-rule"></span>
+            <span class="live-label">立即发布</span>
+          </div>
+          <h2 id="createTitle">连接目标与短链</h2>
+
+          <div class="track-form">
+            <label class="field station-field field-target">
+              <span><i aria-hidden="true">A</i> 目标地址</span>
+              <input id="targetInput" name="target" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com/campaign" required>
+              <small>未写协议时会自动使用 https://</small>
+            </label>
+
+            <label class="field station-field field-slug">
+              <span><i aria-hidden="true">B</i> 短链别名 <em>可选</em></span>
+              <div class="slug-input">
+                <span id="slugPrefix">…/r/</span>
+                <input id="slugInput" name="slug" type="text" inputmode="url" autocomplete="off" maxlength="32" pattern="[a-z0-9-]{3,32}" placeholder="autumn-market">
+              </div>
+              <small>3–32 位字母、数字或连字符</small>
+            </label>
+
+            <div class="track-connector" aria-hidden="true"><span></span></div>
+
+            <label class="field compact-field">
+              <span>路线名称</span>
+              <input id="labelInput" name="label" type="text" maxlength="60" placeholder="秋日市集预约">
+            </label>
+            <label class="field compact-field">
+              <span>活动分组</span>
+              <input id="campaignInput" name="campaign" type="text" maxlength="40" placeholder="线下活动">
+            </label>
+          </div>
+
+          <div id="formError" class="form-error" role="alert" hidden></div>
+          <div class="form-submit">
+            <button class="primary-button" id="createButton" type="submit">
+              <span>生成路线</span><b aria-hidden="true">→</b>
+            </button>
+            <p>创建后可随时暂停，不会自动访问目标地址。</p>
+          </div>
+        </form>
+
+        <aside class="route-ticket" aria-label="新短链预览">
+          <div class="ticket-head">
+            <span>ROUTE PASS</span>
+            <b id="ticketStatus">等待发车</b>
+          </div>
+          <div class="ticket-route">
+            <small>短链预览</small>
+            <strong id="ticketUrl">填写目标后生成</strong>
+          </div>
+          <div class="ticket-qr" id="qrBox">
+            <canvas id="qrCanvas" width="168" height="168" aria-label="短链二维码预览"></canvas>
+            <div class="qr-placeholder" id="qrPlaceholder">
+              <span aria-hidden="true"></span>
+              <p>路线生成后<br>二维码在这里出现</p>
+            </div>
+          </div>
+          <div class="ticket-meta">
+            <span><small>分组</small><b id="ticketCampaign">待分配</b></span>
+            <span><small>状态</small><b>本地预览</b></span>
+          </div>
+          <button id="downloadQrButton" class="ticket-action" type="button" disabled>下载二维码</button>
+        </aside>
+      </section>
+
+      <section class="registry" aria-labelledby="registryTitle">
+        <div class="registry-head">
+          <div>
+            <p class="eyebrow">ROUTE REGISTRY / 当前工作区</p>
+            <h2 id="registryTitle">路线总表</h2>
+          </div>
+          <div class="registry-tools">
+            <label class="search-field">
+              <span class="visually-hidden">搜索路线</span>
+              <input id="searchInput" type="search" placeholder="搜索名称、别名或分组">
+              <kbd>/</kbd>
+            </label>
+            <div class="filter-group" aria-label="路线状态筛选">
+              <button type="button" class="filter-button active" data-filter="all" aria-pressed="true">全部</button>
+              <button type="button" class="filter-button" data-filter="active" aria-pressed="false">运行中</button>
+              <button type="button" class="filter-button" data-filter="paused" aria-pressed="false">已暂停</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr><th>路线</th><th>短链</th><th>分组</th><th>抵达</th><th>近 7 日</th><th>状态</th><th><span class="visually-hidden">操作</span></th></tr>
+            </thead>
+            <tbody id="routesBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state" hidden>
+            <span aria-hidden="true">○────○</span>
+            <strong>没有符合条件的路线</strong>
+            <p>调整搜索条件，或从上方创建一条新路线。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="analytics" aria-labelledby="analyticsTitle">
+        <div class="analytics-head">
+          <div>
+            <p class="eyebrow">ARRIVAL REPORT / <span id="selectedSlug">—</span></p>
+            <h2 id="analyticsTitle">抵达报告</h2>
+          </div>
+          <div class="selected-actions">
+            <button id="copySelectedButton" type="button" class="outline-button">复制短链</button>
+            <button id="visitSelectedButton" type="button" class="outline-button accent-outline">测试访问 ↗</button>
+          </div>
+        </div>
+
+        <div class="analytics-grid">
+          <article class="traffic-panel">
+            <div class="panel-title">
+              <span>近七日抵达</span>
+              <strong id="weekTotal">—</strong>
+            </div>
+            <div id="dayChart" class="day-chart" aria-label="近七日访问柱状图"></div>
+          </article>
+
+          <article class="split-panel">
+            <div class="panel-title"><span>渠道换乘</span><small>访问来源</small></div>
+            <div id="sourceList" class="rank-list"></div>
+          </article>
+
+          <article class="split-panel device-panel">
+            <div class="panel-title"><span>到站设备</span><small>终端类型</small></div>
+            <div id="deviceList" class="device-list"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="confirmDialog" class="confirm-dialog">
+    <form method="dialog">
+      <span class="dialog-mark" aria-hidden="true">!</span>
+      <h2 id="dialogTitle">确认操作</h2>
+      <p id="dialogCopy"></p>
+      <div>
+        <button value="cancel" class="outline-button">取消</button>
+        <button value="confirm" class="primary-button danger-button" id="dialogConfirm">确认</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="redirectDialog" class="redirect-dialog">
+    <div>
+      <span class="redirect-line" aria-hidden="true"><i></i><i></i></span>
+      <p class="eyebrow">ROUTE HANDOFF</p>
+      <h2>即将离开 ROUTE/77</h2>
+      <p id="redirectCopy">正在核对目标地址…</p>
+      <a id="redirectLink" class="primary-button" href="#">继续前往 <b aria-hidden="true">↗</b></a>
+      <button id="redirectCancel" class="text-button" type="button">返回路线总表</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

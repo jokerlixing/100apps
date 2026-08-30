@@ -1,0 +1,106 @@
+.margin84-action,
+.margin84-card,
+.margin84-card * {
+  box-sizing: border-box !important;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+.margin84-action {
+  all: initial;
+  box-sizing: border-box !important;
+  z-index: 2147483646 !important;
+  position: fixed !important;
+  display: grid !important;
+  grid-template-columns: 30px auto auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 164px !important;
+  min-height: 43px !important;
+  padding: 5px 16px 5px 6px !important;
+  border: 2px solid #17212b !important;
+  color: #fcfcf8 !important;
+  background: #194b7a !important;
+  box-shadow: 5px 5px 0 rgba(23, 33, 43, .28) !important;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 11px) 100%, 0 100%) !important;
+  cursor: pointer !important;
+  font: 800 11px/1 "Segoe UI", sans-serif !important;
+}
+.margin84-action[hidden] { display: none !important; }
+.margin84-action > span {
+  width: 29px !important;
+  height: 29px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #17212b !important;
+  background: #e9c75d !important;
+  font-weight: 900 !important;
+}
+.margin84-action b { color: #fcfcf8 !important; font: 800 11px/1 "Segoe UI", sans-serif !important; }
+.margin84-action small { color: rgba(252, 252, 248, .7) !important; font: 8px/1 Consolas, monospace !important; }
+.margin84-action:focus-visible { outline: 3px solid #e9c75d !important; outline-offset: 3px !important; }
+
+.margin84-card {
+  all: initial;
+  box-sizing: border-box !important;
+  z-index: 2147483647 !important;
+  width: min(340px, calc(100vw - 20px)) !important;
+  max-height: min(520px, calc(100vh - 20px)) !important;
+  position: fixed !important;
+  display: block !important;
+  overflow: auto !important;
+  border: 2px solid #17212b !important;
+  border-left: 5px solid #194b7a !important;
+  color: #17212b !important;
+  background: #fcfcf8 !important;
+  box-shadow: 9px 9px 0 rgba(23, 33, 43, .25) !important;
+}
+.margin84-card[hidden] { display: none !important; }
+.margin84-card-head {
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 9px 10px 9px 15px !important;
+  border-bottom: 1px solid #b7b5ae !important;
+  background: #f3f0e8 !important;
+}
+.margin84-card-head span b,
+.margin84-card-head span small { display: block !important; }
+.margin84-card-head span b { color: #17212b !important; font: 900 14px/1 "Arial Narrow", "Segoe UI", sans-serif !important; }
+.margin84-card-head span small { margin-top: 5px !important; color: #194b7a !important; font: 800 8px/1 Consolas, monospace !important; letter-spacing: 1px !important; }
+.margin84-close {
+  width: 34px !important;
+  height: 34px !important;
+  border: 1px solid #17212b !important;
+  color: #17212b !important;
+  background: #fcfcf8 !important;
+  cursor: pointer !important;
+  font: 22px/1 sans-serif !important;
+}
+.margin84-card-body { padding: 22px 18px 19px !important; }
+.margin84-direction { display: flex !important; align-items: center !important; gap: 8px !important; margin: 0 0 17px !important; color: #194b7a !important; font: 900 9px/1 Consolas, monospace !important; }
+.margin84-direction i { width: 27px !important; border-top: 2px solid #d6523c !important; }
+.margin84-source { margin: 0 0 18px !important; color: #68717a !important; font: italic 500 13px/1.55 Georgia, serif !important; }
+.margin84-rule { height: 13px !important; position: relative !important; border-top: 1px solid #b7b5ae !important; }
+.margin84-rule span { width: 34px !important; position: absolute !important; left: 0 !important; top: -2px !important; border-top: 4px solid #d6523c !important; }
+.margin84-output { min-height: 54px !important; margin: 10px 0 13px !important; color: #17212b !important; font: 850 21px/1.35 "Arial Narrow", "Segoe UI", sans-serif !important; }
+.margin84-note { margin: 0 !important; color: #68717a !important; font: 9px/1.5 Consolas, monospace !important; }
+.margin84-card-actions { display: grid !important; grid-template-columns: 1.25fr 1fr !important; gap: 7px !important; padding: 0 18px 18px !important; }
+.margin84-card-actions button {
+  min-height: 42px !important;
+  border: 1px solid #17212b !important;
+  color: #17212b !important;
+  background: #f3f0e8 !important;
+  cursor: pointer !important;
+  font: 800 10px/1 "Segoe UI", sans-serif !important;
+}
+.margin84-card-actions button:first-child { color: #fcfcf8 !important; background: #194b7a !important; }
+.margin84-card-actions button:disabled { cursor: wait !important; opacity: .5 !important; }
+.margin84-card button:focus-visible { outline: 3px solid #e9c75d !important; outline-offset: 2px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .margin84-action, .margin84-card, .margin84-card * { animation: none !important; transition: none !important; }
+}

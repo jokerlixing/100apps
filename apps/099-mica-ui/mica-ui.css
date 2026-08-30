@@ -1,0 +1,71 @@
+:root,
+[data-mica-theme="light"] {
+  color-scheme: light;
+  --mica-canvas: #f4f5f2;
+  --mica-surface: #ffffff;
+  --mica-surface-muted: #dce3de;
+  --mica-ink: #202321;
+  --mica-muted: #5f6862;
+  --mica-border: #aab4ad;
+  --mica-accent: #3157d5;
+  --mica-accent-ink: #ffffff;
+  --mica-positive: #19724f;
+  --mica-warning: #9a6500;
+  --mica-critical: #b23a2b;
+  --mica-radius: 14px;
+  --mica-scale: 1;
+  --mica-shadow: 0 12px 30px rgba(32, 35, 33, 0.12);
+  --mica-font-body: "Segoe UI", Arial, sans-serif;
+  --mica-font-code: Consolas, "Courier New", monospace;
+}
+
+[data-mica-theme="dark"] {
+  color-scheme: dark;
+  --mica-canvas: #171a18;
+  --mica-surface: #222725;
+  --mica-surface-muted: #303834;
+  --mica-ink: #f2f5f1;
+  --mica-muted: #b4beb7;
+  --mica-border: #59645d;
+  --mica-accent-ink: #ffffff;
+  --mica-positive: #6fd4a8;
+  --mica-warning: #f2c94c;
+  --mica-critical: #ff8f7d;
+  --mica-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+mica-button,
+mica-input,
+mica-select,
+mica-checkbox,
+mica-switch,
+mica-badge,
+mica-alert,
+mica-progress,
+mica-tabs,
+mica-accordion,
+mica-dialog,
+mica-toast {
+  font-family: var(--mica-font-body);
+}
+
+mica-input,
+mica-select,
+mica-alert,
+mica-progress,
+mica-tabs,
+mica-accordion {
+  display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

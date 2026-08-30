@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en" data-mica-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Mica UI is a dependency-free accessible Web Components library with twelve live components.">
+  <meta name="theme-color" content="#f4f5f2">
+  <title>Mica UI — component specimens for the open web</title>
+  <link rel="stylesheet" href="./mica-ui.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./component-core.js" defer></script>
+  <script src="./mica-ui.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to component specimens</a>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Mica UI home">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><b>Mica UI</b><small>Open component specimens</small></span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="#bench">Token bench</a>
+      <a href="#catalog">Components</a>
+      <a href="#install">Install</a>
+    </nav>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark theme">
+      <span aria-hidden="true">◐</span><b>Dark room</b>
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span>Release 1.0</span> · Twelve native elements · Zero dependencies</p>
+        <h1 id="hero-title">Interfaces with<br><em>material memory.</em></h1>
+        <p class="hero-deck">A compact Web Components library for product surfaces that need clarity, tactility, and an honest browser foundation.</p>
+        <div class="package-command">
+          <span aria-hidden="true">$</span>
+          <code>npm i @hundred-apps/mica-ui</code>
+          <button type="button" data-copy-install aria-label="Copy install command">Copy</button>
+        </div>
+      </div>
+      <div class="hero-specimen" aria-label="Layered Mica UI material samples">
+        <div class="sample sample-clay"><span>STATE / CRITICAL</span><b>Resolve with intent.</b></div>
+        <div class="sample sample-pollen"><span>TOKEN / POLLEN</span><b>#F2C94C</b></div>
+        <div class="sample sample-cobalt"><span>ACTION / PRIMARY</span><b>Make it legible.</b></div>
+        <div class="measure measure-x">240</div>
+        <div class="measure measure-y">160</div>
+      </div>
+    </section>
+
+    <section class="bench section-shell" id="bench" aria-labelledby="bench-title">
+      <header class="section-heading">
+        <div>
+          <p class="section-kicker">Live token bench</p>
+          <h2 id="bench-title">Change the material,<br>keep the behavior.</h2>
+        </div>
+        <p>Every specimen inherits the same four public tokens. Tune the system here; the catalog updates in place.</p>
+      </header>
+
+      <div class="bench-grid">
+        <form class="token-controls" aria-label="Mica design tokens" onsubmit="return false">
+          <fieldset>
+            <legend>01 / Accent pigment</legend>
+            <div class="swatches">
+              <button class="swatch cobalt" type="button" data-accent="#3157D5" aria-label="Cobalt accent" aria-pressed="true"></button>
+              <button class="swatch clay" type="button" data-accent="#D9734D" aria-label="Clay accent" aria-pressed="false"></button>
+              <button class="swatch moss" type="button" data-accent="#19724F" aria-label="Moss accent" aria-pressed="false"></button>
+              <button class="swatch plum" type="button" data-accent="#704F8A" aria-label="Plum accent" aria-pressed="false"></button>
+            </div>
+            <output data-accent-output>#3157D5 / Cobalt</output>
+          </fieldset>
+
+          <fieldset>
+            <legend>02 / Edge profile</legend>
+            <div class="segmented" data-radius-group>
+              <button type="button" data-radius="0px" aria-pressed="false">Cut</button>
+              <button type="button" data-radius="14px" aria-pressed="true">Soft</button>
+              <button type="button" data-radius="999px" aria-pressed="false">Capsule</button>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>03 / Component scale</legend>
+            <div class="segmented" data-scale-group>
+              <button type="button" data-scale="0.9" aria-pressed="false">90%</button>
+              <button type="button" data-scale="1" aria-pressed="true">100%</button>
+              <button type="button" data-scale="1.1" aria-pressed="false">110%</button>
+            </div>
+          </fieldset>
+
+          <p class="token-note"><span class="status-light"></span> Saved in this browser · no account required</p>
+        </form>
+
+        <div class="live-board">
+          <div class="board-ruler"><span>SPECIMEN A—04</span><span data-token-summary>LIGHT · #3157D5 · 14PX · 100%</span></div>
+          <div class="board-surface">
+            <div class="board-title">
+              <span>Release settings</span>
+              <mica-badge tone="positive">Ready</mica-badge>
+            </div>
+            <mica-alert tone="positive" title="Package verified">All twelve elements passed the current specimen checks.</mica-alert>
+            <div class="board-fields">
+              <mica-input label="Package tag" value="mica-ui@1.0.0" hint="Scoped public package"></mica-input>
+              <mica-select label="Release channel" options="Stable|Preview|Nightly" value="Stable"></mica-select>
+            </div>
+            <mica-progress value="84" label="Release readiness"></mica-progress>
+            <div class="board-actions">
+              <mica-switch checked>Generate type hints</mica-switch>
+              <span>
+                <mica-button variant="quiet">Save draft</mica-button>
+                <mica-button>Pack release</mica-button>
+              </span>
+            </div>
+          </div>
+          <span class="board-stamp">LIVE<br>DOM</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog section-shell" id="catalog" aria-labelledby="catalog-title">
+      <header class="section-heading catalog-heading">
+        <div>
+          <p class="section-kicker">The component drawer</p>
+          <h2 id="catalog-title">Twelve pieces.<br>One visual grammar.</h2>
+        </div>
+        <div class="catalog-count"><strong data-result-count>12</strong><span>live<br>elements</span></div>
+      </header>
+
+      <div class="catalog-layout">
+        <aside class="catalog-rail">
+          <label class="catalog-search">
+            <span>Find a component</span>
+            <input type="search" data-component-search placeholder="Try “feedback”" autocomplete="off">
+            <kbd>/</kbd>
+          </label>
+          <nav data-component-nav aria-label="Component index"></nav>
+          <p class="rail-note">Each example below is the packaged custom element, not a drawing of one.</p>
+        </aside>
+
+        <div class="specimen-area">
+          <div class="no-results" data-no-results hidden>
+            <b>No specimen matches that search.</b>
+            <p>Search by name, element tag, or category.</p>
+            <button type="button" data-clear-search>Show all twelve</button>
+          </div>
+          <div class="specimen-grid" data-specimen-grid></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="install section-shell" id="install" aria-labelledby="install-title">
+      <div class="install-copy">
+        <p class="section-kicker">From specimen to source</p>
+        <h2 id="install-title">Two files.<br>No build ritual.</h2>
+        <p>Link the shared tokens, load the registration script, and use semantic custom elements directly in your HTML.</p>
+        <div class="install-steps">
+          <span>01</span><p>Install or copy the package.</p>
+          <span>02</span><p>Load the CSS and registration entry.</p>
+          <span>03</span><p>Compose elements with native HTML content.</p>
+        </div>
+      </div>
+      <div class="code-sheet">
+        <header><span>index.html</span><button type="button" data-copy-setup>Copy setup</button></header>
+        <pre><code>&lt;link rel="stylesheet"
+  href="./node_modules/@hundred-apps/mica-ui/mica-ui.css"&gt;
+
+&lt;script
+  src="./node_modules/@hundred-apps/mica-ui/mica-ui.js"&gt;
+&lt;/script&gt;
+
+&lt;mica-alert tone="positive" title="Ready"&gt;
+  Your interface has a material system.
+&lt;/mica-alert&gt;</code></pre>
+      </div>
+      <dl class="package-facts">
+        <div><dt>Elements</dt><dd>12</dd></div>
+        <div><dt>Runtime dependencies</dt><dd>0</dd></div>
+        <div><dt>Unpacked package</dt><dd>~34 KB</dd></div>
+        <div><dt>License</dt><dd>MIT</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div><b>Mica UI</b><span>APP 099 / 100 APPS CHALLENGE</span></div>
+    <p>Built from browser standards. Packaged for the open web.</p>
+  </footer>
+
+  <mica-dialog id="docsDialog" title="Publish package?">The package is ready for a final owner review. This demo stops before any registry write.</mica-dialog>
+  <mica-toast id="docsToast" duration="2200"></mica-toast>
+</body>
+</html>

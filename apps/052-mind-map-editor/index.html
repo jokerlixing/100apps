@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142b3b">
+  <meta name="description" content="LINE/52 是一款本地优先的 SVG 在线脑图编辑器，支持分支折叠、自动保存和 PNG 导出。">
+  <title>LINE/52 · 在线脑图编辑器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='%23142b3b' stroke='%23f2b544' stroke-width='6'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23f2b544'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="mind-core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#mapCanvas">跳到脑图画布</a>
+
+  <header class="topbar">
+    <div class="brand" aria-label="LINE 52 在线脑图编辑器">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <p class="brand-code">LINE/52</p>
+        <h1>想法线路图</h1>
+      </div>
+    </div>
+
+    <div class="document-heading">
+      <label for="documentTitle">脑图名称</label>
+      <input id="documentTitle" type="text" maxlength="60" autocomplete="off" spellcheck="false">
+      <p id="saveStatus" class="save-status" data-tone="quiet">准备就绪</p>
+    </div>
+
+    <nav class="top-actions" aria-label="文档操作">
+      <button id="undoBtn" class="button button-quiet" type="button" title="撤销 (Ctrl+Z)">撤销</button>
+      <button id="redoBtn" class="button button-quiet" type="button" title="重做 (Ctrl+Shift+Z)">重做</button>
+      <button id="newMapBtn" class="button button-quiet" type="button">新建</button>
+      <button id="exportBtn" class="button button-signal" type="button">导出 PNG</button>
+    </nav>
+  </header>
+
+  <main class="app-shell">
+    <aside class="control-panel" aria-label="脑图调度台">
+      <section class="panel-section selection-panel" aria-labelledby="selectionTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">当前站点</p>
+            <h2 id="selectionTitle">编辑节点</h2>
+          </div>
+          <span id="nodeDepth" class="line-chip">总站</span>
+        </div>
+
+        <p id="nodePath" class="node-path">中心主题</p>
+        <label class="field-label" for="nodeText">站点名称</label>
+        <textarea id="nodeText" rows="2" maxlength="48" spellcheck="false"></textarea>
+        <div class="field-foot">
+          <span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 保存</span>
+          <span id="textCount">0 / 48</span>
+        </div>
+        <button id="saveNodeBtn" class="button button-primary button-block" type="button">保存名称</button>
+
+        <div class="action-grid" aria-label="节点操作">
+          <button id="addChildBtn" class="action-button" type="button">
+            <span aria-hidden="true">＋</span>
+            添加子节点
+          </button>
+          <button id="addSiblingBtn" class="action-button" type="button">
+            <span aria-hidden="true">↳</span>
+            添加同级
+          </button>
+          <button id="toggleBtn" class="action-button" type="button">
+            <span aria-hidden="true">−</span>
+            收起分支
+          </button>
+          <button id="deleteBtn" class="action-button action-danger" type="button">
+            <span aria-hidden="true">×</span>
+            删除节点
+          </button>
+        </div>
+        <p class="undo-note">删除后可立即撤销；中心主题不会被删除。</p>
+      </section>
+
+      <section class="panel-section outline-panel" aria-labelledby="outlineTitle">
+        <div class="section-heading outline-heading">
+          <div>
+            <p class="eyebrow">线路总览</p>
+            <h2 id="outlineTitle">节点大纲</h2>
+          </div>
+          <span id="nodeCount" class="node-count">0 站</span>
+        </div>
+        <div id="outlineTree" class="outline-tree" role="tree" aria-label="全部脑图节点"></div>
+      </section>
+
+      <details class="shortcut-card">
+        <summary>键盘调度手册</summary>
+        <dl>
+          <div><dt><kbd>Enter</kbd></dt><dd>改名</dd></div>
+          <div><dt><kbd>Tab</kbd></dt><dd>添加子节点</dd></div>
+          <div><dt><kbd>Space</kbd></dt><dd>展开或收起</dd></div>
+          <div><dt><kbd>Delete</kbd></dt><dd>删除节点</dd></div>
+          <div><dt><kbd>Ctrl</kbd> + <kbd>Z</kbd></dt><dd>撤销</dd></div>
+        </dl>
+      </details>
+    </aside>
+
+    <section class="map-workspace" aria-labelledby="workspaceTitle">
+      <header class="workspace-bar">
+        <div>
+          <p class="eyebrow">实时线路</p>
+          <h2 id="workspaceTitle">脑图画布</h2>
+        </div>
+        <div class="workspace-meta">
+          <span><i class="legend-dot legend-blue"></i> 分支线路</span>
+          <span><i class="legend-dot legend-yellow"></i> 当前站</span>
+        </div>
+      </header>
+
+      <div id="mapFrame" class="map-frame">
+        <svg id="mapCanvas" tabindex="0" role="tree" aria-labelledby="mapTitle mapDescription">
+          <title id="mapTitle">可交互脑图画布</title>
+          <desc id="mapDescription">点击节点进行选择，拖动画布平移，滚轮缩放。聚焦节点后可使用键盘操作。</desc>
+          <defs>
+            <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1.25" fill="#9fb7cb"></circle>
+            </pattern>
+          </defs>
+          <rect id="mapBackground" class="map-background" width="100%" height="100%" fill="url(#dotGrid)"></rect>
+          <g id="viewportGroup">
+            <g id="edgeLayer" aria-hidden="true"></g>
+            <g id="nodeLayer"></g>
+          </g>
+        </svg>
+
+        <div class="canvas-ticket" aria-hidden="true">
+          <span>LOCAL ROUTE</span>
+          <b>只存本机</b>
+        </div>
+
+        <div class="zoom-dock" aria-label="画布缩放">
+          <button id="zoomOutBtn" type="button" aria-label="缩小画布">−</button>
+          <output id="zoomValue" aria-live="off">100%</output>
+          <button id="zoomInBtn" type="button" aria-label="放大画布">＋</button>
+          <button id="fitBtn" type="button">适配</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="newMapDialog" class="confirm-dialog">
+    <form method="dialog">
+      <p class="eyebrow">重新发车</p>
+      <h2>新建一张空白脑图？</h2>
+      <p>当前内容会被替换，但仍可通过“撤销”恢复。</p>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel">取消</button>
+        <button id="confirmNewBtn" class="button button-signal" value="confirm">新建脑图</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <p id="liveRegion" class="sr-only" aria-live="polite"></p>
+</body>
+</html>

@@ -62,4 +62,3 @@ node --check apps/052-mind-map-editor/app.js
 - `styles.css`：地铁线路视觉、响应式布局和可访问状态
 - `mind-core.js`：可独立测试的树模型与布局算法
 - `app.js`：历史记录、localStorage、SVG 交互和 PNG 导出
-

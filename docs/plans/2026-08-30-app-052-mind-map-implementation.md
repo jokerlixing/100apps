@@ -35,4 +35,3 @@
 - Run the unit suite, syntax checks, inline-script parse checks, `git diff --check`, and path assertions.
 - Serve the repository locally and verify the full edit/persist/export flow at desktop and 390px widths, including console output and screenshot review.
 - Commit focused changes, integrate against current `origin/main`, push only to GitHub `origin`, and confirm the remote commit before stopping the completion timer.
-

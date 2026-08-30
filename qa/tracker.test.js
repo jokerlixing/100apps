@@ -920,6 +920,41 @@ test('official completion state migrates a stale app 085 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 088 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app88 = ideas[87];
+
+  assert.equal(app88[0], '可视化大屏编辑器');
+  assert.equal(app88[1], 'GRID/88：五类图表拖拽布局+JSON/CSV字段绑定+本地预览与项目迁移');
+  assert.equal(app88[3], 'https://jokerlixing.github.io/100apps/apps/088-dashboard-editor/');
+  assert.equal(doneIds.has(88), true, 'INIT_DONE must mark app 088 as done');
+});
+
+test('official completion state migrates a stale app 088 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:88,name:"可视化大屏编辑器",desc:"图表拖拽布局+数据源绑定",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^GRID\/88/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/088-dashboard-editor/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 100 is published as INDEX/100 and officially complete', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

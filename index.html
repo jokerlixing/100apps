@@ -229,7 +229,7 @@ const IDEAS=[
 ["键盘钢琴","TAPE/48：双八度演奏+磁带时间轴+录制回放","3","https://jokerlixing.github.io/100apps/apps/048-keyboard-piano/"],
 ["屏幕录制工具","FRAME/49：本地录屏+双路音频+暂停与下载","3","https://jokerlixing.github.io/100apps/apps/049-screen-recorder/"],
 ["局域网文件快传","BEAM/50：WebRTC点对点传输+二维码配对+多文件进度","3","https://jokerlixing.github.io/100apps/apps/050-lan-file-transfer/"],
-["股票自选行情","实时行情刷新+K线图绘制","3"],
+["股票自选行情","TICK/51：免密行情刷新+本地自选+交互 K 线与离线降级","3","https://jokerlixing.github.io/100apps/apps/051-stock-watchlist/"],
 ["在线脑图编辑器","节点增删改+展开折叠+导出图片","3"],
 ["本地密码管理器","主密码加密存储账号密码","3"],
 ["API测试工具","简化版Postman，发请求看响应","3"],
@@ -283,7 +283,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

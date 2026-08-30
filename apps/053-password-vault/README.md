@@ -2,6 +2,8 @@
 
 LOCKBOX/53 是一座运行在浏览器里的离线账号保险箱：用主密码解锁，账号记录只以认证密文保存在当前浏览器，并可导出加密 JSON 备份。页面没有账号系统、云同步、第三方脚本或外部网络请求。
 
+![LOCKBOX/53 锁匠工作台界面](assets/screenshot.jpg)
+
 ## 功能
 
 - 创建主密码保险箱，刷新后用同一主密码重新解锁
@@ -69,4 +71,5 @@ node --check apps/053-password-vault/app.js
 - `vault-core.js`：可独立测试的校验、加密与密码生成核心
 - `vault-core.test.js`：Node 内置测试套件
 - `app.js`：DOM 交互、加密存储、自动锁定与备份流程
+- `assets/screenshot.jpg`：GitHub Pages 线上首屏实拍
 

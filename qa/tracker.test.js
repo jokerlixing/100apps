@@ -39,6 +39,17 @@ test('app 066 is published and included in the official completion state', () =>
   assert.equal(doneIds.has(66), true, 'INIT_DONE must mark app 066 as done');
 });
 
+test('app 065 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app65 = ideas[64];
+
+  assert.equal(app65[0], 'AI语音转文字');
+  assert.match(app65[1], /^SCRIBE\/65/);
+  assert.equal(app65[3], 'https://jokerlixing.github.io/100apps/apps/065-ai-transcriber/');
+  assert.equal(doneIds.has(65), true, 'INIT_DONE must mark app 065 as done');
+});
+
 test('official completion state migrates stale browser cache entries', () => {
   const ideas = extractIdeas();
   const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);

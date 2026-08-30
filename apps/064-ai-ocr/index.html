@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e7edf2">
+  <meta name="description" content="GLYPH/64 是一款在浏览器本地运行的中英文批量 OCR 校样台。">
+  <title>GLYPH/64 · AI 识图取字</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-state="empty">
+  <a class="skip-link" href="#workspace">跳到识别工作台</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true">G/64</span>
+      <span>
+        <strong>GLYPH/64</strong>
+        <small>AI 识图取字 · OCR proofing desk</small>
+      </span>
+    </a>
+
+    <div class="privacy-strip" aria-label="隐私说明">
+      <span class="privacy-pulse" aria-hidden="true"></span>
+      <span><strong>像素留在本机</strong> · 首次识别需联网下载引擎与语言模型</span>
+    </div>
+
+    <div class="masthead-actions">
+      <label class="field compact-field" for="language-select">
+        <span>识别模型</span>
+        <select id="language-select">
+          <option value="zh-hans">简体中文 + 英文</option>
+          <option value="zh-hant">繁体中文 + 英文</option>
+          <option value="eng">仅英文</option>
+        </select>
+      </label>
+
+      <label class="toggle-control" for="enhance-toggle">
+        <input id="enhance-toggle" type="checkbox" checked>
+        <span class="toggle-track" aria-hidden="true"><span></span></span>
+        <span>校样增强</span>
+      </label>
+
+      <button class="primary-button" id="run-button" type="button" disabled>
+        <span class="button-index">RUN</span>
+        <span id="run-label">开始批次</span>
+      </button>
+      <button class="stop-button" id="stop-button" type="button" hidden>中止</button>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <aside class="queue-panel" aria-labelledby="queue-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Batch contact sheet</p>
+          <h1 id="queue-title">批次印样带</h1>
+        </div>
+        <output class="count-chip" id="queue-count">00 / 12</output>
+      </div>
+
+      <div class="drop-zone" id="drop-zone">
+        <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" multiple>
+        <label class="import-button" for="file-input">
+          <span aria-hidden="true">＋</span>
+          选择或拖入图片
+        </label>
+        <p>支持 PNG、JPEG、WebP、BMP · 单张 ≤ 15 MB</p>
+        <button class="text-button" id="sample-button" type="button">没有图片？载入中英样张</button>
+      </div>
+
+      <div class="queue-empty" id="queue-empty">
+        <span class="empty-number">00</span>
+        <p>图片会按加入顺序排在这里。最多 12 张，不会在刷新后保留。</p>
+      </div>
+      <ol class="queue-list" id="queue-list" aria-label="待识别图片"></ol>
+
+      <div class="queue-footer">
+        <button class="quiet-button" id="clear-button" type="button" disabled>清空批次</button>
+        <span id="queue-size">0 B</span>
+      </div>
+    </aside>
+
+    <section class="preview-panel" aria-labelledby="preview-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Proof glass / live scan</p>
+          <h2 id="preview-title">透光校样</h2>
+        </div>
+        <span class="mode-flag" id="mode-flag">LOCAL / IDLE</span>
+      </div>
+
+      <div class="proof-stage" id="proof-stage" style="--scan-progress: 0%">
+        <div class="stage-rulers" aria-hidden="true">
+          <span>00</span><span>25</span><span>50</span><span>75</span><span>100</span>
+        </div>
+        <div class="stage-empty" id="stage-empty">
+          <svg viewBox="0 0 180 140" aria-hidden="true">
+            <path d="M28 18h86l38 38v66H28z"/>
+            <path d="M114 18v38h38M48 84h84M48 101h58M48 67h40"/>
+            <path class="scan-glyph" d="M18 77h144"/>
+          </svg>
+          <strong>等待校样</strong>
+          <span>加入图片后在这里检查原稿</span>
+        </div>
+        <img id="preview-image" alt="" hidden>
+        <div class="scan-beam" id="scan-beam" aria-hidden="true"></div>
+        <span class="registration-mark mark-nw" aria-hidden="true"></span>
+        <span class="registration-mark mark-ne" aria-hidden="true"></span>
+        <span class="registration-mark mark-sw" aria-hidden="true"></span>
+        <span class="registration-mark mark-se" aria-hidden="true"></span>
+      </div>
+
+      <div class="file-register" aria-label="当前图片信息">
+        <div>
+          <span>原稿</span>
+          <strong id="file-name">尚未选择</strong>
+        </div>
+        <div>
+          <span>像素</span>
+          <strong id="file-dimensions">— × —</strong>
+        </div>
+        <div>
+          <span>文件</span>
+          <strong id="file-size">—</strong>
+        </div>
+        <div>
+          <span>进度</span>
+          <strong id="file-progress">0%</strong>
+        </div>
+      </div>
+
+      <div class="scan-status">
+        <span class="status-code" id="status-code">STANDBY</span>
+        <div class="status-copy">
+          <strong id="status-title">加入图片开始识别</strong>
+          <span id="status-detail">图像不会上传，文本只保留在当前页面。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-panel" aria-labelledby="proof-title">
+      <div class="section-heading proof-heading">
+        <div>
+          <p class="eyebrow">Editable transcript</p>
+          <h2 id="proof-title">文字校样</h2>
+        </div>
+        <span class="proof-state" id="proof-state">NO PROOF</span>
+      </div>
+
+      <label class="proof-editor-label" for="proof-editor">识别结果，可直接修订</label>
+      <textarea id="proof-editor" spellcheck="false" disabled placeholder="完成识别后，文字会出现在这里。"></textarea>
+
+      <dl class="metrics" aria-label="识别指标">
+        <div>
+          <dt>置信度</dt>
+          <dd id="confidence-value">—</dd>
+        </div>
+        <div>
+          <dt>字符</dt>
+          <dd id="character-value">0</dd>
+        </div>
+        <div>
+          <dt>耗时</dt>
+          <dd id="duration-value">—</dd>
+        </div>
+      </dl>
+
+      <div class="proof-actions">
+        <button class="secondary-button" id="copy-button" type="button" disabled>复制当前文字</button>
+        <button class="secondary-button" id="download-button" type="button" disabled>下载当前 TXT</button>
+      </div>
+
+      <div class="batch-export">
+        <div>
+          <span class="eyebrow">Batch output</span>
+          <strong id="batch-summary">尚无可导出的校样</strong>
+        </div>
+        <button class="export-button" id="export-button" type="button" disabled>
+          <span>合并 TXT</span>
+          <span aria-hidden="true">↘</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer-strip">
+    <span>GLYPH/64 · Browser OCR workbench</span>
+    <span>Tesseract.js 7.0.0 · 图片不上传 · 刷新即清空</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="queue-item-template">
+    <li class="queue-item">
+      <button class="queue-select" type="button">
+        <span class="queue-index"></span>
+        <img class="queue-thumb" alt="">
+        <span class="queue-copy">
+          <strong class="queue-name"></strong>
+          <span class="queue-meta"></span>
+          <span class="queue-progress-track" aria-hidden="true"><span></span></span>
+        </span>
+        <span class="queue-status"></span>
+      </button>
+      <button class="queue-remove" type="button" aria-label="移除图片">×</button>
+    </li>
+  </template>
+
+  <script src="ocr-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#18222c">
+  <meta name="description" content="RELAY/57 是一个仅监听本机、带白名单和私网拦截的 CORS 代理调试台。">
+  <title>RELAY/57 · 本地 CORS 代理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#requestForm">跳到请求编辑器</a>
+
+  <header class="device-bar">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true">R</span>
+      <span>
+        <strong>RELAY<span>/57</span></strong>
+        <small>LOCAL CORS PATCH BAY</small>
+      </span>
+    </a>
+    <div class="service-cluster">
+      <span class="service-address">127.0.0.1 : 4057</span>
+      <button class="service-state" id="retryService" type="button" title="重新检测本地服务">
+        <i class="state-lamp" id="serviceLamp" aria-hidden="true"></i>
+        <span id="serviceStatus">正在检测服务</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="route-stage" aria-labelledby="routeHeading">
+      <div class="route-intro">
+        <p class="eyebrow">BROWSER → LOCAL GATE → PUBLIC API</p>
+        <h1 id="routeHeading">给跨域请求，<br><em>接一条可审计的跳线。</em></h1>
+        <p class="route-copy">请求只经过你的电脑。白名单、DNS 私网拦截和硬性体积限制，会在连接远端前逐项验收。</p>
+      </div>
+
+      <div class="patch-route" id="patchRoute" data-state="idle" aria-label="请求路线：浏览器、策略闸门、远端主机、响应">
+        <div class="cable" aria-hidden="true"><span class="signal-pulse"></span></div>
+        <div class="jack jack-browser">
+          <span class="jack-port"><i></i></span>
+          <strong>浏览器</strong><small>BROWSER</small>
+        </div>
+        <div class="jack jack-policy">
+          <span class="jack-port"><i></i></span>
+          <strong>策略闸门</strong><small>POLICY GATE</small>
+        </div>
+        <div class="jack jack-remote">
+          <span class="jack-port"><i></i></span>
+          <strong>远端主机</strong><small>REMOTE HOST</small>
+        </div>
+        <div class="jack jack-return">
+          <span class="jack-port"><i></i></span>
+          <strong>响应返回</strong><small>RETURN</small>
+        </div>
+      </div>
+      <p class="route-message" id="routeMessage" aria-live="polite">跳线待命。填写目标后发出请求。</p>
+    </section>
+
+    <div class="bench-grid">
+      <section class="bench request-bench" aria-labelledby="requestTitle">
+        <header class="bench-head">
+          <div><span class="bench-code">INPUT A</span><h2 id="requestTitle">请求跳线</h2></div>
+          <span class="host-count" id="hostCount">白名单读取中</span>
+        </header>
+
+        <form id="requestForm" novalidate>
+          <div class="target-row">
+            <label class="method-field">
+              <span>方法</span>
+              <select id="method" name="method">
+                <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option>
+              </select>
+            </label>
+            <label class="url-field">
+              <span>目标 URL</span>
+              <input id="targetUrl" name="targetUrl" type="url" spellcheck="false" autocomplete="off" required value="https://api.github.com/repos/jokerlixing/100apps">
+            </label>
+          </div>
+
+          <div class="editor-field">
+            <div class="field-label"><label for="requestHeaders">请求头 JSON</label><span>Cookie / Origin 自动剥离</span></div>
+            <textarea id="requestHeaders" name="requestHeaders" spellcheck="false" rows="6">{
+  "Accept": "application/vnd.github+json",
+  "X-Client-Label": "relay-57"
+}</textarea>
+          </div>
+
+          <div class="editor-field body-field" id="bodyField">
+            <div class="field-label"><label for="requestBody">请求正文</label><span id="bodyHint">GET 不发送正文</span></div>
+            <textarea id="requestBody" name="requestBody" spellcheck="false" rows="7" placeholder="仅 POST / PUT / PATCH / DELETE 会发送这里的内容"></textarea>
+          </div>
+
+          <p class="form-error" id="formError" role="alert"></p>
+          <div class="form-actions">
+            <button class="secondary-button" id="resetSample" type="button">恢复样例</button>
+            <button class="send-button" id="sendRequest" type="submit"><span>发送至本地代理</span><i aria-hidden="true">→</i></button>
+          </div>
+        </form>
+      </section>
+
+      <section class="bench response-bench" aria-labelledby="responseTitle">
+        <header class="bench-head response-head">
+          <div><span class="bench-code">RETURN B</span><h2 id="responseTitle">响应监视器</h2></div>
+          <span class="request-id" id="requestId">ID ————————</span>
+        </header>
+
+        <div class="telemetry" aria-live="polite">
+          <div><span>STATUS</span><strong id="statusMetric">—</strong></div>
+          <div><span>TIME</span><strong id="timeMetric">—</strong></div>
+          <div><span>SIZE</span><strong id="sizeMetric">—</strong></div>
+        </div>
+
+        <div class="monitor-toolbar">
+          <div class="tabs" role="tablist" aria-label="响应内容">
+            <button id="bodyTab" type="button" role="tab" aria-selected="true" aria-controls="responseOutput">正文</button>
+            <button id="headersTab" type="button" role="tab" aria-selected="false" aria-controls="responseOutput">响应头</button>
+          </div>
+          <button class="copy-button" id="copyFetch" type="button" disabled>复制 fetch</button>
+        </div>
+
+        <div class="monitor" id="monitor" data-empty="true">
+          <span class="monitor-scan" aria-hidden="true"></span>
+          <pre id="responseOutput" tabindex="0">等待第一条请求。
+
+响应正文、状态和代理遥测会显示在这里。</pre>
+        </div>
+
+        <aside class="offline-note" id="offlineNote" hidden>
+          <strong>本地服务尚未连接</strong>
+          <p>在此项目目录运行下面的命令，再点顶部状态灯重试。</p>
+          <code>node server.js</code>
+        </aside>
+      </section>
+    </div>
+
+    <section class="safety-strip" aria-labelledby="safetyTitle">
+      <div class="safety-title"><span>SAFETY INTERLOCK</span><h2 id="safetyTitle">四道硬限制</h2></div>
+      <dl>
+        <div><dt>监听范围</dt><dd id="bindValue">127.0.0.1</dd></div>
+        <div><dt>目标策略</dt><dd id="allowValue">白名单</dd></div>
+        <div><dt>超时</dt><dd id="timeoutValue">10 s</dd></div>
+        <div><dt>响应上限</dt><dd id="responseLimitValue">5 MB</dd></div>
+      </dl>
+      <p>私网、环回与保留地址始终阻断；跳转每一跳重新验收。</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>RELAY BENCH · APP 057 / 100</span>
+    <span>LOCAL-FIRST · NO REQUEST BODY LOGS</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

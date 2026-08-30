@@ -153,6 +153,8 @@ test("proxy route forwards request options and decorates the safe response", asy
   assert.equal(response.status, 201);
   assert.equal(response.headers.get("access-control-allow-origin"), "*");
   assert.equal(response.headers.get("access-control-expose-headers").includes("x-relay-duration"), true);
+  assert.equal(response.headers.get("access-control-expose-headers").includes("x-upstream"), true);
+  assert.equal(response.headers.get("x-upstream"), "fixture");
   assert.equal(response.headers.get("x-relay-duration"), "12.4");
   assert.equal(response.headers.get("x-relay-redirects"), "1");
   assert.equal(response.headers.get("set-cookie"), null);

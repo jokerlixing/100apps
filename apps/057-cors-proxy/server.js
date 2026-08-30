@@ -240,10 +240,17 @@ function createServer(options = {}) {
 
       const responseHeaders = filterResponseHeaders(upstream.headers);
       const duration = Number(upstream.durationMs || 0).toFixed(1).replace(/\.0$/, "");
+      const exposedHeaders = new Set(
+        `${cors["access-control-expose-headers"]}, ${Object.keys(responseHeaders).join(", ")}`
+          .split(",")
+          .map((header) => header.trim().toLowerCase())
+          .filter(Boolean),
+      );
       response.writeHead(upstream.statusCode, {
         ...responseHeaders,
         ...commonSecurityHeaders(),
         ...cors,
+        "access-control-expose-headers": [...exposedHeaders].join(", "),
         "content-length": String(upstream.body.length),
         "x-relay-request-id": id,
         "x-relay-duration": duration,

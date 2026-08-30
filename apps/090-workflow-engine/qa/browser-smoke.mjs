@@ -223,6 +223,11 @@ async function run() {
     assert.equal(desktop.scrollWidth, desktop.clientWidth);
     assert.match(desktop.activeClass, /workflow-name/);
     assert.match(readFileSync(path.join(appDir, 'styles.css'), 'utf8'), /:focus-visible\s*\{/);
+    await evaluate(client, `(() => {
+      document.querySelector('#console-clock').textContent='09:30:00';
+      document.querySelectorAll('#latest-run time').forEach(item=>{item.textContent='09:30:00'});
+      document.querySelectorAll('#history-list time').forEach(item=>{item.textContent='08/31 09:30:00'});
+    })()`);
     await screenshot(client, 'screenshot-desktop.png');
 
     await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });

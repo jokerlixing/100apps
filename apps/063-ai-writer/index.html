@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f7f6">
+  <meta name="description" content="MARGIN/63 是一座可控的 AI 文字手术台：润色、扩写、翻译、改风格，并保留清晰的前后差异。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https: http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>MARGIN/63 · AI 文字手术台</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="writer-core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-provider="demo" data-state="idle">
+  <a class="skip-link" href="#source-text">跳到原稿编辑器</a>
+
+  <header class="masthead">
+    <div class="brand-block" aria-label="MARGIN 63 AI 写作助手">
+      <span class="brand-code">MARGIN/63</span>
+      <div>
+        <h1>文字手术台</h1>
+        <p>保留原意，处理表达。</p>
+      </div>
+    </div>
+    <div class="masthead-actions">
+      <button class="status-button" id="open-settings" type="button">
+        <span class="status-light" aria-hidden="true"></span>
+        <span id="provider-label">本地演示</span>
+      </button>
+      <button class="plain-button" id="open-history" type="button">
+        修订记录 <span id="history-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="studio" id="main-content">
+    <aside class="instrument-rail" aria-label="改写模式">
+      <p class="rail-label">改写器械</p>
+      <button class="mode-button is-active" type="button" data-mode="polish" aria-pressed="true">
+        <span class="mode-code">P</span>
+        <span><b>润色</b><small>清理语病</small></span>
+      </button>
+      <button class="mode-button" type="button" data-mode="expand" aria-pressed="false">
+        <span class="mode-code">X</span>
+        <span><b>扩写</b><small>补足逻辑</small></span>
+      </button>
+      <button class="mode-button" type="button" data-mode="translate" aria-pressed="false">
+        <span class="mode-code">T</span>
+        <span><b>翻译</b><small>跨越语言</small></span>
+      </button>
+      <button class="mode-button" type="button" data-mode="style" aria-pressed="false">
+        <span class="mode-code">S</span>
+        <span><b>改风格</b><small>调整声线</small></span>
+      </button>
+      <p class="rail-note"><kbd>Ctrl</kbd> + <kbd>Enter</kbd><br>开始改写</p>
+    </aside>
+
+    <section class="sheet source-sheet" aria-labelledby="source-heading">
+      <header class="sheet-heading">
+        <div>
+          <span class="sheet-index">MANUSCRIPT / 原稿</span>
+          <h2 id="source-heading">把毛边留在这里</h2>
+        </div>
+        <button class="text-button" id="load-example" type="button">载入样稿</button>
+      </header>
+
+      <label class="sr-only" for="source-text">需要改写的原稿</label>
+      <textarea id="source-text" maxlength="8000" spellcheck="true" placeholder="粘贴一段需要润色、扩写、翻译或改风格的文字……">我们花了一周把新功能做完了。我觉得其实这个功能非常非常重要, 因为它能让用户更快找到需要的内容. 现在准备上线，希望大家会喜欢。</textarea>
+
+      <div class="text-metrics" aria-live="polite">
+        <span><b id="source-characters">0</b> 字符</span>
+        <span><b id="source-words">0</b> 词元</span>
+        <span><b id="source-reading">0</b> 分钟阅读</span>
+      </div>
+
+      <div class="control-grid">
+        <label>
+          <span>改写力度</span>
+          <select id="strength-select">
+            <option value="conservative">保守 · 轻微修整</option>
+            <option value="balanced" selected>均衡 · 重排表达</option>
+            <option value="bold">大胆 · 重组结构</option>
+          </select>
+        </label>
+
+        <label id="language-control" hidden>
+          <span>目标语言</span>
+          <select id="language-select">
+            <option value="English">English</option>
+            <option value="日本語">日本語</option>
+            <option value="한국어">한국어</option>
+            <option value="Français">Français</option>
+            <option value="Deutsch">Deutsch</option>
+          </select>
+        </label>
+
+        <label id="style-control" hidden>
+          <span>目标风格</span>
+          <select id="style-select">
+            <option value="concise">简洁有力</option>
+            <option value="professional" selected>专业可信</option>
+            <option value="social">社交媒体</option>
+            <option value="literary">自然叙事</option>
+          </select>
+        </label>
+
+        <label class="wide-control">
+          <span>必须保留的词 <small>用逗号分隔</small></span>
+          <input id="preserve-terms" type="text" maxlength="240" placeholder="产品名、专有名词、数据">
+        </label>
+
+        <label class="wide-control">
+          <span>额外要求 <small>可选</small></span>
+          <input id="extra-notes" type="text" maxlength="300" placeholder="例如：不要使用感叹号；保持三段结构">
+        </label>
+      </div>
+    </section>
+
+    <section class="revision-seam" aria-label="生成控制">
+      <div class="seam-track seam-track-before" aria-hidden="true"></div>
+      <button class="generate-button" id="generate-button" type="button">
+        <span class="generate-icon" aria-hidden="true">↗</span>
+        <span class="generate-label">开始<br>改写</span>
+      </button>
+      <div class="seam-track seam-track-after" aria-hidden="true"></div>
+      <p class="seam-caption" id="seam-caption">原稿保持不动</p>
+    </section>
+
+    <section class="sheet revision-sheet" aria-labelledby="revision-heading">
+      <header class="sheet-heading revision-heading">
+        <div>
+          <span class="sheet-index">REVISION / 修订稿</span>
+          <h2 id="revision-heading">在这一侧留下成稿</h2>
+        </div>
+        <div class="view-switch" role="group" aria-label="修订稿视图">
+          <button type="button" class="is-active" data-view="final" aria-pressed="true">成稿</button>
+          <button type="button" data-view="diff" aria-pressed="false">差异</button>
+        </div>
+      </header>
+
+      <div class="revision-stage">
+        <label class="sr-only" for="revision-text">生成后的修订稿</label>
+        <textarea id="revision-text" spellcheck="true" placeholder="修订稿会逐字出现在这里。你也可以直接编辑结果。"></textarea>
+        <div class="diff-output" id="diff-output" tabindex="0" hidden aria-label="原稿与修订稿差异"></div>
+        <div class="empty-proof" id="empty-proof" aria-hidden="true">
+          <span class="proof-mark">Aa</span>
+          <p>选择一种改写方式，<br>让修订痕迹从中线展开。</p>
+        </div>
+      </div>
+
+      <div class="text-metrics revision-metrics" aria-live="polite">
+        <span><b id="revision-characters">0</b> 字符</span>
+        <span><b id="change-rate">0%</b> 变化</span>
+        <span class="diff-legend"><i class="legend-add"></i>新增 <i class="legend-delete"></i>删减</span>
+      </div>
+
+      <div class="output-actions">
+        <button type="button" id="copy-output" disabled>复制成稿</button>
+        <button type="button" id="download-output" disabled>下载 TXT</button>
+        <button type="button" id="reuse-output" disabled>作为新原稿</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="safety-strip">
+    <p><b id="provider-footnote">本地演示模式</b> · 演示结果只验证交互，不冒充真实 AI。</p>
+    <p id="status-message" role="status" aria-live="polite">准备就绪。原稿不会被生成内容覆盖。</p>
+  </footer>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <div class="dialog-card">
+      <header class="dialog-heading">
+        <div>
+          <span class="sheet-index">CONNECTION / 生成引擎</span>
+          <h2 id="settings-title">选择生成方式</h2>
+        </div>
+        <button class="icon-button" id="close-settings" type="button" aria-label="关闭设置">×</button>
+      </header>
+
+      <div class="provider-choice" role="radiogroup" aria-label="生成方式">
+        <label>
+          <input type="radio" name="provider" value="demo" checked>
+          <span><b>本地演示</b><small>无需联网，验证完整工作流</small></span>
+        </label>
+        <label>
+          <input type="radio" name="provider" value="remote">
+          <span><b>真实 AI 接口</b><small>OpenAI-compatible 流式接口</small></span>
+        </label>
+      </div>
+
+      <div class="remote-fields" id="remote-fields" hidden>
+        <label>
+          <span>接口地址</span>
+          <input id="endpoint-input" type="url" inputmode="url" autocomplete="off" placeholder="https://your-gateway.example/v1/chat/completions">
+        </label>
+        <label>
+          <span>模型名称</span>
+          <input id="model-input" type="text" autocomplete="off" placeholder="your-writing-model">
+        </label>
+        <label>
+          <span>API Key <small>可选，仅保存在当前页面内存</small></span>
+          <input id="api-key-input" type="password" autocomplete="off" placeholder="刷新页面后自动清除">
+        </label>
+        <aside class="security-note">
+          <b>密钥边界</b>
+          <p>页面不保存、不中转 API Key；它会从本浏览器直接发往你填写的接口。共享设备上不要填写生产密钥，优先使用带限额的个人网关。</p>
+        </aside>
+      </div>
+
+      <p class="dialog-error" id="settings-error" role="alert"></p>
+      <button class="primary-dialog-action" id="save-settings" type="button">保存生成方式</button>
+    </div>
+  </dialog>
+
+  <dialog id="history-dialog" aria-labelledby="history-title">
+    <div class="dialog-card history-card">
+      <header class="dialog-heading">
+        <div>
+          <span class="sheet-index">LOCAL LOG / 本机记录</span>
+          <h2 id="history-title">最近八次修订</h2>
+        </div>
+        <button class="icon-button" id="close-history" type="button" aria-label="关闭修订记录">×</button>
+      </header>
+      <div class="history-list" id="history-list"></div>
+      <button class="danger-button" id="clear-history" type="button">清空本机记录</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

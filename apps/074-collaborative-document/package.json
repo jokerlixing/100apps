@@ -1,0 +1,17 @@
+{
+  "name": "galley-74-collaborative-document",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-first collaborative document editor with an optional WebSocket room service.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test sync-core.test.js server.test.js",
+    "test:browser": "node qa/browser-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "8.21.3"
+  }
+}

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GRID/88 是一个本地运行的可视化大屏编辑器，支持图表拖拽、JSON/CSV 数据绑定、预览和项目导入导出。">
+  <title>GRID/88 · 可视化大屏编辑器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-ocean">
+  <h1 class="sr-only">GRID/88 可视化大屏编辑器</h1>
+  <header class="topbar">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><b>GRID/88</b><small>大屏信号编排台</small></span>
+    </a>
+
+    <label class="project-title">
+      <span>项目名称</span>
+      <input id="project-name" maxlength="60" value="夏季运营控制室" autocomplete="off">
+    </label>
+
+    <nav class="toolbar" aria-label="项目工具">
+      <div class="tool-group" aria-label="历史记录">
+        <button id="undo-button" class="icon-button" type="button" title="撤销 Ctrl+Z" aria-label="撤销">↶</button>
+        <button id="redo-button" class="icon-button" type="button" title="重做 Ctrl+Shift+Z" aria-label="重做">↷</button>
+      </div>
+      <button id="theme-button" class="quiet-button" type="button"><span aria-hidden="true">◐</span> 换底色</button>
+      <button id="import-button" class="quiet-button" type="button"><span aria-hidden="true">↥</span> 导入</button>
+      <button id="export-button" class="quiet-button" type="button"><span aria-hidden="true">↧</span> 导出</button>
+      <button id="reset-button" class="quiet-button danger-button" type="button">重置示例</button>
+      <button id="preview-button" class="primary-button" type="button"><span aria-hidden="true">▶</span> 预览大屏</button>
+    </nav>
+  </header>
+
+  <main class="workspace">
+    <aside class="palette panel" aria-labelledby="palette-title">
+      <div class="panel-heading">
+        <div><span class="section-code">A / 组件仓</span><h2 id="palette-title">把信号放上屏</h2></div>
+        <span class="count-badge" id="widget-count">0</span>
+      </div>
+      <p class="panel-note">拖到画布，或点击快速添加。选中后用方向键微调位置。</p>
+
+      <div class="component-list" id="component-list">
+        <button class="component-card" type="button" draggable="true" data-widget-type="metric">
+          <span class="component-icon metric-icon" aria-hidden="true">88</span>
+          <span><b>指标卡</b><small>聚合一个关键数值</small></span>
+          <i aria-hidden="true">＋</i>
+        </button>
+        <button class="component-card" type="button" draggable="true" data-widget-type="bar">
+          <span class="component-icon bars-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span><b>柱状图</b><small>比较分类量级</small></span>
+          <i aria-hidden="true">＋</i>
+        </button>
+        <button class="component-card" type="button" draggable="true" data-widget-type="line">
+          <span class="component-icon line-icon" aria-hidden="true">⌁</span>
+          <span><b>趋势图</b><small>观察连续变化</small></span>
+          <i aria-hidden="true">＋</i>
+        </button>
+        <button class="component-card" type="button" draggable="true" data-widget-type="donut">
+          <span class="component-icon donut-icon" aria-hidden="true"></span>
+          <span><b>占比环图</b><small>查看结构分布</small></span>
+          <i aria-hidden="true">＋</i>
+        </button>
+        <button class="component-card" type="button" draggable="true" data-widget-type="table">
+          <span class="component-icon table-icon" aria-hidden="true">≡</span>
+          <span><b>数据表</b><small>展开记录明细</small></span>
+          <i aria-hidden="true">＋</i>
+        </button>
+      </div>
+
+      <section class="sources-section" aria-labelledby="sources-title">
+        <div class="subheading-row">
+          <div><span class="section-code">B / 数据源</span><h3 id="sources-title">本地数据</h3></div>
+          <button id="add-source-button" class="mini-button" type="button">＋ 新建</button>
+        </div>
+        <div id="source-list" class="source-list"></div>
+      </section>
+
+      <div class="privacy-note">
+        <span aria-hidden="true">⌾</span>
+        <p><b>只在这台设备处理</b><br>粘贴的数据不会上传服务器。</p>
+      </div>
+    </aside>
+
+    <section class="stage-panel" aria-labelledby="stage-title">
+      <div class="stage-toolbar">
+        <div>
+          <span class="live-dot" aria-hidden="true"></span>
+          <span id="stage-title">编辑信号</span>
+          <small id="save-status" role="status">已自动保存</small>
+        </div>
+        <div class="stage-meta" aria-label="画布规格">
+          <span>12 COL</span><span>1440 × AUTO</span><span id="stage-theme-label">OCEAN</span>
+        </div>
+      </div>
+
+      <div class="stage-scroller" id="stage-scroller">
+        <div class="stage-frame">
+          <div class="corner-mark" aria-hidden="true">↘</div>
+          <div class="column-ruler" aria-hidden="true">
+            <span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span>
+            <span>07</span><span>08</span><span>09</span><span>10</span><span>11</span><span>12</span>
+          </div>
+          <div class="row-ruler" aria-hidden="true"><span>00</span><span>04</span><span>08</span><span>12</span><span>16</span></div>
+          <div id="stage" class="dashboard-stage" tabindex="-1" aria-label="大屏编辑画布"></div>
+        </div>
+      </div>
+
+      <div class="stage-help">
+        <span><kbd>拖拽</kbd> 移动组件</span>
+        <span><kbd>↑↓←→</kbd> 微调</span>
+        <span><kbd>Del</kbd> 删除</span>
+        <span><kbd>Ctrl Z</kbd> 撤销</span>
+      </div>
+    </section>
+
+    <aside id="inspector" class="inspector panel" aria-labelledby="inspector-title">
+      <div class="panel-heading">
+        <div><span class="section-code">C / 调音台</span><h2 id="inspector-title">组件设置</h2></div>
+        <button id="close-inspector" class="icon-button mobile-only" type="button" aria-label="关闭组件设置">×</button>
+      </div>
+      <div id="inspector-content"></div>
+    </aside>
+  </main>
+
+  <button id="mobile-inspector-button" class="mobile-inspector-button" type="button" hidden>调整选中组件</button>
+  <button id="exit-preview-button" class="exit-preview-button" type="button">退出预览 <kbd>Esc</kbd></button>
+
+  <dialog id="source-dialog" class="editor-dialog" aria-labelledby="source-dialog-title">
+    <form id="source-form" method="dialog">
+      <div class="dialog-heading">
+        <div><span class="section-code">DATA INPUT</span><h2 id="source-dialog-title">接入一组本地数据</h2></div>
+        <button class="dialog-close" type="button" data-close-dialog aria-label="关闭">×</button>
+      </div>
+      <label class="field full-field">
+        <span>数据源名称</span>
+        <input id="source-name" maxlength="40" value="新数据源" required autocomplete="off">
+      </label>
+      <fieldset class="format-options">
+        <legend>数据格式</legend>
+        <label><input type="radio" name="source-format" value="json" checked> JSON 数组</label>
+        <label><input type="radio" name="source-format" value="csv"> CSV 表格</label>
+      </fieldset>
+      <label class="field full-field">
+        <span>粘贴数据</span>
+        <textarea id="source-input" rows="10" spellcheck="false" required></textarea>
+      </label>
+      <div id="source-error" class="form-error" role="alert"></div>
+      <div class="dialog-actions">
+        <button class="quiet-button" type="button" data-close-dialog>取消</button>
+        <button class="primary-button" type="submit">解析并接入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input id="import-input" type="file" accept="application/json,.json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="dashboard-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

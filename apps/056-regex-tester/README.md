@@ -62,4 +62,3 @@ node --check apps/056-regex-tester/app.js
 - `styles.css`：Pattern Lab 实验台视觉、匹配检验带和响应式布局
 - `regex-core.js`：可独立测试的正则领域逻辑
 - `app.js`：页面状态、实时检验、联动和本地持久化
-

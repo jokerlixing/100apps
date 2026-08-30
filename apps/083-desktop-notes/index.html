@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#18324a">
+  <meta name="description" content="TACK/83 是一个本地优先的 Electron 桌面便签应用，支持始终置顶、紧凑窗口、搜索归档与 JSON 备份。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>TACK/83 · 桌面便签</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#noteBody">跳到当前便签</a>
+
+  <header class="app-bar">
+    <div class="brand" aria-label="TACK 83 桌面便签">
+      <span class="brand-mark" aria-hidden="true"><i></i></span>
+      <span class="brand-copy"><strong>TACK/83</strong><small>桌面快记台</small></span>
+    </div>
+    <div class="runtime-status">
+      <span class="runtime-dot" aria-hidden="true"></span>
+      <span id="runtimeLabel">正在检查运行环境</span>
+    </div>
+    <div class="window-actions" aria-label="窗口控制">
+      <button class="control-button pin-window" id="alwaysOnTopButton" type="button" aria-label="始终置顶" aria-pressed="false">
+        <span class="pin-icon" aria-hidden="true"></span>
+        <span class="wide-label">始终置顶</span>
+      </button>
+      <button class="control-button" id="compactButton" type="button" aria-label="紧凑模式" aria-pressed="false">
+        <span aria-hidden="true">↙</span>
+        <span class="wide-label">紧凑模式</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <aside class="library" aria-label="便签匣">
+      <div class="library-heading">
+        <div>
+          <p class="eyebrow">NOTE DRAWER</p>
+          <h1>便签匣</h1>
+        </div>
+        <span class="note-count" id="noteCount" aria-live="polite">0 张</span>
+      </div>
+
+      <label class="search-box" for="searchInput">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="搜索标题或正文" maxlength="200">
+        <kbd>Ctrl F</kbd>
+      </label>
+
+      <div class="scope-tabs" role="group" aria-label="筛选便签">
+        <button type="button" class="scope-tab is-active" data-scope="active" aria-pressed="true">全部</button>
+        <button type="button" class="scope-tab" data-scope="pinned" aria-pressed="false">固定</button>
+        <button type="button" class="scope-tab" data-scope="archived" aria-pressed="false">归档</button>
+      </div>
+
+      <div class="note-list" id="noteList" role="list" aria-label="便签列表"></div>
+
+      <div class="library-empty" id="listEmpty" hidden>
+        <strong>没有找到便签</strong>
+        <span>换个关键词，或新建一张。</span>
+      </div>
+
+      <div class="library-footer">
+        <button class="new-note-button" id="newNoteButton" type="button">
+          <span aria-hidden="true">＋</span> 新建便签 <kbd>Ctrl N</kbd>
+        </button>
+        <div class="data-actions">
+          <button type="button" id="importButton">导入</button>
+          <button type="button" id="exportButton">导出备份</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </aside>
+
+    <section class="workspace" aria-label="便签编辑台">
+      <div class="desk-rail">
+        <div class="rail-groove" aria-hidden="true"></div>
+        <div class="rail-copy">
+          <span>DESK RAIL / LOCAL ONLY</span>
+          <span id="saveStatus" role="status">已保存在本机</span>
+        </div>
+      </div>
+
+      <div class="empty-workspace" id="workspaceEmpty" hidden>
+        <span class="empty-tack" aria-hidden="true"></span>
+        <h2>便签匣暂时是空的</h2>
+        <p>新建一张，把下一步留在桌面上。</p>
+        <button type="button" id="emptyNewButton">新建第一张便签</button>
+      </div>
+
+      <article class="note-sheet" id="noteSheet" data-color="yellow">
+        <span class="sheet-tack" id="sheetTack" aria-hidden="true"></span>
+        <header class="note-toolbar">
+          <div class="note-identity">
+            <label class="sr-only" for="noteTitle">便签标题</label>
+            <input id="noteTitle" class="note-title" maxlength="80" autocomplete="off" value="无标题便签">
+            <span class="updated-time" id="updatedTime">刚刚更新</span>
+          </div>
+          <div class="note-actions" aria-label="当前便签操作">
+            <button id="pinNoteButton" type="button" aria-pressed="false" title="固定到列表顶部">固定</button>
+            <button id="duplicateButton" type="button" title="复制便签">复制</button>
+            <button id="archiveButton" type="button">归档</button>
+            <button class="danger-action" id="deleteButton" type="button">删除</button>
+          </div>
+        </header>
+
+        <div class="color-row">
+          <span>纸张</span>
+          <div class="color-swatches" role="group" aria-label="便签颜色">
+            <button type="button" class="color-swatch yellow" data-color="yellow" aria-label="索引黄" aria-pressed="true"></button>
+            <button type="button" class="color-swatch blue" data-color="blue" aria-label="蓝图蓝" aria-pressed="false"></button>
+            <button type="button" class="color-swatch mint" data-color="mint" aria-label="标签青" aria-pressed="false"></button>
+            <button type="button" class="color-swatch coral" data-color="coral" aria-label="校对珊瑚" aria-pressed="false"></button>
+            <button type="button" class="color-swatch lilac" data-color="lilac" aria-label="档案紫" aria-pressed="false"></button>
+          </div>
+          <span class="local-mark">LOCAL / AUTO SAVE</span>
+        </div>
+
+        <label class="sr-only" for="noteBody">便签正文</label>
+        <textarea id="noteBody" maxlength="20000" spellcheck="true" placeholder="在这里写下下一步……"></textarea>
+
+        <footer class="note-footer">
+          <span id="noteStats">0 字 · 1 行</span>
+          <span id="privacyHint">内容不会离开这台设备</span>
+        </footer>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="note-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

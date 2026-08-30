@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172238">
+  <meta name="description" content="ROOM/93 团队协作白板：模板、便签、跨标签同步与本地导出。">
+  <title>ROOM/93 · 团队协作白板</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <h1 class="sr-only">ROOM/93 团队协作白板</h1>
+      <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge 追踪器">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>ROOM</strong><small>/ 93</small></span>
+      </a>
+
+      <label class="board-title-wrap">
+        <span class="sr-only">白板名称</span>
+        <input id="boardTitle" class="board-title" maxlength="80" value="ROOM/93 产品启动会" aria-label="白板名称">
+        <span id="saveState" class="save-state" aria-live="polite"><i></i> 已保存到本机</span>
+      </label>
+
+      <div class="topbar-actions">
+        <div id="memberStack" class="member-stack" aria-label="在线成员"></div>
+        <button id="roomButton" class="button ghost room-button" type="button" aria-label="切换协作房间">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span id="roomLabel">ROOM-93</span>
+        </button>
+        <button id="shareButton" class="button ghost" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8.6 12.9 15.4 9m-6.8 2.1 6.8 3.9M18 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm12 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></svg>
+          邀请
+        </button>
+        <div class="export-wrap">
+          <button id="exportButton" class="button primary" type="button" aria-haspopup="menu" aria-expanded="false">
+            导出白板
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>
+          </button>
+          <div id="exportMenu" class="export-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-export="png"><b>PNG 快照</b><span>适合汇报与分享</span></button>
+            <button type="button" role="menuitem" data-export="json"><b>JSON 备份</b><span>保留可编辑对象</span></button>
+            <button type="button" role="menuitem" id="importButton"><b>导入白板</b><span>读取 ROOM/93 备份</span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <aside class="template-rail" aria-label="模板与房间信息">
+      <section class="rail-section">
+        <div class="section-heading">
+          <div><span>STARTING POINT</span><h2>模板架</h2></div>
+          <button id="collapseRail" class="icon-button rail-collapse" type="button" aria-label="收起模板架" title="收起模板架">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m14 7-5 5 5 5"/></svg>
+          </button>
+        </div>
+        <div id="templateList" class="template-list"></div>
+      </section>
+
+      <section class="rail-section room-card">
+        <div class="room-card-top"><span class="eyebrow">LIVE ROOM</span><span class="signal-bars" aria-hidden="true"><i></i><i></i><i></i></span></div>
+        <strong id="roomCodeCard">ROOM-93</strong>
+        <p>同一浏览器打开相同房间码，即可实时同步。</p>
+        <button id="openSecondTab" class="text-button" type="button">打开协作标签页 ↗</button>
+      </section>
+
+      <section class="rail-section board-facts" aria-label="白板统计">
+        <div><span>对象</span><strong id="objectCount">0</strong></div>
+        <div><span>修订</span><strong id="revisionCount">0</strong></div>
+        <div><span>当前模板</span><strong id="templateName">空白</strong></div>
+      </section>
+
+      <div class="boundary-note">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.2c0 4.6 3.2 8.8 7.5 9.8 4.3-1 7.5-5.2 7.5-9.8V6L12 3Zm0 4v10m-3-3 3 3 3-3"/></svg>
+        <p><b>数据留在这里</b><br>白板只保存在当前浏览器，不上传第三方。</p>
+      </div>
+    </aside>
+
+    <main class="workspace" aria-label="协作白板工作区">
+      <div class="toolstrip" role="toolbar" aria-label="白板工具">
+        <button class="tool active" type="button" data-tool="select" aria-pressed="true" title="选择 (V)">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 3 13 9-6 1.5L9 19 5 3Z"/></svg><span>选择</span>
+        </button>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <button class="tool" type="button" data-add="sticky" title="便签 (N)">
+          <span class="sticky-icon" aria-hidden="true"></span><span>便签</span>
+        </button>
+        <button class="tool" type="button" data-add="text" title="文本 (T)">
+          <span class="letter-icon" aria-hidden="true">T</span><span>文本</span>
+        </button>
+        <button class="tool" type="button" data-add="shape" title="形状 (S)">
+          <span class="shape-icon" aria-hidden="true"></span><span>形状</span>
+        </button>
+        <button class="tool" type="button" data-tool="connector" aria-pressed="false" title="连接线 (C)">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h4m6 10h4M9 7c5 0 1 10 6 10"/><circle cx="4" cy="7" r="2"/><circle cx="20" cy="17" r="2"/></svg><span>连线</span>
+        </button>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <button id="undoButton" class="tool icon-only" type="button" title="撤销 (Ctrl+Z)" disabled>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 7-5 5 5 5m-5-5h9a6 6 0 0 1 6 6"/></svg><span class="sr-only">撤销</span>
+        </button>
+        <button id="redoButton" class="tool icon-only" type="button" title="重做 (Ctrl+Shift+Z)" disabled>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 7 5 5-5 5m5-5h-9a6 6 0 0 0-6 6"/></svg><span class="sr-only">重做</span>
+        </button>
+      </div>
+
+      <div id="connectionHint" class="connection-hint" hidden>选择第一个对象作为起点</div>
+
+      <div id="boardViewport" class="board-viewport" tabindex="0" aria-label="白板画布，可滚动查看">
+        <div id="boardStage" class="board-stage">
+          <div class="coordinate x-coordinate" aria-hidden="true"><span>000</span><span>400</span><span>800</span><span>1200</span><span>1600</span></div>
+          <div class="coordinate y-coordinate" aria-hidden="true"><span>000</span><span>250</span><span>500</span><span>750</span><span>1000</span></div>
+          <svg id="connectorLayer" class="connector-layer" viewBox="0 0 1600 1000" aria-hidden="true">
+            <defs>
+              <marker id="arrowInk" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z"/></marker>
+              <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z"/></marker>
+              <marker id="arrowCoral" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z"/></marker>
+            </defs>
+          </svg>
+          <div id="objectLayer" class="object-layer"></div>
+          <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
+          <div class="stage-stamp" aria-hidden="true"><b>ROOM/93</b><span>LOCAL-FIRST BOARD</span></div>
+        </div>
+      </div>
+
+      <div class="zoom-dock" aria-label="缩放控制">
+        <button id="zoomOut" type="button" aria-label="缩小">−</button>
+        <button id="zoomReset" type="button" aria-label="恢复 100%"><span id="zoomLabel">100%</span></button>
+        <button id="zoomIn" type="button" aria-label="放大">＋</button>
+        <span></span>
+        <button id="fitBoard" type="button" aria-label="适合屏幕" title="适合屏幕">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/></svg>
+        </button>
+      </div>
+
+      <div class="keyboard-tip"><kbd>V</kbd> 选择 · <kbd>N</kbd> 便签 · <kbd>⌘/Ctrl Z</kbd> 撤销</div>
+    </main>
+
+    <aside id="inspector" class="inspector" aria-label="对象检查器">
+      <div class="inspector-empty" id="inspectorEmpty">
+        <span class="target-glyph" aria-hidden="true"><i></i></span>
+        <h2>选择一个对象</h2>
+        <p>在画布上选择便签、文字或形状，在这里精确调整内容与样式。</p>
+        <div class="shortcut-grid">
+          <span><kbd>双击</kbd> 编辑文字</span>
+          <span><kbd>Del</kbd> 删除对象</span>
+          <span><kbd>Ctrl D</kbd> 创建副本</span>
+        </div>
+      </div>
+
+      <form id="inspectorForm" class="inspector-form" hidden>
+        <div class="inspector-heading">
+          <div><span id="selectedType" class="eyebrow">STICKY NOTE</span><h2>对象检查器</h2></div>
+          <button id="closeInspector" class="icon-button" type="button" aria-label="取消选择"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <label class="field-label" for="objectText">内容</label>
+        <textarea id="objectText" rows="5" maxlength="2000"></textarea>
+
+        <fieldset class="color-field">
+          <legend>颜色</legend>
+          <div class="color-row">
+            <label title="便签黄"><input type="radio" name="objectColor" value="yellow"><span class="swatch yellow"></span></label>
+            <label title="蓝图蓝"><input type="radio" name="objectColor" value="blue"><span class="swatch blue"></span></label>
+            <label title="薄荷绿"><input type="radio" name="objectColor" value="mint"><span class="swatch mint"></span></label>
+            <label title="审阅红"><input type="radio" name="objectColor" value="coral"><span class="swatch coral"></span></label>
+            <label title="纸白"><input type="radio" name="objectColor" value="paper"><span class="swatch paper"></span></label>
+            <label title="墨蓝"><input type="radio" name="objectColor" value="ink"><span class="swatch ink"></span></label>
+          </div>
+        </fieldset>
+
+        <div class="field-pair">
+          <label><span>X</span><input id="objectX" type="number" step="1"></label>
+          <label><span>Y</span><input id="objectY" type="number" step="1"></label>
+        </div>
+        <div class="field-pair">
+          <label><span>宽</span><input id="objectWidth" type="number" min="80" max="1000" step="1"></label>
+          <label><span>高</span><input id="objectHeight" type="number" min="52" max="800" step="1"></label>
+        </div>
+
+        <div id="shapeOptions" class="shape-options" hidden>
+          <label class="field-label" for="shapeSelect">形状</label>
+          <select id="shapeSelect"><option value="rectangle">直角卡片</option><option value="round">圆角卡片</option><option value="pill">胶囊</option></select>
+        </div>
+
+        <div class="layer-actions">
+          <button type="button" id="bringForward">上移一层</button>
+          <button type="button" id="sendBackward">下移一层</button>
+        </div>
+        <div class="danger-actions">
+          <button type="button" id="duplicateObject">创建副本</button>
+          <button type="button" id="deleteObject" class="danger">删除对象</button>
+        </div>
+      </form>
+    </aside>
+  </div>
+
+  <dialog id="roomDialog" class="dialog-card">
+    <form method="dialog" id="roomForm">
+      <button class="dialog-close" value="cancel" aria-label="关闭"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <span class="dialog-index">ROOM SWITCH / 93</span>
+      <h2>进入协作房间</h2>
+      <p>输入同一个房间码，在当前浏览器的多个标签页之间实时同步白板。</p>
+      <label for="roomInput">房间码</label>
+      <input id="roomInput" name="room" maxlength="24" autocomplete="off" spellcheck="false" placeholder="例如：TEAM-ALPHA">
+      <div class="dialog-note"><b>协作边界</b>：这是本地演示，不会跨浏览器、设备或公网同步。</div>
+      <div class="dialog-actions"><button class="button ghost" value="cancel">取消</button><button class="button primary" value="default">进入房间</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="templateDialog" class="dialog-card compact">
+    <form method="dialog" id="templateForm">
+      <span class="dialog-index">NEW BOARD / 93</span>
+      <h2>更换为 <span id="pendingTemplateName">新模板</span>？</h2>
+      <p>当前白板会先保存在本机，然后替换为所选模板。你仍可立即撤销这次操作。</p>
+      <div class="dialog-actions"><button class="button ghost" value="cancel">保留当前白板</button><button class="button primary" value="default">使用模板</button></div>
+    </form>
+  </dialog>
+
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="liveRegion" class="sr-only" aria-live="polite"></div>
+
+  <script src="./board-core.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#edf1f3">
+  <meta name="description" content="SPEC/55 JSON 格式化工具：本地格式化、压缩、错误定位，以及可搜索折叠的 JSON 树。">
+  <title>SPEC/55 · JSON 格式化工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#jsonInput">跳到 JSON 输入区</a>
+
+  <div class="page-shell">
+    <header class="masthead">
+      <div class="brand-lockup">
+        <a class="challenge-link" href="../../" aria-label="返回 100 Apps 挑战首页">
+          <span class="brand-code">SPEC</span>
+          <span class="brand-index">/55</span>
+        </a>
+        <p class="station-label">JSON specimen station · 数据标本台</p>
+      </div>
+
+      <div class="masthead-copy">
+        <p class="eyebrow">VALIDATE · ARRANGE · TRACE</p>
+        <h1>把一团 JSON，<br>摊成可以追踪的结构。</h1>
+        <p class="intro-copy">格式化、压缩、定位语法错误，再沿着路径检查每一个节点。内容只在当前浏览器处理。</p>
+      </div>
+
+      <div class="intake-actions" aria-label="输入快捷操作">
+        <button class="utility-button" id="sampleButton" type="button">
+          <span aria-hidden="true">⌁</span>
+          装入示例
+        </button>
+        <label class="utility-button file-button" for="fileInput">
+          <span aria-hidden="true">↥</span>
+          打开文件
+        </label>
+        <input id="fileInput" type="file" accept=".json,application/json,text/json,text/plain" hidden>
+        <button class="utility-button clear-button" id="clearButton" type="button">
+          <span aria-hidden="true">×</span>
+          <span id="clearButtonText">清空</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workbench" id="workbench">
+      <section class="bench-panel editor-panel" aria-labelledby="editorHeading">
+        <header class="panel-heading">
+          <div>
+            <p class="panel-code">A · RAW SPECIMEN</p>
+            <h2 id="editorHeading">原始数据</h2>
+          </div>
+          <div class="panel-readout" aria-label="输入统计">
+            <span id="lineReadout">1 行</span>
+            <span id="charReadout">0 字符</span>
+          </div>
+        </header>
+
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-instruction" id="dropInstruction" aria-hidden="true">
+            <span>↧</span>
+            <strong>松开以检查这份 JSON</strong>
+            <small>最大 2 MB</small>
+          </div>
+          <div class="editor-frame">
+            <pre class="line-gutter" id="lineGutter" aria-hidden="true">1</pre>
+            <textarea
+              id="jsonInput"
+              aria-label="JSON 原始内容"
+              aria-describedby="inputHint validationDetail"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              wrap="off"
+              placeholder="在这里粘贴 JSON，或拖入 .json 文件…"
+            ></textarea>
+          </div>
+        </div>
+
+        <p class="input-hint" id="inputHint">支持标准 JSON；键名必须用双引号，不支持注释或尾随逗号。</p>
+
+        <section class="validation-card is-empty" id="validationCard" aria-labelledby="validationTitle">
+          <div class="validation-seal" id="validationSeal" aria-hidden="true">WAIT</div>
+          <div class="validation-copy">
+            <p class="validation-kicker" id="validationKicker">等待样本</p>
+            <h3 id="validationTitle">输入 JSON 后自动校验</h3>
+            <p id="validationDetail" role="status">粘贴文本、打开文件，或先装入示例。</p>
+          </div>
+          <button class="jump-error-button" id="jumpErrorButton" type="button" hidden>定位到错误</button>
+          <pre class="error-context" id="errorContext" hidden></pre>
+        </section>
+
+        <div class="editor-toolbar" aria-label="JSON 整理操作">
+          <div class="indent-control" role="group" aria-label="格式化缩进">
+            <span>缩进</span>
+            <button type="button" data-indent="2" class="is-active" aria-pressed="true">2</button>
+            <button type="button" data-indent="4" aria-pressed="false">4</button>
+          </div>
+          <button class="action-button primary-action" id="formatButton" type="button" disabled>
+            <span aria-hidden="true">≡</span>
+            格式化
+          </button>
+          <button class="action-button" id="minifyButton" type="button" disabled>压缩</button>
+          <button class="action-button" id="copyButton" type="button" disabled>复制</button>
+          <button class="action-button" id="downloadButton" type="button" disabled>下载</button>
+        </div>
+      </section>
+
+      <aside class="status-spine" aria-label="JSON 校验状态">
+        <span class="spine-cap">IN</span>
+        <span class="spine-rule" aria-hidden="true"></span>
+        <span class="spine-status is-empty" id="spineStatus">待校验</span>
+        <span class="spine-rule" aria-hidden="true"></span>
+        <span class="spine-cap">OUT</span>
+      </aside>
+
+      <section class="bench-panel tree-panel" aria-labelledby="treeHeading">
+        <header class="panel-heading tree-heading">
+          <div>
+            <p class="panel-code">B · STRUCTURE MAP</p>
+            <h2 id="treeHeading">结构树</h2>
+          </div>
+          <div class="tree-actions" role="group" aria-label="树形展开操作">
+            <button id="expandAllButton" type="button" disabled>全部展开</button>
+            <button id="collapseAllButton" type="button" disabled>全部收起</button>
+          </div>
+        </header>
+
+        <dl class="stats-strip" aria-label="JSON 结构统计">
+          <div><dt>节点</dt><dd id="statNodes">—</dd></div>
+          <div><dt>深度</dt><dd id="statDepth">—</dd></div>
+          <div><dt>叶值</dt><dd id="statLeaves">—</dd></div>
+          <div><dt>体积</dt><dd id="statSize">—</dd></div>
+        </dl>
+
+        <form class="tree-search" id="treeSearchForm" role="search">
+          <label for="treeSearch">搜索键名或值</label>
+          <div class="search-entry">
+            <span aria-hidden="true">⌕</span>
+            <input id="treeSearch" type="search" autocomplete="off" placeholder="例如：user / true / 55" disabled>
+            <span class="search-count" id="searchCount">0</span>
+            <button id="nextMatchButton" type="button" disabled>下一个</button>
+          </div>
+        </form>
+
+        <div class="tree-stage" id="treeStage">
+          <div class="tree-empty" id="treeEmpty">
+            <div class="empty-specimen" aria-hidden="true">
+              <span>{</span>
+              <i></i>
+              <i></i>
+              <span>}</span>
+            </div>
+            <strong>结构尚未装片</strong>
+            <p>有效 JSON 会在这里展开成可以搜索和折叠的路径。</p>
+          </div>
+          <div class="tree-root" id="treeRoot" role="tree" aria-label="JSON 结构树" hidden></div>
+        </div>
+
+        <section class="path-inspector" aria-labelledby="pathHeading">
+          <div class="path-label-row">
+            <div>
+              <p class="panel-code">SELECTED PATH</p>
+              <h3 id="pathHeading">节点路径</h3>
+            </div>
+            <span class="type-chip" id="selectedType">—</span>
+          </div>
+          <code id="selectedPath">$</code>
+          <p id="selectedPreview">选择树中的节点即可读取路径。</p>
+          <button id="copyPathButton" type="button" disabled>复制 JSONPath</button>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>SPEC/55</strong> · 标准 JSON 本地检验台</p>
+      <p>不上传内容 · 草稿最大保存 250 KB · 文件最大 2 MB</p>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="announcer" aria-live="polite"></div>
+
+  <script src="json-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

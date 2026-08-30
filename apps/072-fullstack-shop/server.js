@@ -225,4 +225,3 @@ if (require.main === module) {
 }
 
 module.exports = { createShopServer, createOrderRepository, resolvePublicFile };
-

@@ -92,4 +92,3 @@ node apps/072-fullstack-shop/qa/browser-smoke.mjs
 - Node.js 内置 HTTP 与 File API
 - JSON 文件订单仓库、localStorage、原生 `<dialog>`
 - `node:test` 与 Chrome DevTools Protocol 浏览器验收
-

@@ -170,4 +170,3 @@ test('restores persisted orders and hides malformed store details behind a stabl
     assert.doesNotMatch(JSON.stringify(payload), /counter72-|orders\.json|SyntaxError/);
   } finally { await broken.close(); }
 }));
-

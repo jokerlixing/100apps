@@ -139,4 +139,3 @@ test('allows only the documented fulfillment transitions', () => {
   assert.equal(next.updatedAt, '2026-08-31T03:00:00.000Z');
   assert.throws(() => transitionOrder(next, 'cancelled'), { code: 'INVALID_TRANSITION' });
 });
-

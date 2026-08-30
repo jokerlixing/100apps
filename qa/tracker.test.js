@@ -141,3 +141,14 @@ test('app 067 is published and included in the official completion state', () =>
   assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
   assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
 });
+
+test('app 072 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app72 = ideas[71];
+
+  assert.equal(app72[0], '全栈电商 Demo');
+  assert.match(app72[1], /^COUNTER\/72/);
+  assert.equal(app72[3], 'https://jokerlixing.github.io/100apps/apps/072-fullstack-shop/');
+  assert.equal(doneIds.has(72), true, 'INIT_DONE must mark app 072 as done');
+});

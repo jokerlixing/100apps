@@ -440,6 +440,6 @@
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeTicket(); });
 
   renderAll();
+  document.body.classList.add('ready');
   detectMode();
 })();
-

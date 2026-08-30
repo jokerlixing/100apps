@@ -226,7 +226,7 @@ const IDEAS=[
 ["RSS阅读器","DIAL/45：RSS/Atom订阅+聚合+已读追踪","3","https://jokerlixing.github.io/100apps/apps/045-rss-reader/"],
 ["在线测验系统","SCAN/46：本地题库组卷+限时答题+错题复盘","3","https://jokerlixing.github.io/100apps/apps/046-online-quiz/"],
 ["拼图小游戏","SHIFT/47：可解滑块拼图+本地图片+计时纪录","3","https://jokerlixing.github.io/100apps/apps/047-sliding-puzzle/"],
-["键盘钢琴","Web Audio按键演奏+录制回放","3"],
+["键盘钢琴","TAPE/48：双八度演奏+磁带时间轴+录制回放","3","https://jokerlixing.github.io/100apps/apps/048-keyboard-piano/"],
 ["屏幕录制工具","MediaRecorder录屏+下载","3"],
 ["局域网文件快传","设备间互传文件，二维码直连","3"],
 ["股票自选行情","实时行情刷新+K线图绘制","3"],
@@ -283,7 +283,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

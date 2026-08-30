@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#182438">
+  <meta name="description" content="TAPE/48 浏览器键盘钢琴：两组八度、三种音色、录制回放与本地保存。">
+  <title>TAPE/48 · 键盘钢琴</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#pianoKeys">跳到琴键</a>
+  <div class="signal-strip" aria-hidden="true">
+    <span>REC</span><i></i><span>TAKE 048</span><i></i><span>C4—B5</span><i></i><span>LOCAL SESSION</span>
+  </div>
+
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps 挑战首页">
+      <strong>TAPE<span>/48</span></strong>
+      <small>Browser rehearsal recorder</small>
+    </a>
+    <div class="audio-readout" role="status" aria-live="polite">
+      <span class="audio-lamp" aria-hidden="true"></span>
+      <div>
+        <small>AUDIO ENGINE</small>
+        <strong id="audioState">等待首次按键</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="machine">
+    <section class="intro-console" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">APP 048 · TWO OCTAVES · ZERO SAMPLES</p>
+        <h1 id="pageTitle">把此刻，<br><em>录成一卷。</em></h1>
+        <p class="lede">用电脑键盘、鼠标或触屏直接演奏。按下录制，让每个音符留在磁带上，再把这一遍完整放回来。</p>
+        <div class="quick-map" aria-label="电脑键位摘要">
+          <span>低八度 <b>Z—M</b></span>
+          <span>高八度 <b>Q—U</b></span>
+          <span>升音 <b>S D G H J / 2 3 5 6 7</b></span>
+        </div>
+      </div>
+
+      <section class="sound-panel" aria-labelledby="soundTitle">
+        <div class="panel-heading">
+          <div>
+            <span>VOICE MODULE</span>
+            <h2 id="soundTitle">选择这一遍的声音</h2>
+          </div>
+          <span class="panel-code">SYNTH—03</span>
+        </div>
+
+        <div class="voice-switch" id="voiceSwitch" aria-label="音色选择">
+          <button type="button" class="voice-option is-active" data-instrument="piano" aria-pressed="true">
+            <span>01</span><strong>纸槌钢琴</strong><small>短促 · 温暖</small>
+          </button>
+          <button type="button" class="voice-option" data-instrument="electric" aria-pressed="false">
+            <span>02</span><strong>电光键盘</strong><small>清亮 · 颤音</small>
+          </button>
+          <button type="button" class="voice-option" data-instrument="organ" aria-pressed="false">
+            <span>03</span><strong>房间风琴</strong><small>持续 · 厚实</small>
+          </button>
+        </div>
+
+        <div class="knob-row">
+          <label class="volume-control" for="volume">
+            <span><b>主音量</b><output id="volumeValue" for="volume">72%</output></span>
+            <input id="volume" type="range" min="0" max="100" value="72">
+          </label>
+          <label class="sustain-switch" for="sustain">
+            <span><b>延音踏板</b><small id="sustainState">已抬起</small></span>
+            <input id="sustain" type="checkbox">
+            <i aria-hidden="true"></i>
+          </label>
+        </div>
+      </section>
+    </section>
+
+    <section class="cassette-deck" aria-labelledby="deckTitle">
+      <div class="deck-topline">
+        <div>
+          <span>MEMORY CASSETTE</span>
+          <h2 id="deckTitle">最近一遍</h2>
+        </div>
+        <div class="deck-status">
+          <span id="deckMode">READY</span>
+          <time id="timecode">00:00.0</time>
+        </div>
+      </div>
+
+      <div class="tape-window" id="tapeWindow">
+        <div class="reel reel-left" aria-hidden="true"><i></i></div>
+        <div class="timeline-shell">
+          <div class="timeline-grid" id="timeline" aria-label="录音音符时间轴">
+            <div class="timeline-segments" id="timelineSegments"></div>
+            <div class="playhead" id="playhead" aria-hidden="true"></div>
+            <p class="timeline-empty" id="timelineEmpty">按下录制，再弹第一颗音</p>
+          </div>
+          <div class="tape-scale" aria-hidden="true"><span>START</span><i></i><i></i><i></i><span>END</span></div>
+        </div>
+        <div class="reel reel-right" aria-hidden="true"><i></i></div>
+      </div>
+
+      <div class="transport" aria-label="录音控制">
+        <button type="button" class="transport-btn record-btn" id="recordBtn"><i aria-hidden="true"></i><span>录制</span><kbd>F8</kbd></button>
+        <button type="button" class="transport-btn" id="stopBtn" disabled><i class="stop-icon" aria-hidden="true"></i><span>停止</span><kbd>Esc</kbd></button>
+        <button type="button" class="transport-btn play-btn" id="playBtn" disabled><i class="play-icon" aria-hidden="true"></i><span id="playLabel">回放</span><kbd>Space</kbd></button>
+        <button type="button" class="transport-btn clear-btn" id="clearBtn" disabled><i aria-hidden="true">×</i><span id="clearLabel">清空</span><kbd>Del</kbd></button>
+      </div>
+      <p class="deck-message" id="deckMessage" aria-live="polite">还没有录音。你可以先试弹，再开始录制。</p>
+    </section>
+
+    <section class="keyboard-station" aria-labelledby="keyboardTitle">
+      <div class="keyboard-heading">
+        <div>
+          <span>LIVE KEYBED · 24 NOTES</span>
+          <h2 id="keyboardTitle">两组八度，随手开弹</h2>
+        </div>
+        <p><b>电脑：</b>按住键位发声，松开停止。<b>触屏：</b>按住琴键演奏；窄屏可横向滑动琴盘。</p>
+      </div>
+      <div class="keyboard-housing">
+        <div class="speaker-grille left" aria-hidden="true"></div>
+        <div class="keyboard-scroll" id="keyboardScroll" tabindex="0" aria-label="琴键区域，可横向滚动">
+          <div class="piano" id="pianoKeys" aria-label="C4 到 B5 键盘钢琴"></div>
+        </div>
+        <div class="speaker-grille right" aria-hidden="true"></div>
+      </div>
+      <div class="octave-legend" aria-hidden="true">
+        <span>LOW REGISTER · C4—B4</span>
+        <i></i>
+        <span>HIGH REGISTER · C5—B5</span>
+      </div>
+    </section>
+
+    <section class="session-notes" aria-label="使用提示">
+      <article><span>01</span><div><h2>第一次点击才会响</h2><p>浏览器要求由你的操作启动声音。第一次按键后，音频引擎会保持待命。</p></div></article>
+      <article><span>02</span><div><h2>录的是演奏，不是麦克风</h2><p>磁带只保存音符与时间，不读取麦克风，数据也不会离开这台设备。</p></div></article>
+      <article><span>03</span><div><h2>最近一遍会留下</h2><p>有效录音自动存进当前浏览器；再次打开页面仍可回放或清空。</p></div></article>
+    </section>
+  </main>
+
+  <footer>
+    <span>TAPE/48 · 100 APPS CHALLENGE</span>
+    <a href="../../">返回挑战追踪器 ↗</a>
+  </footer>
+
+  <script src="piano-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

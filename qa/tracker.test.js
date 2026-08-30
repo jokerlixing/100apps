@@ -141,3 +141,47 @@ test('app 067 is published and included in the official completion state', () =>
   assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
   assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
 });
+
+test('apps 068 through 072 are published in sequence and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const expected = [
+    [68, '智能客服机器人', /^RELAY\/68/, '068-customer-support'],
+    [69, 'AI面试模拟器', /^PANEL\/69/, '069-ai-interview'],
+    [70, 'AI口语陪练', /^TALKBACK\/70/, '070-ai-speaking-coach'],
+    [71, '情绪日记', /^TIDE\/71/, '071-emotion-diary'],
+    [72, '全栈电商 Demo', /^COUNTER\/72/, '072-fullstack-shop'],
+  ];
+
+  for (const [id, name, description, folder] of expected) {
+    const app = ideas[id - 1];
+    assert.equal(app[0], name);
+    assert.match(app[1], description);
+    assert.equal(app[3], `https://jokerlixing.github.io/100apps/apps/${folder}/`);
+    assert.equal(doneIds.has(id), true, `INIT_DONE must mark app ${id} as done`);
+  }
+});
+
+test('official completion state migrates a stale app 068 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:68,name:"智能客服机器人",desc:"旧说明",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^RELAY\/68/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/068-customer-support/');
+  assert.equal(context.result.didSave, true);
+});

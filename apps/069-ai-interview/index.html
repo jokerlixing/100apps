@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162536">
+  <meta name="description" content="PANEL/69：无需登录即可完成中文模拟面试、四维回答评分、针对性追问与逐题复盘。">
+  <title>PANEL/69 · AI 面试模拟器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到面试准备</a>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+        <span class="brand-seal" aria-hidden="true">P69</span>
+        <span>
+          <strong>PANEL/69</strong>
+          <small>INTERVIEW PRACTICE ROOM</small>
+        </span>
+      </a>
+      <div class="session-beam" aria-label="当前练习状态">
+        <span class="beam-light" id="beam-light" aria-hidden="true"></span>
+        <span>
+          <small>SESSION STATUS</small>
+          <strong id="session-status">候场 · 本地教练就绪</strong>
+        </span>
+      </div>
+      <button class="history-trigger" id="open-history" type="button">
+        最近复盘 <span id="history-count" aria-label="复盘数量">0</span>
+      </button>
+    </header>
+
+    <main id="main-content">
+      <section class="screen setup-screen is-active" id="setup-screen" aria-labelledby="setup-title">
+        <div class="setup-intro">
+          <p class="eyebrow">候场登记 / CANDIDATE CHECK-IN</p>
+          <h1 id="setup-title">把答案练到<br><em>经得起追问。</em></h1>
+          <p class="intro-copy">一轮真实节奏的中文模拟面试。先回答，再看证据；不评价表情，不猜测录用概率。</p>
+
+          <div class="interview-principles" aria-label="练习方式">
+            <div><span>01</span><strong>一次一题</strong><small>保持真实面试注意力</small></div>
+            <div><span>02</span><strong>四维证据</strong><small>切题、结构、证据、深度</small></div>
+            <div><span>03</span><strong>当场追问</strong><small>练到回答的薄弱处</small></div>
+          </div>
+
+          <aside class="resume-notice" id="resume-notice" hidden>
+            <p>发现一轮未完成练习</p>
+            <strong id="resume-title">前端工程师 · 第 1 题</strong>
+            <div>
+              <button id="resume-session" type="button">继续面试</button>
+              <button class="quiet-button" id="discard-session" type="button">放弃本轮</button>
+            </div>
+          </aside>
+        </div>
+
+        <form class="checkin-form" id="setup-form" novalidate>
+          <div class="form-heading">
+            <div>
+              <p>练习单 069-A</p>
+              <h2>设定这轮面试</h2>
+            </div>
+            <span aria-hidden="true">仅保存在本机</span>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>目标岗位</span>
+              <select id="role" name="role">
+                <option value="frontend">前端工程师</option>
+                <option value="backend">后端工程师</option>
+                <option value="product">产品经理</option>
+                <option value="data">数据分析师</option>
+                <option value="design">产品设计师</option>
+                <option value="operations">运营经理</option>
+              </select>
+            </label>
+
+            <label>
+              <span>经验阶段</span>
+              <select id="level" name="level">
+                <option value="junior">初级 · 0–2 年</option>
+                <option value="mid" selected>中级 · 3–5 年</option>
+                <option value="senior">资深 · 5 年以上</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="type-fieldset">
+            <legend>面试类型</legend>
+            <div class="type-options">
+              <label><input type="radio" name="type" value="comprehensive" checked><span><strong>综合面</strong><small>经历 + 专业 + 情境</small></span></label>
+              <label><input type="radio" name="type" value="technical"><span><strong>专业面</strong><small>岗位能力深挖</small></span></label>
+              <label><input type="radio" name="type" value="behavioral"><span><strong>行为面</strong><small>STAR 经历追问</small></span></label>
+              <label><input type="radio" name="type" value="case"><span><strong>情境面</strong><small>判断与取舍</small></span></label>
+            </div>
+          </fieldset>
+
+          <div class="form-grid compact-grid">
+            <label>
+              <span>题目数量</span>
+              <select id="question-count" name="questionCount">
+                <option value="3">3 题 · 快速热身</option>
+                <option value="5" selected>5 题 · 标准一轮</option>
+                <option value="6">6 题 · 深入练习</option>
+                <option value="8">8 题 · 完整模拟</option>
+              </select>
+            </label>
+            <label>
+              <span>重点能力 <small>选填，用逗号分隔</small></span>
+              <input id="focus" name="focus" type="text" maxlength="240" placeholder="例如：性能优化、跨团队沟通">
+            </label>
+          </div>
+
+          <label class="description-field">
+            <span>岗位描述 <small>选填，粘贴关键职责即可</small></span>
+            <textarea id="job-description" name="jobDescription" rows="4" maxlength="2400" placeholder="加入岗位描述后，本地评分会把重点能力纳入切题度参考。"></textarea>
+          </label>
+
+          <label class="ai-consent">
+            <input id="ai-enabled" name="aiEnabled" type="checkbox">
+            <span>
+              <strong>开启 AI 教练增强</strong>
+              <small>仅在服务器已配置时，将岗位描述、题目与本次回答发送给所配置的 AI 提供商。关闭时所有内容留在浏览器。</small>
+            </span>
+          </label>
+
+          <div class="checkin-preview" aria-live="polite">
+            <span>本轮题单</span>
+            <strong id="setup-preview">前端工程师 · 中级 · 综合面 · 5 题</strong>
+          </div>
+
+          <p class="form-error" id="setup-error" role="alert"></p>
+          <button class="start-button" type="submit">
+            <span>进入面试席</span>
+            <small>先生成本地题单，约 12 分钟</small>
+          </button>
+          <p class="local-note">评分只用于练习反馈，不代表真实面试评价或录用结果。</p>
+        </form>
+      </section>
+
+      <section class="screen interview-screen" id="interview-screen" aria-labelledby="question-title" hidden>
+        <div class="interview-statusbar">
+          <div>
+            <span id="question-progress">问题 1 / 5</span>
+            <div class="progress-track" aria-hidden="true"><i id="progress-fill"></i></div>
+          </div>
+          <div class="session-clock" aria-label="本轮已用时">
+            <small>ELAPSED</small>
+            <strong id="elapsed-time">00:00</strong>
+          </div>
+          <button class="end-button" id="end-session" type="button">提前结束</button>
+        </div>
+
+        <div class="interview-workspace">
+          <article class="question-stage">
+            <header class="interviewer-heading">
+              <div class="interviewer-avatar" aria-hidden="true"><span></span></div>
+              <div>
+                <p>模拟面试官 · PANEL A</p>
+                <strong id="interviewer-role">前端工程师面试</strong>
+              </div>
+              <span class="recording-mark"><i aria-hidden="true"></i> 练习中</span>
+            </header>
+
+            <div class="question-card">
+              <div class="question-meta">
+                <span id="question-category">专业问题</span>
+                <span id="question-source">本地题库</span>
+              </div>
+              <h2 id="question-title">请稍候，正在准备问题。</h2>
+              <button class="hint-button" id="show-hint" type="button" aria-expanded="false" aria-controls="hint-panel">给我一个思路</button>
+              <p class="hint-panel" id="hint-panel" hidden></p>
+            </div>
+
+            <div class="answer-station">
+              <label for="answer-input">你的回答</label>
+              <p id="answer-help">建议 120–500 字。先给结论，再说具体经历；系统不会分析摄像头或表情。</p>
+              <textarea id="answer-input" rows="9" maxlength="6000" aria-describedby="answer-help answer-error" placeholder="把这里当作口述草稿：我遇到的情况是……"></textarea>
+              <div class="answer-footer">
+                <span id="answer-count">0 / 6000</span>
+                <p class="field-error" id="answer-error" role="alert"></p>
+              </div>
+              <div class="answer-actions">
+                <button class="skip-button" id="skip-question" type="button">这题不会，先跳过</button>
+                <button class="submit-answer" id="submit-answer" type="button">提交回答并听追问</button>
+              </div>
+            </div>
+
+            <section class="feedback-sheet" id="feedback-sheet" aria-labelledby="feedback-title" hidden>
+              <header>
+                <div>
+                  <p>即时教练反馈</p>
+                  <h3 id="feedback-title">这段回答的证据</h3>
+                </div>
+                <strong class="answer-score"><span id="answer-score">0</span><small>/100</small></strong>
+              </header>
+              <div class="dimension-grid" id="dimension-grid"></div>
+              <div class="feedback-columns">
+                <section><h4>保留这些</h4><ul id="strength-list"></ul></section>
+                <section><h4>下一遍补上</h4><ul id="improvement-list"></ul></section>
+              </div>
+              <div class="followup-box">
+                <p>面试官追问</p>
+                <strong id="followup-question"></strong>
+                <label for="followup-input">补答 <small>选填，不重复评分</small></label>
+                <textarea id="followup-input" rows="3" maxlength="1600" placeholder="用一两句话补上缺口。"></textarea>
+              </div>
+              <button class="next-question" id="next-question" type="button">进入下一题</button>
+            </section>
+          </article>
+
+          <aside class="coach-rail" aria-labelledby="coach-rail-title">
+            <div class="rail-heading">
+              <div><p>COACH MONITOR</p><h2 id="coach-rail-title">回答磁带</h2></div>
+              <span id="answered-count">0 段</span>
+            </div>
+            <p class="rail-copy">每次提交都会留下真实用时和四维刻度。磁带越完整，复盘越有用。</p>
+            <ol class="tape-list" id="tape-list"></ol>
+            <div class="tape-empty" id="tape-empty">
+              <i aria-hidden="true"></i>
+              <span>等待第一段回答</span>
+            </div>
+            <div class="rail-legend">
+              <span><i class="good"></i> 75+</span>
+              <span><i class="mid"></i> 55–74</span>
+              <span><i class="low"></i> &lt;55</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen review-screen" id="review-screen" aria-labelledby="review-title" hidden>
+        <header class="review-hero">
+          <div>
+            <p class="eyebrow">复盘室 / SESSION DEBRIEF</p>
+            <h2 id="review-title">不是判分，<br><em>是找到下一遍。</em></h2>
+            <p id="review-meta">前端工程师 · 5 题 · 12:30</p>
+          </div>
+          <div class="summary-score">
+            <span>本轮练习分</span>
+            <strong id="summary-score">0</strong>
+            <em id="summary-label">需要打磨</em>
+          </div>
+        </header>
+
+        <div class="review-grid">
+          <section class="score-report" aria-labelledby="dimension-title">
+            <div class="section-heading"><p>01 / SCORECARD</p><h2 id="dimension-title">四维回答质量</h2></div>
+            <div class="summary-dimensions" id="summary-dimensions"></div>
+            <p class="summary-note" id="summary-note"></p>
+          </section>
+          <section class="next-actions-card" aria-labelledby="next-actions-title">
+            <div class="section-heading"><p>02 / NEXT ROUND</p><h2 id="next-actions-title">下一遍只做两件事</h2></div>
+            <ol id="next-actions"></ol>
+          </section>
+        </div>
+
+        <section class="transcript-section" aria-labelledby="transcript-title">
+          <div class="transcript-heading">
+            <div class="section-heading"><p>03 / ANSWER TAPE</p><h2 id="transcript-title">逐题证据回放</h2></div>
+            <button id="copy-report" type="button">复制复盘报告</button>
+          </div>
+          <div class="transcript-list" id="transcript-list"></div>
+        </section>
+
+        <div class="review-actions">
+          <button class="start-button" id="new-session" type="button"><span>再练一轮</span><small>返回候场重新设定</small></button>
+          <button class="quiet-button" id="review-history" type="button">查看最近复盘</button>
+        </div>
+        <p class="review-disclaimer">本地规则与可选 AI 反馈都可能遗漏语境。本结果只用于练习，不代表招聘方判断。</p>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="history-dialog" id="history-dialog" aria-labelledby="history-title">
+    <div class="dialog-heading">
+      <div><p>LOCAL ARCHIVE</p><h2 id="history-title">最近三轮复盘</h2></div>
+      <button class="icon-button" id="close-history" type="button" aria-label="关闭复盘历史">×</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+    <div class="dialog-actions">
+      <button class="danger-button" id="clear-history" type="button">清除全部本地复盘</button>
+      <button id="done-history" type="button">完成</button>
+    </div>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+    <p>LEAVE SESSION?</p>
+    <h2 id="confirm-title">现在结束这轮面试？</h2>
+    <span>已提交的回答会进入复盘，当前尚未提交的草稿不会计分。</span>
+    <div>
+      <button class="quiet-button" id="cancel-end" type="button">继续回答</button>
+      <button class="danger-button" id="confirm-end" type="button">结束并复盘</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="live-region" aria-live="polite"></div>
+
+  <script src="interview-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

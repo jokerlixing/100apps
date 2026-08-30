@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TIDE/71 是一款本地优先的情绪日记，用可复算数据呈现情绪潮汐，并提供用户主动开启的 AI 反思。">
+  <meta name="theme-color" content="#1c2b33">
+  <title>TIDE/71 · 情绪日记</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <header class="site-header">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true">T/71</span>
+      <span>
+        <strong>TIDE</strong>
+        <small>私人情绪观测簿</small>
+      </span>
+    </a>
+    <div class="header-status" aria-label="数据状态">
+      <span class="status-light" aria-hidden="true"></span>
+      <span>仅保存在这台设备</span>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">LOCAL OBSERVATION · NO ACCOUNT</p>
+        <h1 id="page-title">给今天的潮水<br>留一个刻度</h1>
+      </div>
+      <div class="intro-copy">
+        <p>用两三分钟记下心情、精力和发生过的事。趋势只描述你的记录，不诊断，也不替你解释人生。</p>
+        <a href="#checkin-heading">开始记录 <span aria-hidden="true">↓</span></a>
+      </div>
+    </section>
+
+    <div class="observation-grid">
+      <section class="checkin-panel ruled-panel" aria-labelledby="checkin-heading">
+        <header class="panel-heading">
+          <div>
+            <p class="section-code">今日观测卡</p>
+            <h2 id="checkin-heading">此刻是什么潮位？</h2>
+          </div>
+          <time id="today-label"></time>
+        </header>
+
+        <form id="entry-form" novalidate>
+          <input type="hidden" id="edit-id" name="editId">
+
+          <div class="field-row">
+            <label class="field-label" for="entry-date">记录时间</label>
+            <input class="line-input" id="entry-date" name="date" type="datetime-local" required>
+          </div>
+
+          <fieldset class="scale-fieldset">
+            <legend><span>心情</span><small>1 低潮 · 5 高潮</small></legend>
+            <div class="scale" id="mood-scale">
+              <label><input type="radio" name="mood" value="1"><span><b>1</b>低潮</span></label>
+              <label><input type="radio" name="mood" value="2"><span><b>2</b>偏低</span></label>
+              <label><input type="radio" name="mood" value="3" checked><span><b>3</b>中位</span></label>
+              <label><input type="radio" name="mood" value="4"><span><b>4</b>不错</span></label>
+              <label><input type="radio" name="mood" value="5"><span><b>5</b>明亮</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="scale-fieldset energy-fieldset">
+            <legend><span>精力</span><small>今天还有多少余量</small></legend>
+            <div class="energy-scale">
+              <label><input type="radio" name="energy" value="1"><span>1</span></label>
+              <label><input type="radio" name="energy" value="2"><span>2</span></label>
+              <label><input type="radio" name="energy" value="3" checked><span>3</span></label>
+              <label><input type="radio" name="energy" value="4"><span>4</span></label>
+              <label><input type="radio" name="energy" value="5"><span>5</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="choice-fieldset">
+            <legend><span>情绪词</span><small>最多选 5 个</small></legend>
+            <div class="choice-grid emotion-choices" id="emotion-choices"></div>
+          </fieldset>
+
+          <fieldset class="choice-fieldset">
+            <legend><span>影响因素</span><small>只记录同时出现，不判断因果</small></legend>
+            <div class="choice-grid factor-choices" id="factor-choices"></div>
+          </fieldset>
+
+          <div class="note-field">
+            <div class="label-line">
+              <label for="entry-note">写下一点经过 <small>可选</small></label>
+              <output id="note-count" for="entry-note">0 / 2000</output>
+            </div>
+            <textarea id="entry-note" name="note" maxlength="2000" rows="5" placeholder="发生了什么？身体有什么感觉？此刻最需要什么？"></textarea>
+          </div>
+
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+          <div class="form-actions">
+            <button class="primary-action" type="submit" id="save-entry">保存这次观测</button>
+            <button class="text-action" type="button" id="cancel-edit" hidden>取消编辑</button>
+          </div>
+          <p class="privacy-line"><span aria-hidden="true">●</span> 日记正文不会在后台自动上传，未保存的内容也不会写入浏览器。</p>
+        </form>
+      </section>
+
+      <section class="trend-panel ruled-panel" aria-labelledby="trend-heading">
+        <header class="panel-heading trend-heading">
+          <div>
+            <p class="section-code">潮位纸</p>
+            <h2 id="trend-heading">最近 <span id="range-title">14</span> 天</h2>
+          </div>
+          <div class="range-tabs" role="group" aria-label="趋势时间范围">
+            <button type="button" data-range="7" aria-pressed="false">7 天</button>
+            <button type="button" data-range="14" aria-pressed="true">14 天</button>
+            <button type="button" data-range="30" aria-pressed="false">30 天</button>
+          </div>
+        </header>
+
+        <div class="metrics" aria-label="趋势指标">
+          <div><span>记录</span><strong id="metric-count">0</strong><small>条</small></div>
+          <div><span>心情均值</span><strong id="metric-mood">—</strong><small>/ 5</small></div>
+          <div><span>精力均值</span><strong id="metric-energy">—</strong><small>/ 5</small></div>
+          <div><span>波动</span><strong id="metric-variability">—</strong><small>标准差</small></div>
+        </div>
+
+        <div class="chart-frame" id="chart-frame">
+          <svg id="tide-chart" viewBox="0 0 720 300" role="img" aria-labelledby="chart-title chart-desc">
+            <title id="chart-title">情绪潮位趋势图</title>
+            <desc id="chart-desc">当前范围内还没有记录。</desc>
+          </svg>
+          <p class="chart-empty" id="chart-empty">保存第一条记录后，潮位线会在这里出现。</p>
+        </div>
+
+        <div class="chart-legend" aria-label="图表说明">
+          <span><i class="legend-line" aria-hidden="true"></i>节点高度 = 心情</span>
+          <span><i class="legend-dot" aria-hidden="true"></i>节点大小 = 精力</span>
+        </div>
+
+        <section class="local-insights" aria-labelledby="local-insights-heading">
+          <div class="subheading-row">
+            <h3 id="local-insights-heading">从记录中看见</h3>
+            <span>本地计算</span>
+          </div>
+          <div id="local-insights-list"></div>
+        </section>
+      </section>
+    </div>
+
+    <section class="ledger-section" aria-labelledby="ledger-heading">
+      <header class="ledger-header">
+        <div>
+          <p class="section-code">记录簿</p>
+          <h2 id="ledger-heading">每一次潮汐都有上下文</h2>
+        </div>
+        <div class="ledger-actions">
+          <button class="secondary-action" type="button" id="open-ai" disabled>请求 AI 反思</button>
+          <button class="secondary-action" type="button" id="export-data" disabled>导出备份</button>
+          <button class="secondary-action" type="button" id="import-data">导入备份</button>
+          <button class="danger-text" type="button" id="clear-data" disabled>清除全部</button>
+        </div>
+      </header>
+
+      <aside class="ai-results" id="ai-results" aria-labelledby="ai-results-heading" hidden>
+        <div class="ai-results-head">
+          <div>
+            <p class="section-code">可选增强 · 不会保存</p>
+            <h3 id="ai-results-heading">AI 反思纸条</h3>
+          </div>
+          <button type="button" class="text-action" id="dismiss-ai-results">收起</button>
+        </div>
+        <div id="ai-results-content"></div>
+      </aside>
+
+      <div class="ledger-list" id="entry-list"></div>
+      <div class="ledger-empty" id="ledger-empty">
+        <span aria-hidden="true">≈</span>
+        <h3>记录簿还是空的</h3>
+        <p>从上方保存一次观测。连续记录不是比赛，想起来时再回来就好。</p>
+      </div>
+    </section>
+
+    <aside class="safety-note" aria-labelledby="safety-heading">
+      <h2 id="safety-heading">这是一面镜子，不是诊室</h2>
+      <p>趋势和 AI 内容只用于自我反思，不能替代专业诊断或治疗。如果你正处于紧急危险中，请立即联系当地紧急服务、可信任的人或专业支持机构。</p>
+    </aside>
+  </main>
+
+  <footer>
+    <p>TIDE/71 · 100 Apps Challenge</p>
+    <p>无账号 · 本地优先 · 可随时删除</p>
+  </footer>
+
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+
+  <dialog id="ai-dialog" aria-labelledby="ai-dialog-title">
+    <form method="dialog" class="dialog-shell" id="ai-form">
+      <header>
+        <p class="section-code">在发送之前</p>
+        <h2 id="ai-dialog-title">确认 AI 反思范围</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="关闭">×</button>
+      </header>
+      <div class="dialog-body">
+        <p>本地趋势已经可用。只有你确认后，下面列出的摘要才会发到当前服务器配置的 AI 服务。</p>
+        <div class="send-preview" id="ai-send-preview"></div>
+        <label class="consent-option">
+          <input type="checkbox" id="include-notes">
+          <span><strong>包含日记文字摘录</strong><small>默认关闭；开启后每条最多发送 240 个字。</small></span>
+        </label>
+        <label class="consent-option final-consent">
+          <input type="checkbox" id="ai-consent" required>
+          <span><strong>我理解并同意发送上述数据</strong><small>结果不会写入本地存储，也不能替代专业帮助。</small></span>
+        </label>
+        <p class="dialog-status" id="ai-status" role="status"></p>
+      </div>
+      <footer>
+        <button type="button" class="text-action" data-close-dialog>取消</button>
+        <button type="submit" class="primary-action" id="request-ai">确认并请求</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-dialog-title">
+    <form method="dialog" class="dialog-shell compact-dialog">
+      <header>
+        <p class="section-code">删除记录</p>
+        <h2 id="delete-dialog-title">移除这次观测？</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="关闭">×</button>
+      </header>
+      <div class="dialog-body">
+        <p>删除后，趋势会立即重新计算。这个操作无法撤销。</p>
+      </div>
+      <footer>
+        <button type="button" class="text-action" data-close-dialog>保留</button>
+        <button type="button" class="danger-action" id="confirm-delete">确认删除</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog" aria-labelledby="import-dialog-title">
+    <form method="dialog" class="dialog-shell compact-dialog">
+      <header>
+        <p class="section-code">恢复备份</p>
+        <h2 id="import-dialog-title">如何导入记录？</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="关闭">×</button>
+      </header>
+      <div class="dialog-body">
+        <p id="import-summary"></p>
+        <fieldset class="import-mode">
+          <legend>导入方式</legend>
+          <label><input type="radio" name="import-mode" value="merge" checked> 合并并按 ID 去重</label>
+          <label><input type="radio" name="import-mode" value="replace"> 替换现有记录</label>
+        </fieldset>
+      </div>
+      <footer>
+        <button type="button" class="text-action" data-close-dialog>取消</button>
+        <button type="button" class="primary-action" id="confirm-import">导入记录</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="clear-dialog" aria-labelledby="clear-dialog-title">
+    <form method="dialog" class="dialog-shell compact-dialog">
+      <header>
+        <p class="section-code">清除本机数据</p>
+        <h2 id="clear-dialog-title">清除全部记录？</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="关闭">×</button>
+      </header>
+      <div class="dialog-body">
+        <p>所有 TIDE/71 记录会从这个浏览器删除。建议先导出备份。</p>
+      </div>
+      <footer>
+        <button type="button" class="text-action" data-close-dialog>取消</button>
+        <button type="button" class="danger-action" id="confirm-clear">清除全部</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="sr-live" id="live-region" aria-live="polite"></div>
+
+  <script src="emotion-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

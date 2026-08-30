@@ -327,6 +327,17 @@ test('official completion state migrates a stale app 080 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 075 project board is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app75 = ideas[74];
+
+  assert.equal(app75[0], '项目管理看板');
+  assert.match(app75[1], /^RAIL\/75/);
+  assert.equal(app75[3], 'https://jokerlixing.github.io/100apps/apps/075-project-board/');
+  assert.equal(doneIds.has(75), true, 'INIT_DONE must mark app 075 as done');
+});
+
 test('app 079 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -406,7 +417,7 @@ test('app 082 is published and included in the official completion state', () =>
   assert.match(app82[1], /^YUNXIU\/82/);
   assert.equal(app82[3], 'https://jokerlixing.github.io/100apps/apps/082-mini-program-shop/');
   assert.equal(doneIds.has(82), true, 'INIT_DONE must mark app 082 as done');
-  for (const pendingId of [74, 75, 81]) {
+  for (const pendingId of [74, 81]) {
     assert.equal(doneIds.has(pendingId), false, `INIT_DONE must preserve pending app ${pendingId}`);
   }
 });

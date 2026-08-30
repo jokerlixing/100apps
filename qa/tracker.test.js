@@ -417,9 +417,6 @@ test('app 082 is published and included in the official completion state', () =>
   assert.match(app82[1], /^YUNXIU\/82/);
   assert.equal(app82[3], 'https://jokerlixing.github.io/100apps/apps/082-mini-program-shop/');
   assert.equal(doneIds.has(82), true, 'INIT_DONE must mark app 082 as done');
-  for (const pendingId of [81]) {
-    assert.equal(doneIds.has(pendingId), false, `INIT_DONE must preserve pending app ${pendingId}`);
-  }
 });
 
 test('app 091 is published and included in the official completion state', () => {
@@ -524,5 +521,40 @@ test('official completion state migrates a stale app 090 cache entry', () => {
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^SWITCHYARD\/90/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/090-workflow-engine/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('app 081 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app81 = ideas[80];
+
+  assert.equal(app81[0], '直播弹幕系统');
+  assert.equal(app81[1], 'WAVE/81：演播室级模拟直播+多轨弹幕+跨标签互动');
+  assert.equal(app81[3], 'https://jokerlixing.github.io/100apps/apps/081-live-danmaku/');
+  assert.equal(doneIds.has(81), true, 'INIT_DONE must mark app 081 as done');
+});
+
+test('official completion state migrates a stale app 081 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:81,name:"直播弹幕系统",desc:"模拟直播间+实时弹幕互动",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^WAVE\/81/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/081-live-danmaku/');
   assert.equal(context.result.didSave, true);
 });

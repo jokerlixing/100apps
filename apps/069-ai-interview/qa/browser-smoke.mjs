@@ -12,7 +12,10 @@ const externalBaseUrl = process.argv[2] || '';
 const appPort = 4390 + (process.pid % 250);
 const debugPort = 9690 + (process.pid % 250);
 const baseUrl = externalBaseUrl || `http://127.0.0.1:${appPort}/`;
-const outputDir = path.resolve(process.argv[3] || path.join(appDir, 'assets'));
+const persistScreenshots = process.env.UPDATE_SCREENSHOTS === '1' || Boolean(process.argv[3]);
+const outputDir = path.resolve(process.argv[3] || (persistScreenshots
+  ? path.join(appDir, 'assets')
+  : path.join(os.tmpdir(), `codex-app69-output-${process.pid}`)));
 const profile = path.resolve(os.tmpdir(), `codex-app69-smoke-${process.pid}`);
 const chromeCandidates = [
   path.join(process.env.PROGRAMFILES || '', 'Google/Chrome/Application/chrome.exe'),
@@ -195,7 +198,7 @@ async function run() {
     assert.equal(desktop.scrollWidth, desktop.clientWidth);
     assert.notEqual(desktop.focusOutline, 'none');
     assert.match(desktop.status, /本地/);
-    await evaluate(client, `document.activeElement.blur(); document.body.removeAttribute('tabindex')`);
+    await evaluate(client, `document.activeElement.blur(); document.body.removeAttribute('tabindex'); document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0)`);
     await sleep(500);
     await screenshot(client, 'screenshot-desktop.png');
 
@@ -283,6 +286,9 @@ async function run() {
     await sleep(400);
     if (profile.startsWith(`${path.resolve(os.tmpdir())}${path.sep}`)) {
       try { rmSync(profile, { recursive: true, force: true }); } catch {}
+    }
+    if (!persistScreenshots && outputDir.startsWith(`${path.resolve(os.tmpdir())}${path.sep}`)) {
+      try { rmSync(outputDir, { recursive: true, force: true }); } catch {}
     }
   }
 }

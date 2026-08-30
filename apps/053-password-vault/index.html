@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LOCKBOX/53 是一个使用 Web Crypto 在浏览器本地加密账号密码的离线保险箱。">
+  <meta name="theme-color" content="#172630">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob:; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>LOCKBOX/53 · 本地密码管理器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bench-lines" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true">53</span>
+      <span>
+        <b>LOCKBOX</b>
+        <small>LOCAL PASSWORD WORKSHOP</small>
+      </span>
+    </a>
+    <div class="header-status">
+      <span class="status-lamp" id="headerLamp" aria-hidden="true"></span>
+      <span id="headerStatus">保险箱已锁定</span>
+      <button class="button button-dark compact" id="lockButton" type="button" hidden>立即锁定</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="compatibility-warning" id="compatibilityWarning" role="alert" hidden>
+      <strong>当前环境无法安全加密。</strong>
+      <span>请通过 HTTPS 或 localhost 打开本页，并使用支持 Web Crypto 的现代浏览器。</span>
+    </section>
+
+    <section class="auth-stage" id="lockedView" aria-labelledby="authTitle">
+      <div class="auth-intro">
+        <p class="eyebrow">APP 053 / ZERO-KNOWLEDGE LOCAL VAULT</p>
+        <h1 id="authTitle">把账号封进<br><em>这台设备</em>。</h1>
+        <p class="intro-copy">主密码在本机派生加密密钥，保存与导出的只有密文。没有账号、没有云端，也没有找回入口。</p>
+
+        <div class="security-strip" aria-label="加密参数">
+          <span><b>600K</b> PBKDF2</span>
+          <span><b>256</b> AES-GCM</span>
+          <span><b>0</b> 网络请求</span>
+        </div>
+
+        <ul class="boundary-list">
+          <li>主密码永不写入浏览器存储</li>
+          <li>每次保存使用新的随机初始化向量</li>
+          <li>锁定后丢弃当前明文与会话密钥</li>
+        </ul>
+      </div>
+
+      <div class="lock-assembly" aria-hidden="true">
+        <div class="lock-shadow"></div>
+        <div class="lock-body">
+          <div class="lock-ticks"></div>
+          <div class="lock-dial">
+            <span>53</span>
+            <small>LOCAL</small>
+          </div>
+          <div class="lock-index"></div>
+        </div>
+        <div class="lock-bolt"></div>
+      </div>
+
+      <section class="auth-ticket" id="createPanel" aria-labelledby="createTitle">
+        <div class="ticket-number">NEW VAULT / 001</div>
+        <h2 id="createTitle">封存新保险箱</h2>
+        <p>创建后请立即导出一份加密备份。主密码一旦遗忘，任何人都无法恢复内容。</p>
+
+        <form id="createVaultForm" novalidate>
+          <label for="createMaster">主密码</label>
+          <div class="secret-control">
+            <input id="createMaster" name="masterPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required aria-describedby="createMasterHint createError">
+            <button class="icon-button secret-toggle" id="createMasterToggle" type="button" aria-label="显示主密码">显示</button>
+          </div>
+          <div class="strength-line" aria-hidden="true"><span id="createStrengthBar"></span></div>
+          <div class="field-hint" id="createMasterHint"><span id="createStrengthText">至少 12 个字符，推荐使用长口令</span></div>
+
+          <label for="confirmMaster">再次输入</label>
+          <input id="confirmMaster" name="confirmPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
+
+          <p class="form-error" id="createError" role="alert"></p>
+          <button class="button button-primary full" type="submit">创建并解锁</button>
+        </form>
+
+        <div class="ticket-actions">
+          <button class="text-button open-import" type="button">导入已有备份</button>
+        </div>
+      </section>
+
+      <section class="auth-ticket" id="unlockPanel" aria-labelledby="unlockTitle" hidden>
+        <div class="ticket-number">RETURNING VAULT / 053</div>
+        <h2 id="unlockTitle">转动锁盘解锁</h2>
+        <p id="storedVaultTime">已检测到本机加密保险箱。</p>
+
+        <form id="unlockVaultForm" novalidate>
+          <label for="unlockMaster">主密码</label>
+          <div class="secret-control">
+            <input id="unlockMaster" name="masterPassword" type="password" maxlength="256" autocomplete="current-password" required aria-describedby="unlockError">
+            <button class="icon-button secret-toggle" id="unlockMasterToggle" type="button" aria-label="显示主密码">显示</button>
+          </div>
+          <p class="form-error" id="unlockError" role="alert"></p>
+          <button class="button button-primary full" id="unlockSubmit" type="submit">解锁保险箱</button>
+        </form>
+
+        <div class="ticket-actions multi">
+          <button class="text-button" id="exportLockedButton" type="button">导出密文</button>
+          <button class="text-button open-import" type="button">导入备份</button>
+          <button class="text-button danger open-reset" type="button">删除本机保险箱</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="vault-view" id="vaultView" aria-label="已解锁保险箱" hidden>
+      <div class="vault-toolbar">
+        <div>
+          <p class="eyebrow">UNSEALED WORKBENCH</p>
+          <h1>账号钥匙台</h1>
+        </div>
+        <div class="save-state" id="saveState" role="status">
+          <span class="status-lamp active" aria-hidden="true"></span>
+          <span>密文已保存</span>
+        </div>
+      </div>
+
+      <div class="vault-grid">
+        <aside class="key-index" aria-labelledby="indexTitle">
+          <div class="panel-heading">
+            <div>
+              <span class="panel-code">A / KEY INDEX</span>
+              <h2 id="indexTitle">账号索引</h2>
+            </div>
+            <span class="count-badge" id="entryCount">0</span>
+          </div>
+
+          <label class="search-label" for="searchInput">搜索账号</label>
+          <div class="search-control">
+            <input id="searchInput" type="search" placeholder="标题、用户名或备注" autocomplete="off">
+            <button class="icon-button" id="clearSearchButton" type="button" aria-label="清除搜索">×</button>
+          </div>
+          <button class="button button-primary full" id="newEntryButton" type="button">+ 新建账号工单</button>
+
+          <div class="key-rail" id="entryList" role="list" aria-label="账号列表"></div>
+          <div class="list-empty" id="listEmpty">
+            <b>钥匙轨道还是空的</b>
+            <span>创建第一条账号记录，保存后会立即加密。</span>
+          </div>
+        </aside>
+
+        <section class="work-ticket" aria-labelledby="ticketTitle">
+          <div class="paper-clip" aria-hidden="true"></div>
+          <div class="ticket-header">
+            <div>
+              <span class="panel-code">B / ACCOUNT WORK ORDER</span>
+              <h2 id="ticketTitle">选择一枚账号钥匙</h2>
+            </div>
+            <span class="ticket-stamp" id="ticketStamp">STANDBY</span>
+          </div>
+
+          <div class="entry-placeholder" id="entryPlaceholder">
+            <div class="blank-key" aria-hidden="true"><span></span></div>
+            <h3>从左侧选择记录，或创建新工单</h3>
+            <p>密码默认遮挡。只有点击显示或复制时，界面才会执行对应动作。</p>
+          </div>
+
+          <form id="entryForm" novalidate hidden>
+            <input id="entryId" type="hidden">
+            <div class="form-grid">
+              <div class="field wide">
+                <label for="entryTitle">标题 <span>必填</span></label>
+                <input id="entryTitle" type="text" maxlength="80" autocomplete="off" placeholder="例如：GitHub" required>
+              </div>
+
+              <div class="field wide">
+                <label for="entryUsername">用户名 / 邮箱</label>
+                <div class="with-action">
+                  <input id="entryUsername" type="text" maxlength="160" autocomplete="off" placeholder="name@example.com">
+                  <button class="field-action" id="copyUsernameButton" type="button">复制</button>
+                </div>
+              </div>
+
+              <div class="field wide">
+                <label for="entryPassword">密码</label>
+                <div class="with-actions">
+                  <input class="mono" id="entryPassword" type="password" maxlength="512" autocomplete="new-password" spellcheck="false">
+                  <button class="field-action secret-toggle" id="entryPasswordToggle" type="button" aria-label="显示密码">显示</button>
+                  <button class="field-action" id="copyPasswordButton" type="button">复制</button>
+                </div>
+                <div class="strength-line compact-meter" aria-hidden="true"><span id="entryStrengthBar"></span></div>
+                <div class="field-hint" id="entryStrengthText">尚未填写密码</div>
+              </div>
+
+              <div class="field wide">
+                <label for="entryUrl">网址</label>
+                <div class="with-action">
+                  <input id="entryUrl" type="text" maxlength="2048" inputmode="url" autocomplete="off" placeholder="https://example.com/login">
+                  <a class="field-action anchor-action" id="openSiteLink" href="#" target="_blank" rel="noopener noreferrer" hidden>打开</a>
+                </div>
+              </div>
+
+              <div class="field wide">
+                <label for="entryNotes">备注</label>
+                <textarea id="entryNotes" maxlength="4000" rows="6" placeholder="恢复方式、账号用途或其他不适合放进密码字段的信息"></textarea>
+              </div>
+            </div>
+
+            <p class="form-error" id="entryError" role="alert"></p>
+            <div class="form-actions">
+              <button class="button button-danger" id="deleteEntryButton" type="button">删除记录</button>
+              <span class="spacer"></span>
+              <button class="button button-quiet" id="cancelEntryButton" type="button">取消</button>
+              <button class="button button-dark" id="saveEntryButton" type="submit">保存并加密</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="forge-panel" aria-label="密码生成器与保险箱状态">
+          <section class="forge-card" aria-labelledby="forgeTitle">
+            <div class="panel-heading compact-heading">
+              <div>
+                <span class="panel-code">C / KEY FORGE</span>
+                <h2 id="forgeTitle">密码铸造台</h2>
+              </div>
+              <output id="generatorLengthOutput" for="generatorLength">20</output>
+            </div>
+
+            <label class="range-label" for="generatorLength">密码长度</label>
+            <input id="generatorLength" type="range" min="12" max="64" value="20">
+
+            <div class="generator-options">
+              <label><input id="useLowercase" type="checkbox" checked><span>小写</span></label>
+              <label><input id="useUppercase" type="checkbox" checked><span>大写</span></label>
+              <label><input id="useDigits" type="checkbox" checked><span>数字</span></label>
+              <label><input id="useSymbols" type="checkbox" checked><span>符号</span></label>
+              <label class="wide-option"><input id="excludeAmbiguous" type="checkbox" checked><span>排除易混淆字符</span></label>
+            </div>
+
+            <div class="generated-control">
+              <input class="mono" id="generatedPassword" type="password" readonly aria-label="生成的密码">
+              <button class="field-action secret-toggle" id="generatedPasswordToggle" type="button" aria-label="显示生成的密码">显示</button>
+            </div>
+            <div class="generator-actions">
+              <button class="button button-primary" id="generatePasswordButton" type="button">重新生成</button>
+              <button class="button button-quiet" id="useGeneratedButton" type="button">填入工单</button>
+              <button class="text-button" id="copyGeneratedButton" type="button">复制</button>
+            </div>
+          </section>
+
+          <section class="vault-card" aria-labelledby="vaultStatusTitle">
+            <span class="panel-code">D / VAULT STATUS</span>
+            <h2 id="vaultStatusTitle">保险箱状态</h2>
+            <dl class="status-grid">
+              <div><dt>已存账号</dt><dd id="statusEntryCount">0</dd></div>
+              <div><dt>上次封存</dt><dd id="lastSavedAt">刚刚</dd></div>
+              <div><dt>自动锁定</dt><dd id="lockCountdown">05:00</dd></div>
+            </dl>
+
+            <label for="autoLockSelect">无操作后锁定</label>
+            <select id="autoLockSelect">
+              <option value="1">1 分钟</option>
+              <option value="5" selected>5 分钟</option>
+              <option value="15">15 分钟</option>
+              <option value="30">30 分钟</option>
+            </select>
+
+            <div class="vault-actions">
+              <button class="button button-quiet" id="exportButton" type="button">导出加密备份</button>
+              <button class="button button-quiet open-import" type="button">导入并替换</button>
+              <button class="text-button danger open-reset" type="button">删除整个保险箱</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><b>安全边界：</b>本工具保护浏览器静态存储，不抵御恶意扩展、已入侵设备、键盘记录器或剪贴板历史。</p>
+    <a href="../../">100 Apps Challenge</a>
+  </footer>
+
+  <dialog class="modal" id="confirmDialog">
+    <form method="dialog">
+      <span class="panel-code">CONFIRM ACTION</span>
+      <h2 id="confirmTitle">确认操作</h2>
+      <p id="confirmMessage"></p>
+      <div class="modal-actions">
+        <button class="button button-quiet" value="cancel">取消</button>
+        <button class="button button-danger" id="confirmActionButton" value="confirm">确认</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="importDialog">
+    <form id="importForm" novalidate>
+      <span class="panel-code">ENCRYPTED BACKUP</span>
+      <h2>导入加密备份</h2>
+      <p>先用备份对应的主密码试解密；验证成功后才会替换本机保险箱。</p>
+
+      <label for="importFile">备份文件</label>
+      <input id="importFile" type="file" accept="application/json,.json" required>
+      <label for="importMaster">备份的主密码</label>
+      <input id="importMaster" type="password" maxlength="256" autocomplete="current-password" required>
+      <p class="form-error" id="importError" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button button-quiet" id="cancelImportButton" type="button">取消</button>
+        <button class="button button-dark" type="submit">验证并导入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal danger-modal" id="resetDialog">
+    <form id="resetForm" novalidate>
+      <span class="panel-code">IRREVERSIBLE ACTION</span>
+      <h2>删除本机保险箱</h2>
+      <p>这会永久删除当前浏览器中的密文。没有导出的备份就无法恢复。</p>
+      <label for="resetConfirmInput">输入“删除”继续</label>
+      <input id="resetConfirmInput" type="text" autocomplete="off" required>
+      <p class="form-error" id="resetError" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button button-quiet" id="cancelResetButton" type="button">取消</button>
+        <button class="button button-danger" type="submit">永久删除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="vault-core.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
+

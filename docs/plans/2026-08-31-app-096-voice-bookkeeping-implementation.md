@@ -86,4 +86,3 @@
 4. Run app and tracker suites, syntax checks, browser smoke and `git diff --check`.
 5. Commit the tracker files, fetch/merge once more, and push `HEAD:main` to GitHub `origin`.
 6. Verify remote commit ancestry and the deployed Pages URL before reporting completion.
-

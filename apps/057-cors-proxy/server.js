@@ -149,10 +149,11 @@ function publicConfig(config) {
 
 function safeError(error) {
   const statusCode = Number(error && error.statusCode);
+  const recognized = error && typeof error.code === "string" && Number.isInteger(statusCode) && statusCode >= 400 && statusCode <= 599;
   return {
-    code: error && typeof error.code === "string" ? error.code : "INTERNAL_ERROR",
-    statusCode: Number.isInteger(statusCode) && statusCode >= 400 && statusCode <= 599 ? statusCode : 500,
-    message: error && typeof error.message === "string" ? error.message : "服务处理请求时发生错误。",
+    code: recognized ? error.code : "INTERNAL_ERROR",
+    statusCode: recognized ? statusCode : 500,
+    message: recognized && typeof error.message === "string" ? error.message : "服务处理请求时发生错误。",
   };
 }
 
@@ -224,7 +225,9 @@ function createServer(options = {}) {
       target = route.searchParams.get("url") || "";
       if (!target) throw serviceError("TARGET_REQUIRED", 400, "缺少目标 URL，请使用 /proxy?url=...。");
 
-      const body = request.method === "GET" || request.method === "HEAD" ? Buffer.alloc(0) : await readBody(request, config.maxRequestBytes);
+      const ignoresBody = request.method === "GET" || request.method === "HEAD";
+      if (ignoresBody) request.resume();
+      const body = ignoresBody ? Buffer.alloc(0) : await readBody(request, config.maxRequestBytes);
       const upstream = await proxyRequest(target, {
         method: request.method,
         headers: request.headers,

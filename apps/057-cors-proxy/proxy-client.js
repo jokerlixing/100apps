@@ -1,5 +1,6 @@
 const http = require("node:http");
 const https = require("node:https");
+const net = require("node:net");
 
 const {
   ProxyPolicyError,
@@ -51,7 +52,7 @@ function requestOnce(validation, options) {
         path: `${target.pathname}${target.search}`,
         method: options.method,
         headers,
-        servername: target.hostname,
+        servername: target.protocol === "https:" && !net.isIP(validation.hostname) ? validation.hostname : undefined,
         rejectUnauthorized: true,
       },
       (response) => {

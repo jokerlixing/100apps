@@ -235,7 +235,7 @@ const IDEAS=[
 ["API测试工具","简化版Postman，发请求看响应","3"],
 ["JSON格式化工具","树形展示+校验错误定位","3"],
 ["正则表达式测试器","PATTERN/56：实时匹配高亮+捕获组检验+替换预览","3","https://jokerlixing.github.io/100apps/apps/056-regex-tester/"],
-["CORS代理小服务","解决本地开发跨域的代理工具","3"],
+["本地 CORS 代理","RELAY/57：白名单转发+私网拦截+请求响应调试台","3","https://jokerlixing.github.io/100apps/apps/057-cors-proxy/"],
 ["网页性能检测器","输入网址检测加载性能评分","3"],
 ["字幕时间轴编辑器","视频字幕逐条对齐+预览","3"],
 ["在线图片编辑器","PRISM/60：本地裁剪+非破坏调色+文字导出","3","https://jokerlixing.github.io/100apps/apps/060-image-editor/"],
@@ -283,7 +283,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",56:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",56:"done",57:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

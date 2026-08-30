@@ -165,3 +165,29 @@ test("proxy route forwards request options and decorates the safe response", asy
   assert.equal(fixture.calls[0].options.body.toString("utf8"), '{"ping":true}');
   assert.deepEqual(fixture.calls[0].options.allowedHosts, ["api.github.com"]);
 });
+
+test("proxy route hides unexpected internal error details", async (t) => {
+  const fixture = await startServer(t, {
+    proxyRequest: async () => {
+      throw new Error("secret socket detail");
+    },
+  });
+  const target = encodeURIComponent("https://api.github.com/repos/demo");
+  const response = await fetch(`${fixture.origin}/proxy?url=${target}`);
+  const payload = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.equal(payload.error.code, "INTERNAL_ERROR");
+  assert.equal(payload.error.message, "服务处理请求时发生错误。");
+  assert.equal(JSON.stringify(payload).includes("secret socket detail"), false);
+});
+
+test("static workbench is served with a restrictive content security policy", async (t) => {
+  const fixture = await startServer(t);
+  const response = await fetch(`${fixture.origin}/`);
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-security-policy"), /default-src 'self'/);
+  assert.match(html, /RELAY\/57/);
+});

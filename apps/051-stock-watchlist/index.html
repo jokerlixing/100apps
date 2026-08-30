@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#173b72">
+  <meta name="description" content="TICK/51 股票自选行情：免密刷新 A 股、港股和美股报价，并用交互式 K 线查看走势。">
+  <title>TICK/51 · 股票自选行情</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#marketBoard">跳到行情主盘</a>
+
+  <div class="app-shell">
+    <header class="masthead">
+      <a class="brand" href="../../" aria-label="返回 100 Apps 挑战首页">
+        <span class="brand-mark" aria-hidden="true">TICK</span>
+        <span class="brand-number">/ 51</span>
+      </a>
+
+      <div class="masthead-copy">
+        <p class="eyebrow">Personal market tape · 本地自选</p>
+        <h1>把关注的价格，钉在一条纸带上。</h1>
+      </div>
+
+      <div class="refresh-console" aria-label="行情刷新状态">
+        <div class="refresh-copy">
+          <span class="signal-dot" id="signalDot" aria-hidden="true"></span>
+          <span id="refreshStatus">准备读取行情</span>
+          <time id="refreshCountdown">--:--</time>
+        </div>
+        <button class="refresh-button" id="refreshButton" type="button">
+          <span aria-hidden="true">↻</span>
+          立即刷新
+        </button>
+      </div>
+    </header>
+
+    <main class="market-layout">
+      <aside class="watch-panel" aria-labelledby="watchHeading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Watch tickets</p>
+            <h2 id="watchHeading">自选票据</h2>
+          </div>
+          <span class="watch-count" id="watchCount">0 / 8</span>
+        </div>
+
+        <form class="symbol-form" id="symbolForm" novalidate>
+          <label for="symbolInput">添加证券代码</label>
+          <div class="symbol-entry">
+            <input
+              id="symbolInput"
+              name="symbol"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              maxlength="12"
+              placeholder="600519 / AAPL"
+              aria-describedby="symbolHint formMessage"
+            >
+            <button type="submit">添加</button>
+          </div>
+          <p class="field-hint" id="symbolHint">支持 A 股、港股与美股代码</p>
+          <p class="form-message" id="formMessage" role="status"></p>
+        </form>
+
+        <ul class="watchlist" id="watchlist" aria-label="股票自选列表"></ul>
+
+        <div class="watch-note">
+          <span aria-hidden="true">⌁</span>
+          <p>自选仅保存在这台设备。点击票据切换主盘，最多保留 8 个。</p>
+        </div>
+      </aside>
+
+      <section class="market-board" id="marketBoard" aria-labelledby="assetName">
+        <header class="quote-header">
+          <div class="asset-identity">
+            <div class="identity-line">
+              <span class="source-badge is-loading" id="sourceBadge">读取中</span>
+              <span class="asset-symbol" id="assetSymbol">——</span>
+            </div>
+            <h2 id="assetName">正在装载行情纸带</h2>
+            <p class="quote-time" id="quoteTime">等待第一次刷新</p>
+          </div>
+
+          <div class="price-block" aria-live="polite">
+            <strong id="currentPrice">—</strong>
+            <span class="price-change is-flat" id="priceChange">—</span>
+          </div>
+        </header>
+
+        <dl class="quote-metrics" aria-label="当前行情摘要">
+          <div><dt>今开</dt><dd id="metricOpen">—</dd></div>
+          <div><dt>最高</dt><dd id="metricHigh">—</dd></div>
+          <div><dt>最低</dt><dd id="metricLow">—</dd></div>
+          <div><dt>昨收</dt><dd id="metricPrevious">—</dd></div>
+          <div><dt>成交量</dt><dd id="metricVolume">—</dd></div>
+        </dl>
+
+        <section class="chart-section" aria-labelledby="chartHeading">
+          <div class="chart-toolbar">
+            <div>
+              <p class="section-kicker">Price tape</p>
+              <h3 id="chartHeading">复权日 K</h3>
+            </div>
+            <div class="range-tabs" role="group" aria-label="选择 K 线区间">
+              <button type="button" data-range="1m">1 月</button>
+              <button type="button" data-range="3m" class="is-active" aria-pressed="true">3 月</button>
+              <button type="button" data-range="6m">6 月</button>
+              <button type="button" data-range="1y">1 年</button>
+            </div>
+          </div>
+
+          <div class="chart-paper" id="chartPaper">
+            <canvas
+              id="chartCanvas"
+              tabindex="0"
+              role="img"
+              aria-label="K 线图正在加载。可用左右方向键逐根查看。"
+            ></canvas>
+            <div class="chart-state" id="chartState" role="status" hidden>
+              <span class="loader" aria-hidden="true"></span>
+              <span>正在穿入行情纸带…</span>
+            </div>
+          </div>
+
+          <div class="chart-caption">
+            <div class="legend" aria-label="K 线颜色图例">
+              <span><i class="legend-up"></i>上涨</span>
+              <span><i class="legend-down"></i>下跌</span>
+              <span><i class="legend-volume"></i>成交量</span>
+            </div>
+            <p>移动指针或使用 ← → 查看单根数据</p>
+          </div>
+        </section>
+
+        <section class="candle-inspector" aria-labelledby="inspectorHeading">
+          <div class="inspector-date">
+            <span>读取头</span>
+            <strong id="inspectorHeading">—</strong>
+          </div>
+          <dl>
+            <div><dt>开</dt><dd id="candleOpen">—</dd></div>
+            <div><dt>高</dt><dd id="candleHigh">—</dd></div>
+            <div><dt>低</dt><dd id="candleLow">—</dd></div>
+            <div><dt>收</dt><dd id="candleClose">—</dd></div>
+            <div><dt>量</dt><dd id="candleVolume">—</dd></div>
+          </dl>
+        </section>
+
+        <footer class="board-footer">
+          <p><strong>数据说明</strong> 行情可能延迟；网络不可用时会明确切换为样例数据。</p>
+          <p>本工具仅用于 Web 技术学习，不构成投资建议。</p>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <p class="sr-only" id="announcer" aria-live="polite"></p>
+
+  <script src="market-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

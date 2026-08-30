@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f5f2">
+  <meta name="description" content="Trace/98 区块链浏览器：查询地址、交易与区块，沿着一条可验证的本地链快照理解链上活动。">
+  <title>Trace/98 · 区块链浏览器</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="explorer-core.js" defer></script>
+  <script src="chain-data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#evidence">跳到查询结果</a>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Trace 98 首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><b>TRACE</b><small>CHAIN EVIDENCE / 98</small></span>
+      </a>
+      <div class="network-lockup" aria-label="当前网络状态">
+        <span class="status-light" aria-hidden="true"></span>
+        <span><small>NETWORK</small><b id="networkName">Trace Mainnet</b></span>
+        <span class="network-divider" aria-hidden="true"></span>
+        <span><small>FINALITY</small><b>FINALIZED</b></span>
+      </div>
+      <a class="challenge-link" href="../../index.html"><span>100 APPS</span><b>98 / 100</b></a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="kicker"><span>CHAIN ID 98</span> / DETERMINISTIC SNAPSHOT</p>
+          <h1 id="page-title">每一笔链上动作，<em>都留下可读的痕迹。</em></h1>
+          <p class="hero-intro">输入地址、交易哈希或区块高度。Trace/98 会把散落的字段整理成一张可追溯的证据单。</p>
+          <dl class="hero-metrics" aria-label="网络摘要">
+            <div><dt>当前高度</dt><dd id="heroHead">—</dd></div>
+            <div><dt>链上交易</dt><dd id="heroTransactions">—</dd></div>
+            <div><dt>活跃验证者</dt><dd id="heroValidators">—</dd></div>
+          </dl>
+        </div>
+
+        <div class="search-deck">
+          <div class="deck-index" aria-hidden="true">QUERY / 01</div>
+          <form id="searchForm" class="search-form" novalidate>
+            <label for="queryInput">检索链上证据</label>
+            <div class="search-control">
+              <span class="search-glyph" aria-hidden="true"></span>
+              <input id="queryInput" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="地址 / 交易哈希 / 区块高度" aria-describedby="queryHint searchMessage">
+              <button type="submit">检查记录 <span aria-hidden="true">↗</span></button>
+            </div>
+            <p id="queryHint" class="query-hint">支持 0x 地址、0x 交易哈希与十进制区块高度</p>
+            <p id="searchMessage" class="search-message" role="status"></p>
+          </form>
+          <div class="sample-queries" aria-label="示例查询">
+            <span>TRY A TRACE</span>
+            <button type="button" data-sample="address">示例地址</button>
+            <button type="button" data-sample="transaction">示例交易</button>
+            <button type="button" data-sample="block">最新区块</button>
+          </div>
+          <p class="snapshot-note"><b>本地链快照</b> 数据留在浏览器内，不上传查询内容。</p>
+        </div>
+      </section>
+
+      <section class="chain-section" aria-labelledby="chain-heading">
+        <div class="section-heading chain-heading">
+          <div><p>BLOCK TAPE / CANONICAL</p><h2 id="chain-heading">沿父哈希回看链头</h2></div>
+          <div class="head-clock"><span id="headPulse" aria-hidden="true"></span><b id="headClock">下一块 ~12s</b></div>
+        </div>
+        <div id="blockTape" class="block-tape" role="list" aria-label="最近区块"></div>
+      </section>
+
+      <section id="evidence" class="workspace" aria-label="链上证据工作台">
+        <article id="resultPanel" class="evidence-sheet" tabindex="-1" aria-live="polite"></article>
+        <aside class="network-ledger" aria-labelledby="ledger-heading">
+          <div class="section-heading compact-heading">
+            <div><p>NETWORK LEDGER / LIVE</p><h2 id="ledger-heading">快照账本</h2></div>
+            <span class="ledger-seal">VERIFIED</span>
+          </div>
+          <div id="networkStats" class="network-stats"></div>
+          <div class="ledger-note">
+            <span>SNAPSHOT SCOPE</span>
+            <p>这是一组彼此引用一致的演示数据，用于稳定验证查询与钻取流程，不代表真实资产。</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="records" aria-labelledby="records-heading">
+        <div class="section-heading records-heading">
+          <div><p>RECENT ACTIVITY / 09 RECORDS</p><h2 id="records-heading">最近交易</h2></div>
+          <p>选择任意一笔，查看发送方、接收方、费用与执行结果。</p>
+        </div>
+        <div class="transaction-table" role="table" aria-label="最近交易">
+          <div class="transaction-head" role="row">
+            <span role="columnheader">交易哈希 / 方法</span>
+            <span role="columnheader">区块</span>
+            <span role="columnheader">方向</span>
+            <span role="columnheader">金额</span>
+            <span role="columnheader">状态</span>
+          </div>
+          <div id="transactionRows" class="transaction-rows"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="brand footer-brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><b>TRACE</b><small>CHAIN EVIDENCE / 98</small></span></div>
+      <p>让哈希不再只是一串字符。</p>
+      <p>LOCAL SNAPSHOT · NO WALLET CONNECTION · 2026</p>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

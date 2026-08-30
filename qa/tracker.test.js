@@ -141,3 +141,16 @@ test('app 067 is published and included in the official completion state', () =>
   assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
   assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
 });
+
+test('app 070 is published without marking skipped apps complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app70 = ideas[69];
+
+  assert.equal(app70[0], 'AI口语陪练');
+  assert.match(app70[1], /^TALKBACK\/70/);
+  assert.equal(app70[3], 'https://jokerlixing.github.io/100apps/apps/070-ai-speaking-coach/');
+  assert.equal(doneIds.has(70), true, 'INIT_DONE must mark app 070 as done');
+  assert.equal(doneIds.has(68), false, 'app 068 must remain incomplete');
+  assert.equal(doneIds.has(69), false, 'app 069 must remain incomplete');
+});

@@ -88,7 +88,7 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 
 .masthead-actions { display: flex; align-items: center; gap: 10px; }
 .masthead-actions button, .text-button {
-  min-height: 42px;
+  min-height: 44px;
   border: 2px solid var(--ink);
   background: var(--sheet);
   font: 800 11px/1 var(--utility);
@@ -224,7 +224,7 @@ body[data-state="running"] .generate-button { background: var(--orange); animati
 body[data-state="running"] .seam-track-after { animation: stitch-flow .7s linear infinite; }
 
 .view-switch { display: flex; border: 1px solid var(--ink); }
-.view-switch button { min-height: 32px; padding: 0 10px; background: #fff; border: 0; font: 800 9px/1 var(--utility); }
+.view-switch button { min-height: 44px; padding: 0 10px; background: #fff; border: 0; font: 800 9px/1 var(--utility); }
 .view-switch button + button { border-left: 1px solid var(--ink); }
 .view-switch button.is-active { color: #fff; background: var(--ink); }
 .revision-stage { position: relative; min-height: 368px; display: flex; flex: 1 1 auto; padding-top: 19px; }
@@ -241,7 +241,7 @@ body[data-state="running"] .seam-track-after { animation: stitch-flow .7s linear
 .legend-add { background: var(--green); }
 .legend-delete { margin-left: 4px; background: rgba(255, 104, 70, .4); }
 .output-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-top: 17px; }
-.output-actions button { min-height: 42px; padding: 7px; background: var(--paper); border: 1px solid var(--ink); font: 800 10px/1.2 var(--utility); }
+.output-actions button { min-height: 44px; padding: 7px; background: var(--paper); border: 1px solid var(--ink); font: 800 10px/1.2 var(--utility); }
 .output-actions button:not(:disabled):hover { color: #fff; background: var(--blue); }
 
 .safety-strip {
@@ -271,7 +271,7 @@ dialog {
 dialog::backdrop { background: rgba(16, 42, 67, .72); }
 .dialog-card { max-height: calc(100vh - 34px); overflow: auto; padding: clamp(20px, 4vw, 34px); }
 .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
-.icon-button { width: 42px; min-height: 42px; display: grid; place-items: center; background: var(--paper); border: 2px solid var(--ink); font: 900 24px/1 var(--utility); }
+.icon-button { width: 44px; min-height: 44px; display: grid; place-items: center; background: var(--paper); border: 2px solid var(--ink); font: 900 24px/1 var(--utility); }
 .provider-choice { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 0; }
 .provider-choice label { position: relative; cursor: pointer; }
 .provider-choice input { position: absolute; opacity: 0; }
@@ -297,7 +297,7 @@ dialog::backdrop { background: rgba(16, 42, 67, .72); }
 .history-item time { color: var(--muted); font: 700 9px/1 var(--utility); }
 .history-item p { grid-column: 1 / -1; margin: 0; overflow: hidden; color: var(--muted); font: 500 13px/1.5 var(--body); text-overflow: ellipsis; white-space: nowrap; }
 .history-actions { display: flex; gap: 6px; }
-.history-actions button { min-height: 34px; padding: 0 9px; background: #fff; border: 1px solid var(--ink); font: 800 9px/1 var(--utility); }
+.history-actions button { min-height: 44px; padding: 0 9px; background: #fff; border: 1px solid var(--ink); font: 800 9px/1 var(--utility); }
 
 .toast {
   position: fixed;
@@ -374,7 +374,7 @@ dialog::backdrop { background: rgba(16, 42, 67, .72); }
   .wide-control { grid-column: auto; }
   .revision-heading { align-items: flex-start; flex-direction: column; }
   .view-switch { align-self: stretch; }
-  .view-switch button { flex: 1; min-height: 38px; }
+  .view-switch button { flex: 1; min-height: 44px; }
   .output-actions { grid-template-columns: 1fr; }
   .output-actions button { min-height: 44px; }
   .provider-choice { grid-template-columns: 1fr; }

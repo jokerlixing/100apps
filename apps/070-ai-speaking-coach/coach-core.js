@@ -194,7 +194,9 @@
     const source = input && typeof input === 'object' ? input : {};
     const text = cleanText(source.text);
     const wordCount = tokenizeEnglish(text).length;
-    const wpm = calculateWordsPerMinute(text, source.durationMs);
+    const rawDuration = Number(source.durationMs);
+    const hasSpeakingTiming = Number.isFinite(rawDuration) && rawDuration > 0;
+    const wpm = hasSpeakingTiming ? calculateWordsPerMinute(text, rawDuration) : null;
     const fillers = countFillers(text);
     const lexicalDiversity = calculateLexicalDiversity(text);
     const phraseCoverage = calculatePhraseCoverage(text, source.targetPhrases);
@@ -205,7 +207,7 @@
       : null;
 
     const lengthScore = Math.min(20, Math.round((wordCount / 12) * 20));
-    const paceScore = !wordCount ? 0 : wpm >= 80 && wpm <= 170 ? 25 : wpm >= 60 && wpm <= 200 ? 18 : 10;
+    const paceScore = !wordCount ? 0 : !hasSpeakingTiming ? 18 : wpm >= 80 && wpm <= 170 ? 25 : wpm >= 60 && wpm <= 200 ? 18 : 10;
     const fillerScore = Math.max(0, 20 - fillers.total * 5);
     const phraseScore = Math.round(phraseCoverage.ratio * 20);
     const conceptScore = Math.round(conceptCoverage.ratio * 15);
@@ -213,8 +215,8 @@
 
     const suggestions = [];
     if (wordCount < 5) suggestions.push('把回答扩展到至少一个完整句，并补充一个具体细节。');
-    if (wpm > 170) suggestions.push(`把语速从 ${wpm} WPM 放慢到 130–160 WPM，句末留出停顿。`);
-    if (wordCount >= 5 && wpm > 0 && wpm < 80) suggestions.push(`把语速从 ${wpm} WPM 提到约 100–140 WPM，先按意群练习。`);
+    if (hasSpeakingTiming && wpm > 170) suggestions.push(`把语速从 ${wpm} WPM 放慢到 130–160 WPM，句末留出停顿。`);
+    if (hasSpeakingTiming && wordCount >= 5 && wpm > 0 && wpm < 80) suggestions.push(`把语速从 ${wpm} WPM 提到约 100–140 WPM，先按意群练习。`);
     if (fillers.total) {
       const used = Object.keys(fillers.counts).map((item) => item === 'um' ? 'Um' : item).join('、');
       suggestions.push(`本轮出现 ${fillers.total} 个停顿词（${used}）；卡住时先静默半秒再继续。`);
@@ -226,7 +228,7 @@
     let strength = '你完成了这轮回答。';
     if (phraseCoverage.matched) strength = `你准确用上了 ${phraseCoverage.matched} 个目标表达。`;
     else if (conceptCoverage.ratio >= 1 && conceptCoverage.total) strength = '你覆盖了问题要求的关键信息。';
-    else if (wpm >= 100 && wpm <= 160) strength = `本轮 ${wpm} WPM，处于清晰易懂的练习区间。`;
+    else if (hasSpeakingTiming && wpm >= 100 && wpm <= 160) strength = `本轮 ${wpm} WPM，处于清晰易懂的练习区间。`;
 
     return {
       text,
@@ -338,7 +340,7 @@
     const source = value && typeof value === 'object' ? value : {};
     return {
       score: Math.max(0, Math.min(100, Math.round(Number(source.score) || 0))),
-      wpm: Math.max(0, Math.min(400, Math.round(Number(source.wpm) || 0))),
+      wpm: source.wpm === null || source.wpm === undefined ? null : Math.max(0, Math.min(400, Math.round(Number(source.wpm) || 0))),
       fillerCount: Math.max(0, Math.min(99, Math.round(Number(source.fillerCount) || 0))),
       wordCount: Math.max(0, Math.min(1000, Math.round(Number(source.wordCount) || 0))),
       lexicalDiversity: Math.max(0, Math.min(1, Number(source.lexicalDiversity) || 0)),
@@ -409,14 +411,15 @@
     const scenario = getScenario(source.scenarioId);
     const turns = Array.isArray(source.turns) ? source.turns.filter((turn) => turn && turn.user && turn.analysis) : [];
     const sum = (field) => turns.reduce((total, turn) => total + (Number(turn.analysis[field]) || 0), 0);
+    const timedTurns = turns.filter((turn) => Number.isFinite(Number(turn.analysis.wpm)) && turn.analysis.wpm !== null);
     const averageScore = turns.length ? Math.round(sum('score') / turns.length) : 0;
-    const averageWpm = turns.length ? Math.round(sum('wpm') / turns.length) : 0;
+    const averageWpm = timedTurns.length ? Math.round(timedTurns.reduce((total, turn) => total + Number(turn.analysis.wpm), 0) / timedTurns.length) : null;
     const totalFillers = sum('fillerCount');
     const targetPhrasesUsed = turns.reduce((total, turn) => total + (Number(turn.analysis.phraseCoverage && turn.analysis.phraseCoverage.matched) || 0), 0);
     const durationMs = turns.reduce((total, turn) => total + (Number(turn.durationMs) || 0), 0);
     const goals = [];
-    if (averageWpm > 170) goals.push('下一次把平均语速控制在 130–160 WPM。');
-    else if (averageWpm && averageWpm < 100) goals.push('下一次先按意群朗读，再把平均语速提高到 100 WPM 以上。');
+    if (averageWpm !== null && averageWpm > 170) goals.push('下一次把平均语速控制在 130–160 WPM。');
+    else if (averageWpm !== null && averageWpm < 100) goals.push('下一次先按意群朗读，再把平均语速提高到 100 WPM 以上。');
     if (turns.length && totalFillers / turns.length >= 0.5) goals.push('用短暂停顿替代 Um、Uh 等停顿词。');
     if (targetPhrasesUsed < turns.length) goals.push('每轮主动使用至少一个场景目标表达。');
     if (!goals.length) goals.push('换一个场景，用不同句型保持同样的清晰度。');

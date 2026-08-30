@@ -71,6 +71,13 @@ test('analyzeTurn does not invent a pronunciation score', () => {
   assert.equal(analysis.transcriptConfidence, null);
 });
 
+test('analyzeTurn leaves speaking pace unmeasured for typed fallback answers', () => {
+  const analysis = Core.analyzeTurn({ text: 'I have a reservation under the name Li.' });
+  assert.equal(analysis.wpm, null);
+  assert.ok(analysis.score > 0);
+  assert.equal(analysis.suggestions.some((tip) => tip.includes('WPM')), false);
+});
+
 test('six immutable scenarios provide five complete prompts each', () => {
   assert.equal(Core.SCENARIOS.length, 6);
   for (const scenario of Core.SCENARIOS) {

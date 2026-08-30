@@ -315,6 +315,7 @@
       state.selectedCandleIndex = state.candles.length - 1;
       setChartLoading(false);
       renderChart();
+      syncStatusForSelection();
       return;
     }
 
@@ -338,8 +339,26 @@
         setChartLoading(false);
         renderChart();
         renderSelectedQuote();
+        syncStatusForSelection();
       }
     }
+  }
+
+  function syncStatusForSelection() {
+    if (state.refreshing) return;
+    if (state.statusMode === 'stale') {
+      updateRefreshStatus('刷新失败 · 显示缓存', 'stale');
+      return;
+    }
+    const quote = selectedQuote();
+    const allLive = quote.source === 'live' && state.candleSource === 'live';
+    state.statusMode = allLive ? 'live' : 'sample';
+    updateRefreshStatus(
+      allLive
+        ? '接口行情已更新'
+        : quote.source === 'live' ? '报价已更新 · K 线为样例' : '样例行情 · 可离线体验',
+      state.statusMode,
+    );
   }
 
   async function fetchWithTimeout(url, { timeout, signal } = {}) {

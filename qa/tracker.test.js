@@ -51,3 +51,14 @@ test('official completion state migrates stale browser cache entries', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 067 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app67 = ideas[66];
+
+  assert.equal(app67[0], 'AI菜谱推荐');
+  assert.match(app67[1], /PANTRY\/67/);
+  assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
+  assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
+});

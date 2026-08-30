@@ -196,7 +196,11 @@
   }
 
   function readJSON(value, fallback) {
-    try { return JSON.parse(value); } catch { return fallback; }
+    if (typeof value !== 'string' || !value) return fallback;
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : fallback;
+    } catch { return fallback; }
   }
 
   function safeFavorite(recipe) {

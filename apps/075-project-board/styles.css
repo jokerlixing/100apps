@@ -102,7 +102,7 @@ button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-v
 .app-header .quiet-button { border-color: rgba(247, 243, 232, .28); color: var(--ticket); }
 .app-header .quiet-button:hover { background: rgba(247, 243, 232, .08); }
 .quiet-button span { opacity: .7; }
-.primary-button { min-height: 42px; padding: 10px 16px; border: 2px solid var(--navy); background: var(--orange); box-shadow: 3px 3px 0 rgba(247, 243, 232, .3); }
+.primary-button { min-height: 44px; padding: 10px 16px; border: 2px solid var(--navy); background: var(--orange); box-shadow: 3px 3px 0 rgba(247, 243, 232, .3); }
 .app-header .primary-button { border-color: var(--ticket); box-shadow: 3px 3px 0 rgba(247, 243, 232, .3); }
 .primary-button:hover { transform: translate(1px, 1px); box-shadow: 2px 2px 0 rgba(247, 243, 232, .3); }
 .danger-button { min-height: 40px; padding: 9px 14px; border-color: var(--red); background: var(--red); color: white; }
@@ -132,15 +132,15 @@ main { padding: clamp(24px, 4vw, 54px) clamp(16px, 3vw, 48px) 70px; }
 
 .project-console {
   display: grid;
-  grid-template-columns: minmax(360px, 1.35fr) minmax(420px, 1fr) minmax(220px, .55fr);
-  gap: clamp(24px, 4vw, 64px);
+  grid-template-columns: minmax(540px, 1.4fr) minmax(390px, 1fr) minmax(210px, .52fr);
+  gap: clamp(22px, 2.4vw, 38px);
   align-items: end;
   padding-bottom: 30px;
   border-bottom: 2px solid var(--navy);
 }
 .eyebrow { margin: 0 0 9px; color: var(--blue); font: 800 9px/1.2 var(--mono); letter-spacing: .12em; }
 .heading-line { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
-.project-heading h1 { margin: 0; font: 900 clamp(42px, 5.2vw, 76px)/.82 var(--display); letter-spacing: -.025em; text-transform: uppercase; }
+.project-heading h1 { margin: 0; white-space: nowrap; font: 900 clamp(42px, 4.2vw, 64px)/.82 var(--display); letter-spacing: -.025em; text-transform: uppercase; }
 .heading-line > span { margin-bottom: 4px; padding: 5px 8px; color: var(--ticket); background: var(--navy); font: 800 9px/1 var(--mono); transform: rotate(-1deg); }
 .project-heading > p:last-child { max-width: 620px; margin: 18px 0 0; color: var(--navy-soft); font-size: 13px; line-height: 1.7; font-weight: 600; }
 
@@ -166,6 +166,7 @@ main { padding: clamp(24px, 4vw, 54px) clamp(16px, 3vw, 48px) 70px; }
   padding: 15px 0;
 }
 .search-field { flex: 0 1 340px; display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border: 2px solid var(--navy); background: var(--ticket); }
+.search-field:focus-within, .select-field:focus-within { outline: 3px solid var(--orange); outline-offset: 3px; }
 .search-field > span { font: 900 23px/1 var(--display); transform: translateY(-1px); }
 .search-field input { width: 100%; border: 0; outline: 0; background: transparent; color: inherit; font-size: 12px; }
 .member-filters { display: flex; align-items: center; }
@@ -338,11 +339,12 @@ dialog::backdrop { background: rgba(23, 42, 58, .58); backdrop-filter: blur(2px)
   .brand-mark { width: 32px; }
   .brand b { font-size: 21px; }
   .brand small, .header-actions .quiet-button, .header-actions .data-tools { display: none; }
-  .primary-button { padding-inline: 12px; font-size: 12px; }
+  .app-header .primary-button { min-width: 106px; padding-inline: 12px; font-size: 12px; }
   main { padding: 24px 12px 50px; }
   .project-console { grid-template-columns: 1fr; gap: 22px; }
   .project-heading { grid-column: auto; }
   .project-heading h1 { font-size: clamp(43px, 15vw, 66px); }
+  .project-heading h1 { white-space: normal; }
   .project-heading > p:last-child { font-size: 12px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-grid div:nth-child(2) { border-right: 0; }

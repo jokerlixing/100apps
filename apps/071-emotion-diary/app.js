@@ -581,4 +581,5 @@
   renderChoiceSet(refs['factor-choices'], 'factors', Core.FACTORS);
   resetForm();
   render();
+  document.body.classList.add('ready');
 })();

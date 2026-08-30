@@ -141,3 +141,17 @@ test('app 067 is published and included in the official completion state', () =>
   assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
   assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
 });
+
+test('app 071 is published without changing unfinished apps 068-070', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app71 = ideas[70];
+
+  assert.equal(app71[0], '情绪日记');
+  assert.match(app71[1], /^TIDE\/71/);
+  assert.equal(app71[3], 'https://jokerlixing.github.io/100apps/apps/071-emotion-diary/');
+  assert.equal(doneIds.has(71), true, 'INIT_DONE must mark app 071 as done');
+  assert.equal(doneIds.has(68), false, 'app 068 remains unfinished on this branch');
+  assert.equal(doneIds.has(69), false, 'app 069 remains unfinished on this branch');
+  assert.equal(doneIds.has(70), false, 'app 070 remains unfinished on this branch');
+});

@@ -66,6 +66,17 @@ test('app 064 is published and included in the official completion state', () =>
   assert.equal(doneIds.has(64), true, 'INIT_DONE must mark app 064 as done');
 });
 
+test('app 062 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app62 = ideas[61];
+
+  assert.equal(app62[0], 'AI聊天助手');
+  assert.equal(app62[1], 'WIRE/62：兼容接口+流式报文+本地多会话与临时密钥');
+  assert.equal(app62[3], 'https://jokerlixing.github.io/100apps/apps/062-ai-chat/');
+  assert.equal(doneIds.has(62), true, 'INIT_DONE must mark app 062 as done');
+});
+
 test('official completion state migrates stale browser cache entries', () => {
   const ideas = extractIdeas();
   const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
@@ -92,5 +103,30 @@ test('official completion state migrates stale browser cache entries', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/061-daily-wallpaper/');
   assert.equal(context.result.apps[1].st, 'done');
   assert.equal(context.result.apps[1].link, 'https://jokerlixing.github.io/100apps/apps/063-ai-writer/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('official completion state migrates a stale app 062 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  assert.ok(initMatch && start >= 0 && end > start, 'tracker migration source should be extractable');
+
+  const context = {};
+  vm.runInNewContext(`
+    let apps=[{id:62,name:"旧 AI 助手",desc:"旧说明",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, 'AI聊天助手');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/062-ai-chat/');
   assert.equal(context.result.didSave, true);
 });

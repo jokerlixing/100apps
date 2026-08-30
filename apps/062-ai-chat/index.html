@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172538">
+  <meta name="description" content="WIRE/62 是一个本地优先、兼容 OpenAI Chat Completions 的 BYOK 流式聊天助手。">
+  <title>WIRE/62 · AI 聊天通讯台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到对话</a>
+
+  <header class="topbar">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><strong>WIRE/62</strong><small>AI CHAT RELAY</small></span>
+    </a>
+    <div class="topbar-center" aria-label="线路摘要">
+      <span class="line-chip" id="topStatus" data-state="offline"><i aria-hidden="true"></i>未接通</span>
+      <span class="model-chip" id="topModel">未选择模型</span>
+    </div>
+    <div class="mobile-tools">
+      <button class="icon-button" id="openSessions" type="button" aria-controls="sessionPanel" aria-expanded="false">
+        <span aria-hidden="true">☷</span><span class="sr-only">打开会话</span>
+      </button>
+      <button class="icon-button" id="openSettings" type="button" aria-controls="connectionPanel" aria-expanded="false">
+        <span aria-hidden="true">⌁</span><span class="sr-only">打开连接设置</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-shell" id="main-content">
+    <nav class="session-panel" id="sessionPanel" aria-label="会话电报码">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">TRANSMISSION LOG</p>
+          <h2>会话电报码</h2>
+        </div>
+        <button class="drawer-close" type="button" data-close-drawer aria-label="关闭会话列表">×</button>
+      </div>
+
+      <button class="new-chat-button" id="newConversation" type="button">
+        <span aria-hidden="true">＋</span>
+        <span>建立新线路<small>New transmission</small></span>
+      </button>
+
+      <div class="session-list" id="conversationList" aria-label="已保存会话"></div>
+
+      <div class="local-note">
+        <span aria-hidden="true">⌂</span>
+        <p><strong>只存这台设备</strong><small>对话与非敏感设置保存在浏览器中</small></p>
+      </div>
+    </nav>
+
+    <section class="conversation-panel" aria-labelledby="appTitle">
+      <header class="conversation-head">
+        <div>
+          <p class="eyebrow">CHANNEL <span id="channelNumber">01</span> · PERSONAL RELAY</p>
+          <h1 id="appTitle">WIRE/62</h1>
+        </div>
+        <div class="conversation-meta">
+          <p id="conversationTitle">新对话</p>
+          <button class="text-button" id="manageConversation" type="button">管理会话</button>
+        </div>
+      </header>
+
+      <div class="message-viewport" id="messageViewport">
+        <div class="empty-state" id="emptyState">
+          <div class="signal-emblem" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p class="eyebrow">OPEN CHANNEL / READY</p>
+          <h2>把问题送上线路。</h2>
+          <p>连接你自己的兼容接口。回答会一段一段抵达，密钥不会写进本地记录。</p>
+          <div class="starter-grid" aria-label="示例问题">
+            <button type="button" data-starter="把下面这段想法整理成三步执行计划：">整理计划<span>PLAN / 01</span></button>
+            <button type="button" data-starter="用通俗中文解释这个概念，并给一个例子：">解释概念<span>EXPLAIN / 02</span></button>
+            <button type="button" data-starter="审阅下面的代码，优先指出逻辑与安全问题：">审阅代码<span>REVIEW / 03</span></button>
+          </div>
+        </div>
+
+        <div class="message-error" id="messageError" hidden>
+          <span aria-hidden="true">!</span>
+          <div><strong>线路未送达</strong><p id="messageErrorText"></p></div>
+          <button type="button" id="dismissError">知道了</button>
+        </div>
+
+        <div class="message-list" id="messageList" role="log" aria-label="对话消息"></div>
+      </div>
+
+      <form class="composer" id="composerForm">
+        <label for="promptInput">发送报文</label>
+        <div class="composer-box">
+          <textarea id="promptInput" rows="1" maxlength="12000" placeholder="输入消息；Enter 发送，Shift + Enter 换行" aria-describedby="composerHint"></textarea>
+          <div class="composer-controls">
+            <span id="characterCount">0 / 12000</span>
+            <button class="stop-button" id="stopButton" type="button" hidden><i aria-hidden="true"></i>停止</button>
+            <button class="send-button" id="sendButton" type="submit"><span>发送</span><b aria-hidden="true">↗</b></button>
+          </div>
+        </div>
+        <p id="composerHint">AI 可能出错，请核对重要信息。密钥刷新即清除。</p>
+      </form>
+    </section>
+
+    <aside class="connection-panel" id="connectionPanel" aria-labelledby="connectionTitle">
+      <div class="panel-heading connection-heading">
+        <div>
+          <p class="eyebrow">PATCH BAY / BYOK</p>
+          <h2 id="connectionTitle">连接跳线台</h2>
+        </div>
+        <button class="drawer-close" type="button" data-close-drawer aria-label="关闭连接设置">×</button>
+      </div>
+
+      <div class="connection-meter" id="connectionMeter" data-state="offline">
+        <div class="meter-dial" aria-hidden="true"><span></span></div>
+        <div><small>LINE STATUS</small><strong id="connectionLabel">等待配置</strong></div>
+      </div>
+
+      <form class="settings-form" id="settingsForm" novalidate>
+        <div class="field">
+          <label for="endpointInput">接口地址 <span>HTTPS</span></label>
+          <input id="endpointInput" name="endpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1" required>
+          <small>填写 API 基址或完整的 /chat/completions 地址</small>
+        </div>
+
+        <div class="field patch-field">
+          <label for="modelInput">模型 <span>MODEL</span></label>
+          <input id="modelInput" name="model" type="text" autocomplete="off" spellcheck="false" placeholder="例如 gpt-4o-mini" maxlength="160" required>
+          <i class="patch-port" aria-hidden="true"></i>
+        </div>
+
+        <div class="field key-field">
+          <label for="apiKeyInput">临时密钥 <span>MEMORY ONLY</span></label>
+          <div class="secret-input">
+            <input id="apiKeyInput" name="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴后将从输入框清除">
+            <button id="toggleKey" type="button" aria-label="显示密钥" aria-pressed="false">显示</button>
+          </div>
+          <small id="keyState">尚未载入；不会保存到浏览器存储</small>
+        </div>
+
+        <div class="field range-field">
+          <div class="range-label">
+            <label for="temperatureInput">发散程度 <span>TEMPERATURE</span></label>
+            <output id="temperatureOutput" for="temperatureInput">0.7</output>
+          </div>
+          <input id="temperatureInput" name="temperature" type="range" min="0" max="2" step="0.1" value="0.7">
+          <div class="range-scale"><span>稳定</span><span>灵活</span></div>
+        </div>
+
+        <div class="field">
+          <label for="systemPromptInput">工作指令 <span>SYSTEM</span></label>
+          <textarea id="systemPromptInput" name="systemPrompt" rows="4" maxlength="6000" placeholder="例如：请用清晰、简洁的中文回答。"></textarea>
+        </div>
+
+        <p class="settings-error" id="settingsError" role="alert"></p>
+        <button class="connect-button" type="submit"><span aria-hidden="true"></span>保存并接通线路</button>
+      </form>
+
+      <div class="security-card">
+        <strong><span aria-hidden="true">⌁</span> 密钥安全边界</strong>
+        <p>浏览器直连只适合个人测试。请使用低额度、可撤销的密钥；正式产品应改用服务端代理。</p>
+      </div>
+    </aside>
+  </main>
+
+  <button class="drawer-backdrop" id="drawerBackdrop" type="button" aria-label="关闭侧栏" hidden></button>
+
+  <dialog class="manage-dialog" id="manageDialog" aria-labelledby="manageTitle">
+    <form method="dialog" id="manageForm">
+      <div class="dialog-head">
+        <div><p class="eyebrow">CHANNEL CONTROL</p><h2 id="manageTitle">管理当前会话</h2></div>
+        <button value="cancel" aria-label="关闭">×</button>
+      </div>
+      <label for="renameInput">会话名称</label>
+      <input id="renameInput" type="text" maxlength="60" required>
+      <div class="dialog-actions">
+        <button class="danger-button" id="deleteConversation" type="button">删除会话</button>
+        <button class="save-name-button" value="save">保存名称</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="politeStatus" aria-live="polite"></div>
+  <div class="sr-only" id="urgentStatus" aria-live="assertive"></div>
+
+  <template id="messageTemplate">
+    <article class="message">
+      <span class="message-node" aria-hidden="true"></span>
+      <header><span class="message-role"></span><time></time><span class="message-state"></span></header>
+      <div class="message-content"></div>
+      <footer>
+        <button type="button" data-message-action="copy">复制</button>
+        <button type="button" data-message-action="retry">重新生成</button>
+      </footer>
+    </article>
+  </template>
+
+  <script src="chat-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

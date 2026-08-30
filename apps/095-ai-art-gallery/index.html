@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MUSE/95 是一个本地提示词画室：生成、收藏、下载并分享你的程序化艺术配方。">
+  <meta name="theme-color" content="#211b2d">
+  <title>MUSE/95 · AI 绘画广场</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23211b2d'/%3E%3Ccircle cx='44' cy='20' r='11' fill='%23ff735e'/%3E%3Cpath d='M12 47 25 18l9 29h-7l-2-8-6 8z' fill='%23b7e5e7'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=20260831">
+</head>
+<body>
+  <a class="skip-link" href="#promptInput">跳到提示词输入框</a>
+
+  <header class="site-header">
+    <a class="brand" href="#studio" aria-label="MUSE 95 首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><b>M</b></span>
+      <span><strong>MUSE<em>/95</em></strong><small>LOCAL PROMPT STUDIO</small></span>
+    </a>
+
+    <nav aria-label="页面导航">
+      <a href="#studio">创作台</a>
+      <a href="#gallery">灵感画廊</a>
+    </nav>
+
+    <div class="header-status" aria-label="画室状态">
+      <span><i aria-hidden="true"></i>本地引擎</span>
+      <span><b id="headerArtworkCount">06</b> 份配方</span>
+    </div>
+  </header>
+
+  <main>
+    <section id="studio" class="studio" aria-labelledby="studioTitle">
+      <div class="studio-copy">
+        <div class="section-index" aria-hidden="true">01 / CREATE</div>
+        <p class="eyebrow">一句描述，一张只属于此刻的图</p>
+        <h1 id="studioTitle">把一句话，<br>变成一张<strong>能带走的图。</strong></h1>
+        <p class="lede">输入一个场景，选择画风和画幅。MUSE 会在浏览器里解释关键词、编排颜色与形体，生成可复现、可下载的作品。</p>
+
+        <form id="promptForm" novalidate>
+          <label class="prompt-field" for="promptInput">
+            <span>你的画面描述</span>
+            <textarea id="promptInput" maxlength="180" rows="4" placeholder="例如：午夜的轨道花园，月亮像一枚旧唱片……">蓝色时刻，漂浮在镜面海上的不可能图书馆，珊瑚色太阳与纸片穿过拱门</textarea>
+            <small><b id="promptCount">39</b>/180</small>
+          </label>
+
+          <div class="prompt-suggestions" aria-label="提示词灵感">
+            <span>试试：</span>
+            <button type="button" data-prompt="雾里的橙色车站，候车长椅漂浮在紫色云层之间">雾中车站</button>
+            <button type="button" data-prompt="月光下会呼吸的花园，银色植物沿着风的方向生长">月光花园</button>
+            <button type="button" data-prompt="粉橙日落下的海岸地形，风把岛屿切成层叠的光谱">光谱海岸</button>
+          </div>
+
+          <fieldset class="control-group style-control">
+            <legend><span>画面语言</span><small id="styleDescription">拱门、结构线与印刷颗粒</small></legend>
+            <div id="styleOptions" class="style-options">
+              <button type="button" data-style="dream" aria-pressed="false"><i></i><span>梦境拼贴<small>DREAM</small></span></button>
+              <button type="button" data-style="architecture" aria-pressed="true"><i></i><span>版画建筑<small>ARCH</small></span></button>
+              <button type="button" data-style="ink" aria-pressed="false"><i></i><span>墨线生长<small>INK</small></span></button>
+              <button type="button" data-style="poster" aria-pressed="false"><i></i><span>几何海报<small>POSTER</small></span></button>
+              <button type="button" data-style="terrain" aria-pressed="false"><i></i><span>地形光谱<small>TERRAIN</small></span></button>
+            </div>
+          </fieldset>
+
+          <div class="control-row">
+            <fieldset class="control-group ratio-control">
+              <legend><span>画幅比例</span></legend>
+              <div id="ratioOptions" class="ratio-options">
+                <button type="button" data-ratio="square" aria-pressed="true"><i class="ratio-square"></i>1:1</button>
+                <button type="button" data-ratio="portrait" aria-pressed="false"><i class="ratio-portrait"></i>3:4</button>
+                <button type="button" data-ratio="landscape" aria-pressed="false"><i class="ratio-landscape"></i>3:2</button>
+              </div>
+            </fieldset>
+
+            <label class="seed-control" for="seedInput">
+              <span>灵感种子</span>
+              <div>
+                <input id="seedInput" type="number" min="1" max="2147483646" value="9511" inputmode="numeric">
+                <button id="randomSeedButton" type="button" aria-label="换一个灵感种子" title="换一个灵感种子">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                </button>
+              </div>
+            </label>
+          </div>
+
+          <p id="promptError" class="form-error" role="alert"></p>
+          <button id="generateButton" class="generate-button" type="submit">
+            <span class="generate-spark" aria-hidden="true">✦</span>
+            <span><b>生成一张作品</b><small>LOCAL RENDER · PNG READY</small></span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <div class="studio-stage-column">
+        <div class="stage-heading">
+          <div>
+            <p class="eyebrow">CURRENT PROOF</p>
+            <h2>本次画面校样</h2>
+          </div>
+          <div id="generationStatus" class="generation-status" data-state="ready"><i aria-hidden="true"></i><span>样片已装载</span></div>
+        </div>
+
+        <figure id="artStage" class="art-stage" data-ratio="square">
+          <div class="art-mat">
+            <img id="heroImage" src="assets/floating-library.png" alt="蓝色时刻漂浮在镜面海上的图书馆">
+            <canvas id="heroCanvas" aria-label="当前生成作品" hidden></canvas>
+            <div class="generation-scan" aria-hidden="true"></div>
+            <span id="sourceBadge" class="source-badge">AI ORIGINAL / FEATURED</span>
+          </div>
+          <figcaption>
+            <p id="currentPrompt">蓝色时刻，漂浮在镜面海上的不可能图书馆，珊瑚色太阳与纸片穿过拱门</p>
+            <div class="proof-meta">
+              <span id="currentStyle">版画建筑</span>
+              <span id="currentRatio">方形 1:1</span>
+              <span id="currentPalette">深海蓝调</span>
+              <span id="currentSeed">#009511</span>
+            </div>
+          </figcaption>
+        </figure>
+
+        <div class="stage-actions" aria-label="当前作品操作">
+          <button id="heroLikeButton" type="button" aria-pressed="false">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+            <span>收藏</span>
+          </button>
+          <button id="heroShareButton" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 12h8M12 8l4 4-4 4M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>
+            复制提示词
+          </button>
+          <button id="heroDownloadButton" class="primary-action" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+            下载 PNG
+          </button>
+        </div>
+
+        <p class="local-note"><i aria-hidden="true"></i><span>作品配方保存在当前浏览器。代码与提示词不会上传。</span></p>
+      </div>
+    </section>
+
+    <section id="gallery" class="gallery-section" aria-labelledby="galleryTitle">
+      <div class="gallery-heading">
+        <div>
+          <div class="section-index" aria-hidden="true">02 / COLLECT</div>
+          <p class="eyebrow">CURATED + YOUR WORK</p>
+          <h2 id="galleryTitle">灵感不是答案，<strong>是下一张图的入口。</strong></h2>
+        </div>
+        <p>每张作品都保留可复制的提示词、画风、比例和种子。换一个词，沿着配方继续创作。</p>
+      </div>
+
+      <div class="gallery-tools">
+        <div id="filterButtons" class="filter-buttons" aria-label="画廊筛选">
+          <button type="button" data-filter="all" aria-pressed="true">全部作品 <span id="allCount">06</span></button>
+          <button type="button" data-filter="mine" aria-pressed="false">我的创作 <span id="mineCount">00</span></button>
+          <button type="button" data-filter="liked" aria-pressed="false">已收藏 <span id="likedCount">00</span></button>
+        </div>
+        <label class="search-field" for="gallerySearch">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <span class="sr-only">搜索作品提示词</span>
+          <input id="gallerySearch" type="search" placeholder="搜索提示词或画风…" autocomplete="off">
+        </label>
+      </div>
+
+      <div id="galleryGrid" class="gallery-grid" aria-live="polite"></div>
+      <div id="galleryEmpty" class="gallery-empty" hidden>
+        <span aria-hidden="true">∅</span>
+        <h3>这组筛选还没有作品</h3>
+        <p>换个关键词，或回到创作台生成第一张属于你的图。</p>
+        <button id="clearFiltersButton" type="button">查看全部作品</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div><strong>MUSE/95</strong><span>100 APPS CHALLENGE · APP 095</span></div>
+    <p>本地提示词引擎生成程序化艺术；主展品由 OpenAI 内置 imagegen 工具原创生成。</p>
+    <a href="#studio">回到创作台 ↑</a>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="liveRegion" class="sr-only" aria-live="polite"></div>
+
+  <script src="gallery-core.js?v=20260831"></script>
+  <script src="art-engine.js?v=20260831"></script>
+  <script src="app.js?v=20260831"></script>
+</body>
+</html>

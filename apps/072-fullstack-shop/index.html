@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="COUNTER/72 周末设计市集预订与现场取货 Demo：逛摊、购物袋、可信结算与订单管理。">
+  <title>COUNTER/72 · 周末设计市集</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#catalog">跳到商品</a>
+
+  <div class="market-strip" aria-hidden="true">
+    <span>WEEKEND DESIGN MARKET</span><span>周六—周日 · 10:00—18:00</span><span>预订后到场支付</span><span>COUNTER / 72</span>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="COUNTER 72 首页">
+      <span class="brand-stamp">C/72</span>
+      <span><b>周末设计市集</b><small>COUNTER PICKUP MARKET</small></span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#catalog">逛摊</a>
+      <a href="#orders">订单台 <span id="orderCountBadge">0</span></a>
+    </nav>
+    <div class="mode-chip" id="modeChip" role="status"><span></span>正在检查订单台</div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="canopy" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="hero-copy">
+        <p class="kicker">NO.072 / PICKUP ONLY / 到场支付</p>
+        <h1 id="heroTitle">先逛摊，<br><em>后取货。</em></h1>
+        <p>十二件来自纸品、陶器、织物与灯具摊位的周末小物。现在锁定库存，选好时段，到市集凭六位码取货。</p>
+        <a class="hero-action" href="#catalog">从第一排摊位开始 <span aria-hidden="true">↓</span></a>
+      </div>
+      <aside class="market-pass" aria-label="本周市集信息">
+        <p>本周通行证</p>
+        <strong>AUG<br>31</strong>
+        <dl>
+          <div><dt>地点</dt><dd>河岸 2 号仓</dd></div>
+          <div><dt>营业</dt><dd>10:00—18:00</dd></div>
+          <div><dt>方式</dt><dd>预订 · 到场支付</dd></div>
+        </dl>
+        <span class="pass-code">72 0831 1200</span>
+      </aside>
+    </section>
+
+    <section class="market-layout" id="catalog" aria-labelledby="catalogTitle">
+      <div class="catalog-panel">
+        <div class="section-heading">
+          <div><p class="kicker">STALL DIRECTORY / 逛摊</p><h2 id="catalogTitle">今天想带走什么？</h2></div>
+          <p id="resultCount" aria-live="polite">12 件商品</p>
+        </div>
+
+        <div class="filters" aria-label="商品筛选">
+          <label class="search-field">
+            <span>搜索商品或材料</span>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="例如：纸、陶、灯">
+          </label>
+          <div class="stall-filters" id="stallFilters" aria-label="按摊位筛选"></div>
+        </div>
+
+        <div class="product-grid" id="productGrid"></div>
+      </div>
+
+      <aside class="ticket-panel" id="ticketPanel" aria-labelledby="ticketTitle" aria-hidden="false">
+        <button class="ticket-close" id="ticketClose" type="button" aria-label="关闭取货票">×</button>
+        <div class="ticket" id="ticket">
+          <header class="ticket-head">
+            <span>COUNTER / 72</span>
+            <p>周末市集预订取货票</p>
+            <div class="ticket-number">BAG <b id="ticketCount">00</b></div>
+          </header>
+          <div class="ticket-meta"><span>到场支付</span><span>库存实时锁定</span></div>
+          <div class="ticket-lines" id="ticketLines"></div>
+          <div class="ticket-totals" id="ticketTotals"></div>
+          <button class="checkout-button" id="checkoutButton" type="button" disabled>确认预订 <span>→</span></button>
+          <p class="ticket-fineprint">提交即生成取货码。此 Demo 不收集住址，不接入真实支付。</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="orders-section" id="orders" aria-labelledby="ordersTitle">
+      <div class="orders-heading">
+        <div><p class="kicker">FULFILLMENT BOARD / 订单台</p><h2 id="ordersTitle">从备货到交付，一眼看清</h2></div>
+        <button class="text-button" id="refreshOrdersButton" type="button">刷新订单</button>
+      </div>
+      <div class="order-legend" aria-hidden="true"><span>待备货</span><i></i><span>可取货</span><i></i><span>已完成</span></div>
+      <div class="orders-list" id="ordersList"></div>
+    </section>
+  </main>
+
+  <footer>
+    <div><b>COUNTER/72</b><span>100 Apps Challenge · App #072</span></div>
+    <p>商品目录 / 可信计价 / 到场取货 / 订单状态管理</p>
+  </footer>
+
+  <div class="ticket-backdrop" id="ticketBackdrop"></div>
+  <button class="mobile-ticket-button" id="mobileTicketButton" type="button" aria-controls="ticketPanel" aria-expanded="false">
+    <span>查看取货票</span><b id="mobileTicketTotal">¥0</b><i id="mobileTicketCount">0</i>
+  </button>
+
+  <dialog class="checkout-dialog" id="checkoutDialog" aria-labelledby="checkoutTitle">
+    <form id="checkoutForm" novalidate>
+      <div class="dialog-head">
+        <div><p class="kicker">RESERVE / 确认预订</p><h2 id="checkoutTitle">把取货信息写上票</h2></div>
+        <button class="dialog-close" id="dialogClose" type="button" aria-label="关闭结算">×</button>
+      </div>
+      <div class="checkout-total"><span id="checkoutItems">0 件商品</span><strong id="checkoutTotal">¥0</strong><small>到场支付</small></div>
+      <div class="form-grid">
+        <label><span>取货称呼</span><input id="nicknameInput" name="nickname" maxlength="20" autocomplete="nickname" placeholder="摊主怎样称呼你"><small class="field-error" id="nicknameError"></small></label>
+        <label><span>手机号后四位</span><input id="phoneSuffixInput" name="phoneSuffix" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="用于现场核对"><small class="field-error" id="phoneSuffixError"></small></label>
+        <label class="full-field"><span>取货时段</span><select id="pickupSlotInput" name="pickupSlot"><option value="">请选择时段</option><option value="sat-am">周六 10:00—13:00</option><option value="sat-pm">周六 13:00—18:00</option><option value="sun-am">周日 10:00—13:00</option><option value="sun-pm">周日 13:00—18:00</option></select><small class="field-error" id="pickupSlotError"></small></label>
+      </div>
+      <div class="checkout-note"><b>这不是支付页面</b><p>订单只锁定演示库存。到场后再决定是否购买，请勿填写完整手机号或地址。</p></div>
+      <p class="submit-error" id="submitError" role="alert"></p>
+      <button class="submit-order" id="submitOrderButton" type="submit">生成取货码 <span>→</span></button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="shop-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

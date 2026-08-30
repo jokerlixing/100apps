@@ -242,9 +242,7 @@ a:focus-visible {
   background: var(--ink);
 }
 
-.puzzle-tile,
-.puzzle-empty,
-.trail-marker {
+.puzzle-tile {
   min-width: 0;
   min-height: 0;
   grid-row: var(--row);
@@ -260,22 +258,72 @@ a:focus-visible {
   border-radius: 2px;
   background-color: var(--lcd);
   background-repeat: no-repeat;
-  cursor: default;
-  transition: transform 150ms cubic-bezier(.2, .8, .2, 1), filter 150ms ease;
+  cursor: grab;
+  transition:
+    transform 150ms cubic-bezier(.2, .8, .2, 1),
+    filter 150ms ease,
+    opacity 150ms ease,
+    box-shadow 150ms ease;
 }
 
-.puzzle-tile.is-movable {
-  cursor: pointer;
+.puzzle-tile::before {
+  position: absolute;
+  z-index: 3;
+  top: 7px;
+  left: 7px;
+  display: none;
+  padding: 5px 7px;
+  border: 2px solid var(--ink);
+  background: var(--button-yellow);
+  color: var(--ink);
+  font: 900 9px/1 Consolas, "Courier New", monospace;
+  letter-spacing: .12em;
 }
 
-.puzzle-tile.is-movable:hover {
+.puzzle-tile:hover {
   z-index: 3;
   filter: saturate(1.18) brightness(1.08);
-  transform: scale(.965);
+  transform: scale(.975);
 }
 
-.puzzle-tile.is-movable:active {
+.puzzle-tile:active {
+  cursor: grabbing;
+}
+
+.puzzle-tile.is-selected {
+  z-index: 5;
+  box-shadow: inset 0 0 0 6px var(--button-yellow);
+  filter: saturate(1.18) brightness(1.08);
+  transform: scale(.94);
+}
+
+.puzzle-tile.is-selected::before {
+  content: "SOURCE";
+  display: block;
+}
+
+.puzzle-grid.is-dragging .puzzle-tile {
+  cursor: grabbing;
+}
+
+.puzzle-tile.is-drag-source {
+  z-index: 4;
+  opacity: .36;
+  transform: scale(.88) rotate(-2deg);
+}
+
+.puzzle-tile.is-drop-target {
+  z-index: 5;
+  box-shadow:
+    inset 0 0 0 7px var(--button-yellow),
+    inset 0 0 0 11px var(--ink);
+  filter: saturate(1.2) brightness(1.08);
   transform: scale(.91);
+}
+
+.puzzle-tile.is-drop-target::before {
+  content: "SWAP";
+  display: block;
 }
 
 .tile-number {
@@ -294,36 +342,6 @@ a:focus-visible {
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
-}
-
-.puzzle-empty {
-  position: relative;
-  z-index: 1;
-  border: 2px dashed rgba(216, 224, 208, .28);
-  background:
-    linear-gradient(45deg, rgba(216, 224, 208, .05) 25%, transparent 25%, transparent 75%, rgba(216, 224, 208, .05) 75%) 0 0 / 18px 18px,
-    #080c09;
-}
-
-.puzzle-empty::after {
-  content: "OPEN";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(216, 224, 208, .34);
-  font-family: Consolas, "Courier New", monospace;
-  font-size: clamp(8px, 1.5vw, 13px);
-  font-weight: 800;
-  letter-spacing: .16em;
-}
-
-.trail-marker {
-  z-index: 4;
-  pointer-events: none;
-  border: 4px solid var(--button-yellow);
-  opacity: 0;
-  animation: trail-fade 650ms steps(4, end) forwards;
 }
 
 .preview-layer {
@@ -732,11 +750,6 @@ legend,
   50% { opacity: .25; }
 }
 
-@keyframes trail-fade {
-  0% { opacity: .9; }
-  100% { opacity: 0; transform: scale(.75); }
-}
-
 @media (max-width: 900px) {
   .intro {
     grid-template-columns: minmax(0, 1fr);
@@ -856,7 +869,4 @@ legend,
     transition-duration: .01ms !important;
   }
 
-  .trail-marker {
-    display: none;
-  }
 }

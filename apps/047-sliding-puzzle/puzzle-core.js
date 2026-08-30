@@ -13,21 +13,11 @@
   function createSolved(dimension) {
     validateDimension(dimension);
     const tileCount = dimension * dimension;
-    return Array.from({ length: tileCount }, (_, index) => (index + 1) % tileCount);
+    return Array.from({ length: tileCount }, (_, index) => index + 1);
   }
 
   function validateIndex(index, dimension) {
     return Number.isInteger(index) && index >= 0 && index < dimension * dimension;
-  }
-
-  function isAdjacent(leftIndex, rightIndex, dimension) {
-    validateDimension(dimension);
-    if (!validateIndex(leftIndex, dimension) || !validateIndex(rightIndex, dimension)) return false;
-    const leftRow = Math.floor(leftIndex / dimension);
-    const leftColumn = leftIndex % dimension;
-    const rightRow = Math.floor(rightIndex / dimension);
-    const rightColumn = rightIndex % dimension;
-    return Math.abs(leftRow - rightRow) + Math.abs(leftColumn - rightColumn) === 1;
   }
 
   function validateBoard(board, dimension) {
@@ -42,57 +32,40 @@
     }
   }
 
-  function getMovableIndexes(board, dimension) {
-    validateBoard(board, dimension);
-    const emptyIndex = board.indexOf(0);
-    return board
-      .map((_, index) => index)
-      .filter(index => isAdjacent(index, emptyIndex, dimension));
-  }
-
-  function moveTile(board, tileIndex, dimension) {
+  function swapTiles(board, sourceIndex, targetIndex, dimension) {
     validateBoard(board, dimension);
     const nextBoard = [...board];
-    const emptyIndex = board.indexOf(0);
-    if (!isAdjacent(tileIndex, emptyIndex, dimension)) {
-      return { board: nextBoard, moved: false, emptyIndex, tileIndex };
+    if (!validateIndex(sourceIndex, dimension) || !validateIndex(targetIndex, dimension)) {
+      throw new RangeError("方块索引无效");
     }
-    nextBoard[emptyIndex] = board[tileIndex];
-    nextBoard[tileIndex] = 0;
-    return { board: nextBoard, moved: true, emptyIndex: tileIndex, tileIndex };
+    if (sourceIndex === targetIndex) {
+      return { board: nextBoard, swapped: false, sourceIndex, targetIndex };
+    }
+    [nextBoard[sourceIndex], nextBoard[targetIndex]] = [nextBoard[targetIndex], nextBoard[sourceIndex]];
+    return { board: nextBoard, swapped: true, sourceIndex, targetIndex };
   }
 
   function isSolved(board) {
     if (!Array.isArray(board) || board.length === 0) return false;
-    return board.every((tile, index) => tile === (index + 1) % board.length);
+    return board.every((tile, index) => tile === index + 1);
   }
 
-  function shuffleBoard(dimension, random = Math.random, steps = dimension * dimension * 24) {
+  function shuffleBoard(dimension, random = Math.random) {
     validateDimension(dimension);
     if (typeof random !== "function") throw new TypeError("随机源必须是函数");
-    if (!Number.isInteger(steps) || steps < 1) throw new RangeError("打乱步数必须是正整数");
 
-    let board = createSolved(dimension);
-    let previousEmptyIndex = -1;
-
-    for (let step = 0; step < steps; step += 1) {
-      const candidates = getMovableIndexes(board, dimension);
-      const choices = candidates.length > 1
-        ? candidates.filter(index => index !== previousEmptyIndex)
-        : candidates;
+    const board = createSolved(dimension);
+    for (let index = board.length - 1; index > 0; index -= 1) {
       const randomValue = random();
       if (!Number.isFinite(randomValue) || randomValue < 0 || randomValue >= 1) {
         throw new RangeError("随机源必须返回大于等于 0 且小于 1 的数");
       }
-      const oldEmptyIndex = board.indexOf(0);
-      const tileIndex = choices[Math.floor(randomValue * choices.length)];
-      board = moveTile(board, tileIndex, dimension).board;
-      previousEmptyIndex = oldEmptyIndex;
+      const targetIndex = Math.floor(randomValue * (index + 1));
+      [board[index], board[targetIndex]] = [board[targetIndex], board[index]];
     }
 
     if (isSolved(board)) {
-      const tileIndex = getMovableIndexes(board, dimension)[0];
-      board = moveTile(board, tileIndex, dimension).board;
+      [board[0], board[1]] = [board[1], board[0]];
     }
     return board;
   }
@@ -116,11 +89,9 @@
 
   return {
     createSolved,
-    getMovableIndexes,
-    isAdjacent,
     isSolved,
-    moveTile,
     pickBestRecord,
-    shuffleBoard
+    shuffleBoard,
+    swapTiles
   };
 });

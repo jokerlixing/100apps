@@ -58,13 +58,13 @@
 - Modify: `apps/047-sliding-puzzle/index.html`
 - Modify: `apps/047-sliding-puzzle/styles.css`
 
-**Step 1:** Render all tiles as draggable buttons; remove empty-cell and trail rendering.
+**Step 1:** Render all tiles as buttons; remove empty-cell and trail rendering.
 
 **Step 2:** Add selection state. First click/Enter selects, second swaps, repeated source cancels.
 
 **Step 3:** Add pointer drag state and target hit-testing with `document.elementFromPoint`; commit only when source and target differ.
 
-**Step 4:** Add HTML `dragstart`, `dragover`, `dragleave`, `drop`, and `dragend` handlers for desktop semantics.
+**Step 4:** Use the same Pointer Events drag flow for mouse, touch, and stylus input.
 
 **Step 5:** Make arrow keys move focus by row/column and Enter/space invoke the same selection path.
 

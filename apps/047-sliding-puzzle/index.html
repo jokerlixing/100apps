@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2859d8">
-  <meta name="description" content="SHIFT/47 是一款支持本地图片、三档难度、计时与最佳纪录的经典滑块拼图。">
-  <title>SHIFT/47 · 滑块拼图</title>
+  <meta name="description" content="SHIFT/47 是一款支持全图拖拽交换、本地图片、三档难度、计时与最佳纪录的图片拼图。">
+  <title>SHIFT/47 · 全图交换拼图</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,17 +18,17 @@
     <section class="intro" aria-labelledby="page-title">
       <p class="eyebrow">PICTURE RECOVERY PROTOCOL</p>
       <h1 id="page-title">SHIFT<span>/47</span></h1>
-      <p class="intro-copy">移动空格旁的图块，把失真的信号重新拼回原位。每一步都算数。</p>
+      <p class="intro-copy">抓住一块图片，拖到另一块上交换位置。整张图铺满，每一次交换都算数。</p>
     </section>
 
-    <section class="game-console" aria-label="滑块拼图游戏机">
+    <section class="game-console" aria-label="全图交换拼图游戏机">
       <div class="screen-module">
         <div class="screen-header">
           <div>
             <span class="signal-dot" aria-hidden="true"></span>
-            <span id="run-state">等待第一步</span>
+            <span id="run-state">等待第一次交换</span>
           </div>
-          <span id="image-name">内置信号塔</span>
+          <span id="image-name">彩色创意桌面</span>
         </div>
 
         <div class="telemetry" aria-label="本局数据">
@@ -52,14 +52,14 @@
             class="puzzle-grid"
             role="grid"
             tabindex="0"
-            aria-label="3 乘 3 滑块拼图，使用方向键移动空格"
+            aria-label="3 乘 3 全图交换拼图，拖拽或依次选择两块进行交换"
             aria-describedby="board-help"
           ></div>
           <div id="preview-layer" class="preview-layer" aria-hidden="true"></div>
           <div class="screen-scanline" aria-hidden="true"></div>
         </div>
 
-        <p id="board-help" class="screen-message">点击相邻方块，或用方向键移动空格。</p>
+        <p id="board-help" class="screen-message">拖动一块到另一块上交换；也可以依次点击两块。</p>
       </div>
 
       <aside class="control-module" aria-label="拼图控制台">
@@ -108,7 +108,7 @@
 
         <div class="key-guide" aria-label="操作说明">
           <div class="key-arrows" aria-hidden="true"><i>↑</i><i>←</i><i>↓</i><i>→</i></div>
-          <p><b>方向键 / 点击 / 滑动</b><br>让空格靠近它应该在的位置。</p>
+          <p><b>拖拽 / 点击两块</b><br>方向键移动焦点，Enter 选择。</p>
         </div>
       </aside>
     </section>

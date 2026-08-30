@@ -2,10 +2,9 @@
   "use strict";
 
   const Core = window.PuzzleCore;
-  const DEFAULT_IMAGE = "assets/default-puzzle.svg";
+  const DEFAULT_IMAGE = "assets/colorful-desk-puzzle.png";
   const STORAGE_KEY = "shift47.records.v1";
   const MAX_FILE_SIZE = 8 * 1024 * 1024;
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const elements = {
     screenModule: document.querySelector(".screen-module"),
@@ -39,21 +38,23 @@
     dimension: 3,
     board: Core.createSolved(3),
     imageUrl: DEFAULT_IMAGE,
-    imageKey: "default",
-    imageName: "内置信号塔",
+    imageKey: "desk",
+    imageName: "彩色创意桌面",
     status: "ready",
     moves: 0,
     elapsedMs: 0,
     startTime: 0,
     timerFrame: 0,
     timerSecond: -1,
+    selectedIndex: null,
+    focusIndex: 0,
+    dragSourceIndex: null,
+    dragTargetIndex: null,
+    pointerSession: null,
+    ignoreClickUntil: 0,
     pendingAction: null,
     noticeTimer: 0,
-    helpTimer: 0,
-    touchStart: null,
-    suppressClickUntil: 0,
-    trails: [],
-    trailId: 0
+    helpTimer: 0
   };
 
   function readRecords() {
@@ -76,7 +77,7 @@
   }
 
   function recordKey() {
-    return `${state.imageKey}-${state.dimension}`;
+    return `${state.imageKey}-${state.dimension}-swap`;
   }
 
   function getBestRecord() {
@@ -101,13 +102,13 @@
     elements.moveValue.textContent = String(state.moves).padStart(3, "0");
     const best = getBestRecord();
     elements.bestValue.textContent = best ? formatTime(best.elapsedMs) : "--:--";
-    elements.bestValue.title = best ? `最佳纪录：${best.moves} 步` : "暂无完成纪录";
+    elements.bestValue.title = best ? `最佳纪录：${best.moves} 次交换` : "暂无完成纪录";
   }
 
   function updateRunState() {
     const labels = {
-      ready: "等待第一步",
-      running: "信号修复中",
+      ready: "等待第一次交换",
+      running: "图像重组中",
       complete: "图像已恢复"
     };
     elements.runState.textContent = labels[state.status];
@@ -120,52 +121,36 @@
     element.style.setProperty("--column", index % state.dimension + 1);
   }
 
-  function appendTrailMarkers() {
-    for (const trail of state.trails) {
-      const marker = document.createElement("span");
-      marker.className = "trail-marker";
-      marker.dataset.trailId = String(trail.id);
-      marker.setAttribute("aria-hidden", "true");
-      positionStyle(marker, trail.index);
-      elements.puzzleGrid.append(marker);
-    }
-  }
-
   function renderBoard() {
     elements.puzzleGrid.replaceChildren();
     elements.puzzleGrid.style.setProperty("--size", state.dimension);
     elements.puzzleGrid.setAttribute(
       "aria-label",
-      `${state.dimension} 乘 ${state.dimension} 滑块拼图，使用方向键移动空格`
+      `${state.dimension} 乘 ${state.dimension} 全图交换拼图，拖拽或依次选择两块进行交换`
     );
-    const movable = new Set(Core.getMovableIndexes(state.board, state.dimension));
 
     state.board.forEach((tile, index) => {
-      if (tile === 0) {
-        const empty = document.createElement("div");
-        empty.className = "puzzle-empty";
-        empty.setAttribute("role", "gridcell");
-        empty.setAttribute("aria-label", `第 ${index + 1} 格，空格`);
-        positionStyle(empty, index);
-        elements.puzzleGrid.append(empty);
-        return;
-      }
-
       const targetIndex = tile - 1;
       const targetRow = Math.floor(targetIndex / state.dimension);
       const targetColumn = targetIndex % state.dimension;
       const tileButton = document.createElement("button");
       tileButton.type = "button";
-      tileButton.className = `puzzle-tile${movable.has(index) ? " is-movable" : ""}`;
+      tileButton.className = "puzzle-tile";
       tileButton.dataset.index = String(index);
       tileButton.setAttribute("role", "gridcell");
-      tileButton.setAttribute("aria-label", `方块 ${tile}，目标位置第 ${targetRow + 1} 行第 ${targetColumn + 1} 列`);
-      tileButton.setAttribute("aria-disabled", movable.has(index) ? "false" : "true");
-      tileButton.tabIndex = movable.has(index) ? 0 : -1;
+      tileButton.setAttribute(
+        "aria-label",
+        `图片块 ${tile}，当前位置第 ${Math.floor(index / state.dimension) + 1} 行第 ${index % state.dimension + 1} 列，目标第 ${targetRow + 1} 行第 ${targetColumn + 1} 列`
+      );
+      tileButton.setAttribute("aria-pressed", state.selectedIndex === index ? "true" : "false");
+      tileButton.tabIndex = index === state.focusIndex ? 0 : -1;
+      tileButton.classList.toggle("is-selected", state.selectedIndex === index);
+      tileButton.classList.toggle("is-drag-source", state.dragSourceIndex === index);
+      tileButton.classList.toggle("is-drop-target", state.dragTargetIndex === index);
       tileButton.style.backgroundImage = `url("${state.imageUrl}")`;
       tileButton.style.backgroundSize = `${state.dimension * 100}% ${state.dimension * 100}%`;
-      const x = state.dimension === 1 ? 0 : targetColumn * 100 / (state.dimension - 1);
-      const y = state.dimension === 1 ? 0 : targetRow * 100 / (state.dimension - 1);
+      const x = targetColumn * 100 / (state.dimension - 1);
+      const y = targetRow * 100 / (state.dimension - 1);
       tileButton.style.backgroundPosition = `${x}% ${y}%`;
       positionStyle(tileButton, index);
 
@@ -177,10 +162,35 @@
       elements.puzzleGrid.append(tileButton);
     });
 
-    appendTrailMarkers();
     elements.previewLayer.style.backgroundImage = `url("${state.imageUrl}")`;
     elements.previewLayer.classList.toggle("is-complete", state.status === "complete");
+    elements.puzzleGrid.classList.toggle("has-selection", state.selectedIndex !== null);
     updateRunState();
+  }
+
+  function focusTile(index) {
+    const normalized = Math.max(0, Math.min(state.board.length - 1, index));
+    state.focusIndex = normalized;
+    for (const tile of elements.puzzleGrid.querySelectorAll(".puzzle-tile")) {
+      tile.tabIndex = Number(tile.dataset.index) === normalized ? 0 : -1;
+    }
+    elements.puzzleGrid.querySelector(`.puzzle-tile[data-index="${normalized}"]`)?.focus({ preventScroll: true });
+  }
+
+  function updateDragClasses() {
+    elements.puzzleGrid.classList.toggle("is-dragging", state.dragSourceIndex !== null);
+    for (const tile of elements.puzzleGrid.querySelectorAll(".puzzle-tile")) {
+      const index = Number(tile.dataset.index);
+      tile.classList.toggle("is-drag-source", index === state.dragSourceIndex);
+      tile.classList.toggle("is-drop-target", index === state.dragTargetIndex);
+    }
+  }
+
+  function clearDragState() {
+    state.dragSourceIndex = null;
+    state.dragTargetIndex = null;
+    state.pointerSession = null;
+    updateDragClasses();
   }
 
   function showBoardMessage(message, temporary = false) {
@@ -188,7 +198,7 @@
     elements.boardHelp.textContent = message;
     if (temporary) {
       state.helpTimer = window.setTimeout(() => {
-        elements.boardHelp.textContent = "点击相邻方块，或用方向键移动空格。";
+        elements.boardHelp.textContent = "拖动一块到另一块上交换；也可以依次点击两块。";
       }, 2200);
     }
   }
@@ -227,16 +237,6 @@
     state.timerFrame = window.requestAnimationFrame(timerTick);
   }
 
-  function addTrail(index) {
-    if (reduceMotion.matches) return;
-    const trail = { id: ++state.trailId, index };
-    state.trails = [...state.trails.slice(-2), trail];
-    window.setTimeout(() => {
-      state.trails = state.trails.filter(item => item.id !== trail.id);
-      elements.puzzleGrid.querySelector(`[data-trail-id="${trail.id}"]`)?.remove();
-    }, 700);
-  }
-
   function saveCompletedRecord(candidate) {
     const records = readRecords();
     const current = getBestRecord();
@@ -252,6 +252,7 @@
   function finishGame() {
     state.elapsedMs = performance.now() - state.startTime;
     state.status = "complete";
+    state.selectedIndex = null;
     cancelTimer();
     const candidate = { elapsedMs: Math.round(state.elapsedMs), moves: state.moves };
     const isNewRecord = saveCompletedRecord(candidate);
@@ -259,18 +260,20 @@
     updateMetrics();
     showBoardMessage("图像已恢复。查看成绩，或再来一局。");
 
-    elements.completionCopy.textContent = `你用 ${formatTime(state.elapsedMs)} 和 ${state.moves} 步恢复了信号。`;
+    elements.completionCopy.textContent = `你用 ${formatTime(state.elapsedMs)} 和 ${state.moves} 次交换恢复了图像。`;
     elements.recordCopy.textContent = isNewRecord ? "NEW RECORD · 新的本机最佳纪录" : "本局完成，最佳纪录仍在等你刷新。";
     if (typeof elements.completionDialog.showModal === "function") elements.completionDialog.showModal();
     else elements.completionDialog.setAttribute("open", "");
   }
 
-  function tryMove(tileIndex, returnFocus = false) {
+  function performSwap(sourceIndex, targetIndex, returnFocus = true) {
     if (state.status === "complete") return false;
-    const previousEmpty = state.board.indexOf(0);
-    const result = Core.moveTile(state.board, tileIndex, state.dimension);
-    if (!result.moved) {
-      showBoardMessage("这块离空格太远，只能移动相邻方块。", true);
+    const result = Core.swapTiles(state.board, sourceIndex, targetIndex, state.dimension);
+    if (!result.swapped) {
+      state.selectedIndex = null;
+      renderBoard();
+      if (returnFocus) focusTile(sourceIndex);
+      showBoardMessage("已取消选择。", true);
       return false;
     }
 
@@ -278,15 +281,31 @@
     state.board = result.board;
     state.moves += 1;
     state.elapsedMs = performance.now() - state.startTime;
-    addTrail(previousEmpty);
+    state.selectedIndex = null;
+    state.focusIndex = targetIndex;
+    clearDragState();
 
     if (Core.isSolved(state.board)) finishGame();
     else {
       renderBoard();
       updateMetrics();
-      if (returnFocus) elements.puzzleGrid.focus({ preventScroll: true });
+      showBoardMessage(`已交换第 ${sourceIndex + 1} 格与第 ${targetIndex + 1} 格。`, true);
+      if (returnFocus) focusTile(targetIndex);
     }
     return true;
+  }
+
+  function selectOrSwap(index, returnFocus = true) {
+    if (state.status === "complete") return;
+    state.focusIndex = index;
+    if (state.selectedIndex === null) {
+      state.selectedIndex = index;
+      renderBoard();
+      showBoardMessage("已选中第一块，再选择另一块进行交换。", true);
+      if (returnFocus) focusTile(index);
+      return;
+    }
+    performSwap(state.selectedIndex, index, returnFocus);
   }
 
   function closeCompletionDialog() {
@@ -297,7 +316,7 @@
     }
   }
 
-  function startNewGame(message = "新拼图已就位，第一步开始计时。") {
+  function startNewGame(message = "新拼图已铺满，第一次交换开始计时。") {
     closeCompletionDialog();
     cancelTimer();
     state.board = Core.shuffleBoard(state.dimension);
@@ -306,12 +325,14 @@
     state.elapsedMs = 0;
     state.startTime = 0;
     state.timerSecond = -1;
-    state.trails = [];
+    state.selectedIndex = null;
+    state.focusIndex = 0;
+    clearDragState();
     elements.previewLayer.classList.remove("is-active", "is-complete");
     elements.previewButton.classList.remove("is-held");
     renderBoard();
     updateMetrics();
-    showBoardMessage("点击相邻方块，或用方向键移动空格。新局第一步开始计时。");
+    showBoardMessage("拖动一块到另一块上交换；也可以依次点击两块。第一次交换开始计时。");
     if (message) showNotice(message);
   }
 
@@ -341,30 +362,16 @@
     elements.previewButton.classList.toggle("is-held", active);
   }
 
-  function directionTarget(direction) {
-    const emptyIndex = state.board.indexOf(0);
-    const row = Math.floor(emptyIndex / state.dimension);
-    const column = emptyIndex % state.dimension;
-    const vectors = {
-      left: [0, -1],
-      right: [0, 1],
-      up: [-1, 0],
-      down: [1, 0]
-    };
-    const vector = vectors[direction];
-    const nextRow = row + vector[0];
-    const nextColumn = column + vector[1];
-    if (nextRow < 0 || nextRow >= state.dimension || nextColumn < 0 || nextColumn >= state.dimension) return -1;
-    return nextRow * state.dimension + nextColumn;
-  }
-
-  function moveDirection(direction) {
-    const target = directionTarget(direction);
-    if (target === -1) {
-      showBoardMessage("空格已经到达这一侧边缘。", true);
-      return;
-    }
-    tryMove(target, true);
+  function moveFocus(index, key) {
+    const row = Math.floor(index / state.dimension);
+    const column = index % state.dimension;
+    const next = {
+      ArrowLeft: column > 0 ? index - 1 : index,
+      ArrowRight: column < state.dimension - 1 ? index + 1 : index,
+      ArrowUp: row > 0 ? index - state.dimension : index,
+      ArrowDown: row < state.dimension - 1 ? index + state.dimension : index
+    }[key];
+    focusTile(next);
   }
 
   function squareImage(dataUrl, mimeType) {
@@ -404,7 +411,10 @@
     }
 
     const reader = new FileReader();
-    reader.onerror = () => showNotice("图片读取失败，请换一张图片重试。", true);
+    reader.onerror = () => {
+      elements.imageInput.value = "";
+      showNotice("图片读取失败，请换一张图片重试。", true);
+    };
     reader.onload = async () => {
       try {
         const imageUrl = await squareImage(String(reader.result), file.type);
@@ -424,44 +434,84 @@
     reader.readAsDataURL(file);
   }
 
+  function tileFromPoint(clientX, clientY) {
+    return document.elementFromPoint(clientX, clientY)?.closest(".puzzle-tile") || null;
+  }
+
   elements.puzzleGrid.addEventListener("click", event => {
-    if (performance.now() < state.suppressClickUntil) return;
+    if (performance.now() < state.ignoreClickUntil) return;
     const tile = event.target.closest(".puzzle-tile");
     if (!tile) return;
-    tryMove(Number(tile.dataset.index), true);
+    selectOrSwap(Number(tile.dataset.index), true);
   });
 
   elements.puzzleGrid.addEventListener("keydown", event => {
-    const directions = {
-      ArrowLeft: "left",
-      ArrowRight: "right",
-      ArrowUp: "up",
-      ArrowDown: "down"
+    const tile = event.target.closest(".puzzle-tile");
+    if (!tile) return;
+    const index = Number(tile.dataset.index);
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+      event.preventDefault();
+      moveFocus(index, event.key);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectOrSwap(index, true);
+      return;
+    }
+    if (event.key === "Escape" && state.selectedIndex !== null) {
+      event.preventDefault();
+      state.selectedIndex = null;
+      renderBoard();
+      focusTile(index);
+      showBoardMessage("已取消选择。", true);
+    }
+  });
+
+  elements.puzzleGrid.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    const tile = event.target.closest(".puzzle-tile");
+    if (!tile) return;
+    state.pointerSession = {
+      pointerId: event.pointerId,
+      sourceIndex: Number(tile.dataset.index),
+      startX: event.clientX,
+      startY: event.clientY,
+      dragging: false
     };
-    const direction = directions[event.key];
-    if (!direction) return;
+    tile.setPointerCapture?.(event.pointerId);
+  });
+
+  elements.puzzleGrid.addEventListener("pointermove", event => {
+    const session = state.pointerSession;
+    if (!session || session.pointerId !== event.pointerId) return;
+    const distance = Math.hypot(event.clientX - session.startX, event.clientY - session.startY);
+    if (!session.dragging && distance < 10) return;
+    session.dragging = true;
     event.preventDefault();
-    moveDirection(direction);
+    state.dragSourceIndex = session.sourceIndex;
+    const target = tileFromPoint(event.clientX, event.clientY);
+    const targetIndex = target ? Number(target.dataset.index) : null;
+    state.dragTargetIndex = targetIndex !== session.sourceIndex ? targetIndex : null;
+    updateDragClasses();
   });
 
-  elements.puzzleFrame.addEventListener("pointerdown", event => {
-    if (event.pointerType === "mouse") return;
-    state.touchStart = { x: event.clientX, y: event.clientY };
+  elements.puzzleGrid.addEventListener("pointerup", event => {
+    const session = state.pointerSession;
+    if (!session || session.pointerId !== event.pointerId) return;
+    const sourceIndex = session.sourceIndex;
+    const targetIndex = state.dragTargetIndex;
+    const wasDragging = session.dragging;
+    clearDragState();
+    if (!wasDragging) return;
+    state.ignoreClickUntil = performance.now() + 350;
+    if (targetIndex !== null) performSwap(sourceIndex, targetIndex, true);
+    else showBoardMessage("未落在另一块图片上，本次没有交换。", true);
   });
 
-  elements.puzzleFrame.addEventListener("pointerup", event => {
-    if (!state.touchStart || event.pointerType === "mouse") return;
-    const deltaX = event.clientX - state.touchStart.x;
-    const deltaY = event.clientY - state.touchStart.y;
-    state.touchStart = null;
-    if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 24) return;
-    state.suppressClickUntil = performance.now() + 300;
-    if (Math.abs(deltaX) > Math.abs(deltaY)) moveDirection(deltaX < 0 ? "left" : "right");
-    else moveDirection(deltaY < 0 ? "up" : "down");
-  });
-
-  elements.puzzleFrame.addEventListener("pointercancel", () => {
-    state.touchStart = null;
+  elements.puzzleGrid.addEventListener("pointercancel", () => {
+    state.ignoreClickUntil = performance.now() + 350;
+    clearDragState();
   });
 
   for (const input of elements.difficultyInputs) {
@@ -472,24 +522,23 @@
       requestAction(`切换到 ${nextDimension}×${nextDimension} 会结束当前进度，继续吗？`, () => {
         state.dimension = nextDimension;
         syncDifficultyInputs();
-        startNewGame(`已切换为 ${nextDimension}×${nextDimension} 拼图。`);
+        startNewGame(`已切换为 ${nextDimension}×${nextDimension} 全图拼图。`);
       });
     });
   }
 
   elements.defaultImageButton.addEventListener("click", () => {
-    if (state.imageKey === "default") return;
+    if (state.imageKey === "desk") return;
     requestAction("恢复内置图会结束当前进度，继续吗？", () => {
       state.imageUrl = DEFAULT_IMAGE;
-      state.imageKey = "default";
-      state.imageName = "内置信号塔";
+      state.imageKey = "desk";
+      state.imageName = "彩色创意桌面";
       elements.defaultImageButton.classList.add("is-active");
-      startNewGame("已恢复内置信号塔图片。" );
+      startNewGame("已恢复彩色创意桌面图片。" );
     });
   });
 
   elements.imageInput.addEventListener("change", () => loadImageFile(elements.imageInput.files[0]));
-
   elements.shuffleButton.addEventListener("click", () => {
     requestAction("重新打乱会结束当前进度，继续吗？", () => startNewGame());
   });
@@ -499,7 +548,6 @@
     hideConfirmation();
     action?.();
   });
-
   elements.confirmNo.addEventListener("click", () => {
     hideConfirmation();
     syncDifficultyInputs();
@@ -522,9 +570,8 @@
   });
   elements.previewButton.addEventListener("blur", () => setPreview(false));
 
-  elements.playAgainButton.addEventListener("click", () => startNewGame("新一轮信号修复已就位。"));
+  elements.playAgainButton.addEventListener("click", () => startNewGame("新一轮全图拼图已就位。"));
   elements.closeDialogButton.addEventListener("click", closeCompletionDialog);
-
   window.addEventListener("pagehide", cancelTimer);
 
   startNewGame("");

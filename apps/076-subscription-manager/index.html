@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152b2b">
+  <meta name="description" content="DUE/76 是一个本地优先的订阅管理与续费提醒工具。">
+  <title>DUE/76 · 订阅管理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps 挑战追踪器">
+      <span class="brand-mark" aria-hidden="true">DUE</span>
+      <span><strong>DUE/76</strong><small>订阅续费柜台</small></span>
+    </a>
+    <p class="mast-note"><span id="todayLabel">今日</span> · 数据只保存在此浏览器</p>
+  </header>
+
+  <main id="main" class="desk">
+    <aside class="counter" aria-labelledby="counterTitle">
+      <div class="counter-heading">
+        <p class="eyebrow">MONTHLY COUNTER</p>
+        <h1 id="counterTitle">每一笔续费<br>都先过目。</h1>
+        <p>把订阅放上台面，在扣款前决定保留、暂停，还是离开。</p>
+      </div>
+
+      <section class="cash-register" aria-labelledby="summaryTitle">
+        <div class="register-top">
+          <h2 id="summaryTitle">本月折算</h2>
+          <span id="activeCount">0 项生效</span>
+        </div>
+        <p class="register-amount" id="monthlyTotal" aria-label="人民币月度折算">¥0.00</p>
+        <div class="register-grid">
+          <div><span>待处理</span><strong id="dueCount">0</strong></div>
+          <div><span>30 天内</span><strong id="renewalCount">0</strong></div>
+          <div><span>年度预测</span><strong id="annualTotal">¥0</strong></div>
+        </div>
+        <div id="foreignTotals" class="foreign-totals" aria-label="其他币种折算"></div>
+      </section>
+
+      <section class="category-slip" aria-labelledby="categoryTitle">
+        <div class="section-label">
+          <h2 id="categoryTitle">人民币支出构成</h2>
+          <span>月度折算</span>
+        </div>
+        <div id="categoryBars" class="category-bars"></div>
+      </section>
+
+      <div class="primary-actions">
+        <button id="addButton" class="button button-primary" type="button">登记新订阅</button>
+        <button id="sampleButton" class="button button-secondary" type="button">装入示例账本</button>
+      </div>
+
+      <details class="data-drawer">
+        <summary>备份与本地数据</summary>
+        <p>导出为 JSON 可在另一台设备恢复。应用不会上传订阅内容。</p>
+        <div class="drawer-actions">
+          <button id="exportButton" class="text-button" type="button">导出备份</button>
+          <button id="importButton" class="text-button" type="button">导入备份</button>
+          <button id="clearButton" class="text-button danger-text" type="button">清空数据</button>
+          <input id="importFile" type="file" accept="application/json,.json" hidden>
+        </div>
+      </details>
+    </aside>
+
+    <div class="workbench">
+      <section class="renewal-board" aria-labelledby="timelineTitle">
+        <div class="board-header">
+          <div>
+            <p class="eyebrow">RENEWAL TAPE · 30 DAYS</p>
+            <h2 id="timelineTitle">续费票带</h2>
+          </div>
+          <p id="timelineSummary">暂无 30 天内续费</p>
+        </div>
+        <div class="next-callout" id="nextCallout" hidden></div>
+        <div class="tape-scroll" tabindex="0" aria-label="未来 30 天续费时间轴，可横向滚动">
+          <div class="renewal-tape" id="renewalTape">
+            <div class="tape-line" aria-hidden="true"></div>
+            <div class="tape-ticks" aria-hidden="true">
+              <span style="--tick:0%">今天</span>
+              <span style="--tick:23.3%">7 天</span>
+              <span style="--tick:46.6%">14 天</span>
+              <span style="--tick:70%">21 天</span>
+              <span style="--tick:100%">30 天</span>
+            </div>
+            <div id="timelineTickets" class="timeline-tickets"></div>
+          </div>
+        </div>
+        <div id="timelineEmpty" class="empty-state">
+          <span class="empty-stamp" aria-hidden="true">CLEAR</span>
+          <div><strong>未来 30 天暂时没有扣款</strong><p>登记一项订阅，或装入示例账本查看完整效果。</p></div>
+        </div>
+        <div class="legend" aria-label="续费状态图例">
+          <span><i class="dot dot-overdue"></i>已过期</span>
+          <span><i class="dot dot-due"></i>提醒期内</span>
+          <span><i class="dot dot-upcoming"></i>即将续费</span>
+        </div>
+      </section>
+
+      <section class="ledger" aria-labelledby="ledgerTitle">
+        <div class="ledger-heading">
+          <div>
+            <p class="eyebrow">SUBSCRIPTION LEDGER</p>
+            <h2 id="ledgerTitle">订阅台账</h2>
+          </div>
+          <span id="resultCount">0 项</span>
+        </div>
+
+        <form id="filters" class="filters" role="search">
+          <label class="search-field">
+            <span class="sr-only">搜索订阅</span>
+            <input id="searchInput" type="search" placeholder="搜索名称、付款方式或备注" autocomplete="off">
+          </label>
+          <label>
+            <span class="sr-only">按分类筛选</span>
+            <select id="categoryFilter">
+              <option value="all">全部分类</option>
+              <option value="entertainment">影音娱乐</option>
+              <option value="productivity">效率工具</option>
+              <option value="cloud">云服务</option>
+              <option value="learning">学习成长</option>
+              <option value="lifestyle">生活会员</option>
+              <option value="other">其他</option>
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">按状态筛选</span>
+            <select id="statusFilter">
+              <option value="all">全部状态</option>
+              <option value="attention">需要处理</option>
+              <option value="active">生效中</option>
+              <option value="paused">已暂停</option>
+            </select>
+          </label>
+        </form>
+
+        <div id="subscriptionList" class="subscription-list"></div>
+        <div id="ledgerEmpty" class="ledger-empty">
+          <p class="empty-code">NO ACTIVE SLIPS</p>
+          <h3>账本还是空的</h3>
+          <p>先登记你最容易忘记的一项订阅。金额与提醒都可以随时修改。</p>
+          <button class="button button-primary" type="button" data-empty-add>登记第一项</button>
+        </div>
+      </section>
+
+      <details class="method-note">
+        <summary>这些数字是怎样算出来的？</summary>
+        <div>
+          <p><strong>月度折算：</strong>周付 × 52 ÷ 12；季付 ÷ 3；年付 ÷ 12。年度预测为月度折算 × 12。</p>
+          <p><strong>提醒状态：</strong>由下次续费日与提前提醒天数计算。页面关闭后不会发送系统通知。</p>
+          <p><strong>多币种：</strong>不同币种分开显示，不联网换汇，也不把它们错误相加。</p>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <footer>
+    <span>DUE/76 · LOCAL FIRST</span>
+    <span>无账号 · 无追踪 · 无自动扣款</span>
+  </footer>
+
+  <dialog id="editorDialog" class="dialog editor-dialog">
+    <form id="subscriptionForm" method="dialog">
+      <div class="dialog-head">
+        <div><p class="eyebrow">SUBSCRIPTION SLIP</p><h2 id="editorTitle">登记新订阅</h2></div>
+        <button class="icon-button" type="button" data-close-dialog aria-label="关闭编辑器">×</button>
+      </div>
+      <input id="subscriptionId" name="id" type="hidden">
+      <div class="form-grid">
+        <label class="span-2">订阅名称<input id="nameInput" name="name" maxlength="80" required placeholder="例如：音乐家庭会员"></label>
+        <label>金额<input id="amountInput" name="amount" type="number" min="0.01" max="1000000000" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+        <label>币种<select id="currencyInput" name="currency"><option>CNY</option><option>USD</option><option>EUR</option><option>JPY</option><option>HKD</option></select></label>
+        <label>账单周期<select id="cycleInput" name="cycle"><option value="monthly">每月</option><option value="weekly">每周</option><option value="quarterly">每季</option><option value="yearly">每年</option></select></label>
+        <label>下次续费日<input id="renewalInput" name="nextRenewal" type="date" required></label>
+        <label>分类<select id="categoryInput" name="category"><option value="entertainment">影音娱乐</option><option value="productivity">效率工具</option><option value="cloud">云服务</option><option value="learning">学习成长</option><option value="lifestyle">生活会员</option><option value="other">其他</option></select></label>
+        <label>提前提醒<select id="reminderInput" name="reminderDays"><option value="0">当天</option><option value="1">提前 1 天</option><option value="3">提前 3 天</option><option value="7" selected>提前 7 天</option><option value="14">提前 14 天</option><option value="30">提前 30 天</option></select></label>
+        <label class="span-2">付款方式（可选）<input id="paymentInput" name="payment" maxlength="60" placeholder="例如：Visa · 2048，不要填写完整卡号"></label>
+        <label class="span-2">备注（可选）<textarea id="notesInput" name="notes" maxlength="500" rows="3" placeholder="例如：家庭共享；下次续费前检查使用频率"></textarea><small><span id="notesCount">0</span>/500</small></label>
+      </div>
+      <p class="form-error" id="formError" role="alert"></p>
+      <div class="dialog-actions"><button class="button button-secondary" type="button" data-close-dialog>取消</button><button class="button button-primary" type="submit">保存订阅</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog" class="dialog confirm-dialog">
+    <form method="dialog">
+      <p class="eyebrow">REMOVE SLIP</p>
+      <h2>删除这项订阅？</h2>
+      <p id="deleteMessage">删除后只能通过先前导出的备份恢复。</p>
+      <div class="dialog-actions"><button class="button button-secondary" value="cancel">保留</button><button id="confirmDelete" class="button button-danger" value="delete">确认删除</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="importDialog" class="dialog confirm-dialog">
+    <form method="dialog">
+      <p class="eyebrow">IMPORT BACKUP</p>
+      <h2>怎样导入这份备份？</h2>
+      <p id="importMessage">已读取备份。</p>
+      <div class="choice-stack">
+        <button id="mergeImport" class="choice-button" value="merge"><strong>合并到账本</strong><span>同 ID 项目以备份为准，其余保留</span></button>
+        <button id="replaceImport" class="choice-button danger-choice" value="replace"><strong>替换当前账本</strong><span>当前数据会被备份内容替代</span></button>
+      </div>
+      <button class="text-button" value="cancel">取消导入</button>
+    </form>
+  </dialog>
+
+  <dialog id="clearDialog" class="dialog confirm-dialog">
+    <form method="dialog">
+      <p class="eyebrow">CLEAR LOCAL DATA</p>
+      <h2>清空全部本地数据？</h2>
+      <p>此操作会删除这个浏览器中的所有订阅。建议先导出备份。</p>
+      <div class="dialog-actions"><button class="button button-secondary" value="cancel">取消</button><button id="confirmClear" class="button button-danger" value="clear">清空数据</button></div>
+    </form>
+  </dialog>
+
+  <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="subscription-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

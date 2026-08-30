@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="POST/44 夜班邮局：带弹幕分拣带、点赞、筛选与本地持久化的留言墙。">
+  <meta name="theme-color" content="#194b68">
+  <title>POST/44 夜班邮局 · 留言墙</title>
+  <style>
+    :root{
+      --postal:#194b68;--ink:#15222d;--paper:#f7f1e3;--paper-deep:#e8dfcd;
+      --coral:#f26b5b;--mint:#a9d9c8;--yellow:#f2c14e;--violet:#9a6fb0;
+      --white:#fffdf7;--muted:#60707a;--line:3px solid var(--ink);
+      color-scheme:light;font-family:"Microsoft YaHei UI","PingFang SC","Noto Sans CJK SC",sans-serif;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background-color:#dceee9;background-image:linear-gradient(rgba(25,75,104,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(25,75,104,.08) 1px,transparent 1px);background-size:28px 28px}
+    button,input,textarea{font:inherit;color:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,textarea:focus-visible{outline:4px solid var(--yellow);outline-offset:3px}
+    [hidden]{display:none!important}
+    .app-shell{width:min(100% - 30px,1460px);margin:15px auto 28px;border:var(--line);background:var(--paper);box-shadow:12px 12px 0 var(--postal)}
+    .masthead{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;padding:13px 18px;color:var(--white);background:var(--postal);border-bottom:var(--line)}
+    .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}.brand strong{font:900 20px/1 Impact,"Arial Black",sans-serif;letter-spacing:1.5px}.brand span{font-size:10px;font-weight:800;letter-spacing:.12em}
+    .route{height:5px;background:repeating-linear-gradient(90deg,var(--yellow) 0 28px,transparent 28px 40px);opacity:.9}
+    .local-status{display:flex;align-items:center;gap:8px;font:800 9px/1.3 "Cascadia Mono",Consolas,monospace;text-align:right}.status-lamp{width:12px;height:12px;border:2px solid var(--ink);border-radius:50%;background:var(--mint);box-shadow:0 0 0 2px var(--white)}
+    .hero{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(390px,.92fr);min-height:510px;border-bottom:var(--line)}
+    .hero-copy{position:relative;display:flex;flex-direction:column;justify-content:center;padding:58px clamp(28px,5vw,78px);overflow:hidden;background:var(--paper)}
+    .hero-copy::after{content:"POST\A 44";white-space:pre;position:absolute;right:25px;bottom:-22px;color:rgba(25,75,104,.08);font:900 148px/.65 Impact,"Arial Black",sans-serif;letter-spacing:-7px;transform:rotate(-4deg)}
+    .eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 20px;font:900 11px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.16em;text-transform:uppercase}.eyebrow::before{content:"";width:38px;height:9px;background:repeating-linear-gradient(90deg,var(--coral) 0 7px,transparent 7px 11px)}
+    h1{position:relative;z-index:1;max-width:850px;margin:0;font-size:clamp(46px,6.4vw,92px);line-height:.98;letter-spacing:-.065em;font-weight:950}.hero-copy h1 em{display:inline;color:var(--postal);font-style:normal;text-decoration:underline;text-decoration-color:var(--yellow);text-decoration-thickness:.13em;text-underline-offset:.06em}
+    .hero-lede{position:relative;z-index:1;max-width:650px;margin:27px 0 0;font-size:14px;line-height:1.85;font-weight:650;color:#42545f}.hero-lede strong{color:var(--ink)}
+    .dispatch-panel{position:relative;padding:38px clamp(24px,3.2vw,48px);background:var(--mint);border-left:var(--line)}
+    .dispatch-panel::before{content:"NIGHT SHIFT / OPEN";position:absolute;right:18px;top:16px;padding:5px 8px;border:2px solid var(--ink);background:var(--yellow);font:900 8px/1 "Cascadia Mono",Consolas,monospace;transform:rotate(2deg)}
+    .panel-kicker{margin:0;color:var(--postal);font:900 10px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.16em}.dispatch-panel h2{margin:10px 0 25px;font-size:31px;line-height:1.08;letter-spacing:-.04em}
+    .dispatch-form{display:grid;gap:14px}.field{display:grid;gap:6px}.field-row{display:flex;justify-content:space-between;align-items:end;gap:16px}.field label,.stamp-field legend{padding:0;font-size:10px;font-weight:900}.field small{font:800 9px/1 "Cascadia Mono",Consolas,monospace;color:var(--muted)}
+    .text-input,.note-input{width:100%;border:2px solid var(--ink);border-radius:0;background:var(--white);box-shadow:4px 4px 0 rgba(21,34,45,.22)}
+    .text-input{height:44px;padding:0 12px}.note-input{min-height:116px;padding:12px;resize:vertical;line-height:1.65}
+    .stamp-field{margin:0;padding:0;border:0}.stamp-options{display:flex;gap:9px;margin-top:8px}.stamp-option{position:relative}.stamp-option input{position:absolute;opacity:0;pointer-events:none}.stamp-option label{display:block;width:31px;height:31px;border:2px solid var(--ink);border-radius:50%;background:var(--stamp);box-shadow:2px 2px 0 var(--ink);transition:transform .15s ease}.stamp-option input:checked+label{transform:translateY(-3px);outline:4px solid var(--white);box-shadow:3px 5px 0 var(--ink)}.stamp-option input:focus-visible+label{outline:4px solid var(--yellow);outline-offset:3px}
+    .dispatch-actions{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px}.privacy-note{font-size:9px;line-height:1.55;font-weight:750;color:#40545d}.dispatch-btn{min-height:56px;padding:0 22px;border:var(--line);border-radius:0;background:var(--coral);box-shadow:5px 5px 0 var(--ink);font-size:17px;font-weight:950}.dispatch-btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}.dispatch-btn:disabled{cursor:not-allowed;filter:grayscale(.6);opacity:.55}
+    .sorting-yard{position:relative;padding:30px 0 33px;background:var(--ink);color:var(--white);border-bottom:var(--line);overflow:hidden}.section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;width:min(100% - 36px,1370px);margin:0 auto 20px}.section-label{margin:0 0 5px;color:var(--yellow);font:900 9px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.16em}.section-head h2{margin:0;font-size:30px;letter-spacing:-.04em}.sorting-copy{max-width:540px;margin:0;color:#c9d2d5;font-size:10px;line-height:1.6}.pause-btn{flex:none;min-height:42px;padding:0 15px;border:2px solid var(--white);background:transparent;color:var(--white);font-size:10px;font-weight:900;box-shadow:4px 4px 0 var(--coral)}.pause-btn[aria-pressed="true"]{background:var(--yellow);color:var(--ink);box-shadow:4px 4px 0 var(--white)}
+    .belt{position:relative;height:118px;margin-top:14px;padding:14px 0;overflow:hidden;border-top:2px solid #617078;border-bottom:2px solid #617078;background:#263740}.belt::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:9px;background:repeating-linear-gradient(90deg,var(--yellow) 0 17px,transparent 17px 27px);opacity:.85}.belt:nth-of-type(2)::after{background:repeating-linear-gradient(90deg,var(--coral) 0 17px,transparent 17px 27px)}
+    .belt-run{display:flex;width:max-content;animation:belt-forward 48s linear infinite;will-change:transform}.belt.reverse .belt-run{animation-name:belt-reverse;animation-duration:57s}.sorting-yard.paused .belt-run{animation-play-state:paused}
+    .belt-group{display:flex;flex:none;align-items:center;gap:18px;padding-right:18px}.parcel{position:relative;display:grid;grid-template-columns:10px minmax(170px,310px) auto;align-items:center;gap:10px;min-width:250px;max-width:390px;height:76px;padding:9px 13px 9px 8px;border:2px solid var(--ink);background:var(--white);color:var(--ink);box-shadow:5px 5px 0 var(--parcel);transform:rotate(var(--tilt))}.parcel-stripe{align-self:stretch;background:repeating-linear-gradient(180deg,var(--parcel) 0 6px,transparent 6px 10px)}.parcel-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:850}.parcel-meta{display:block;margin-top:5px;color:var(--muted);font:750 8px/1 "Cascadia Mono",Consolas,monospace}.parcel-likes{display:grid;place-items:center;width:40px;height:40px;border:2px dashed var(--parcel);border-radius:50%;color:var(--parcel);font:900 9px/1 "Cascadia Mono",Consolas,monospace;transform:rotate(-8deg)}
+    .archive{padding:42px clamp(18px,3vw,46px) 50px;background:var(--paper)}.archive-head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:23px}.archive-title p{margin:0 0 7px;color:var(--postal);font:900 9px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.16em}.archive-title h2{margin:0;font-size:38px;letter-spacing:-.05em}.filters{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.filter-btn{min-height:38px;padding:0 14px;border:2px solid var(--ink);background:var(--white);font-size:10px;font-weight:900;box-shadow:3px 3px 0 var(--ink)}.filter-btn[aria-pressed="true"]{background:var(--postal);color:var(--white);box-shadow:3px 3px 0 var(--coral)}.filter-btn span{margin-left:5px;font:800 9px/1 "Cascadia Mono",Consolas,monospace}
+    .note-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:0;padding:0;list-style:none}.note-card{position:relative;min-height:210px;padding:24px 22px 19px;border:2px solid var(--ink);background:var(--white);box-shadow:6px 6px 0 var(--card-color);overflow:hidden}.note-card::before{content:"";position:absolute;top:0;left:0;right:0;height:8px;background:repeating-linear-gradient(90deg,var(--card-color) 0 18px,transparent 18px 27px)}.note-card.seed::after{content:"夜班样本";position:absolute;right:-31px;top:22px;width:115px;padding:5px 0;background:var(--paper-deep);border-block:1px solid var(--ink);text-align:center;font:800 7px/1 "Cascadia Mono",Consolas,monospace;transform:rotate(39deg)}
+    .card-meta{display:flex;justify-content:space-between;gap:12px;padding-right:25px;font:800 8px/1.3 "Cascadia Mono",Consolas,monospace;color:var(--muted)}.card-meta strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--postal);font-size:9px}.card-text{margin:27px 0 25px;font-size:17px;line-height:1.65;font-weight:780;word-break:break-word}.card-foot{position:absolute;left:22px;right:19px;bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px}.mail-id{font:750 7px/1 "Cascadia Mono",Consolas,monospace;color:#849098}.like-btn{display:flex;align-items:center;gap:7px;min-height:35px;padding:0 10px;border:2px solid var(--ink);background:var(--paper);font-size:10px;font-weight:900}.like-btn .heart{font-size:14px;color:var(--coral)}.like-btn[aria-pressed="true"]{background:var(--coral);color:var(--white);box-shadow:3px 3px 0 var(--ink)}.like-btn[aria-pressed="true"] .heart{color:var(--white)}
+    .empty-state{padding:56px 20px;border:2px dashed var(--postal);background:rgba(255,255,255,.45);text-align:center}.empty-state strong{display:block;font-size:20px}.empty-state span{display:block;margin-top:8px;font-size:11px;color:var(--muted)}
+    .footer{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:20px;padding:17px 19px;border-top:var(--line);background:var(--postal);color:var(--white);font:750 8px/1.5 "Cascadia Mono",Consolas,monospace}.footer-stats{display:flex;gap:18px}.footer-stats strong{color:var(--yellow);font-size:13px}.footer a{color:var(--white);font-weight:900;text-underline-offset:3px}
+    .toast{position:fixed;left:50%;bottom:28px;z-index:20;max-width:min(90vw,420px);padding:11px 16px;border:2px solid var(--ink);background:var(--yellow);box-shadow:5px 5px 0 var(--ink);font-size:11px;font-weight:900;opacity:0;pointer-events:none;transform:translate(-50%,18px);transition:.2s ease}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @keyframes belt-forward{to{transform:translateX(-50%)}}@keyframes belt-reverse{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+    @media (max-width:980px){.hero{grid-template-columns:1fr}.dispatch-panel{border-left:0;border-top:var(--line)}.note-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.footer{grid-template-columns:1fr auto}.footer-note{grid-column:1/-1}.hero-copy{min-height:430px}}
+    @media (max-width:650px){.app-shell{width:min(100% - 14px,1460px);margin:7px auto 20px;box-shadow:6px 6px 0 var(--postal)}.masthead{grid-template-columns:1fr auto;padding:11px}.route{display:none}.brand span,.local-status span{display:none}.hero-copy{min-height:390px;padding:45px 20px}.hero-copy::after{font-size:100px}.hero-lede{font-size:12px}.dispatch-panel{padding:34px 18px}.dispatch-actions{grid-template-columns:1fr}.dispatch-btn{width:100%}.section-head,.archive-head{align-items:flex-start;flex-direction:column}.pause-btn{align-self:stretch}.archive{padding:34px 12px 40px}.filters{justify-content:flex-start}.note-grid{grid-template-columns:1fr}.footer{grid-template-columns:1fr}.footer-stats{justify-content:space-between}.parcel{min-width:245px;max-width:320px}.sorting-copy{display:none}}
+    @media (max-width:390px){h1{font-size:43px}.dispatch-panel h2{font-size:27px}.archive-title h2{font-size:33px}.field-row{align-items:start;flex-direction:column;gap:8px}.stamp-options{gap:7px}.filter-btn{padding:0 10px}.note-card{min-height:220px;padding-inline:17px}.card-foot{left:17px}}
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.belt-run{transform:none!important}}
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="masthead">
+      <div class="brand"><strong>POST/44</strong><span>夜班邮局 · 留言墙</span></div>
+      <div class="route" aria-hidden="true"></div>
+      <div class="local-status"><i class="status-lamp" aria-hidden="true"></i><span>本地保存 · 同浏览器同步</span></div>
+    </header>
+
+    <section class="hero" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">midnight message sorting office</p>
+        <h1 id="pageTitle">把今天没说出口的话，投进<em>夜班邮槽</em>。</h1>
+        <p class="hero-lede"><strong>不用登录，也不需要想好一个故事。</strong>写下一句近况、祝福或没有寄出的心情，它会先经过分拣带，再留进这台浏览器的留言格。</p>
+      </div>
+      <aside class="dispatch-panel" aria-labelledby="dispatchTitle">
+        <p class="panel-kicker">COUNTER / 04</p>
+        <h2 id="dispatchTitle">填写一张夜班明信片</h2>
+        <form class="dispatch-form" id="noteForm">
+          <div class="field">
+            <div class="field-row"><label for="authorInput">署名</label><small>可以保持匿名</small></div>
+            <input class="text-input" id="authorInput" name="author" maxlength="18" autocomplete="nickname" placeholder="匿名投递员">
+          </div>
+          <fieldset class="stamp-field">
+            <legend>选择邮戳色</legend>
+            <div class="stamp-options" id="stampOptions">
+              <span class="stamp-option"><input id="stampCoral" type="radio" name="color" value="#f26b5b" checked><label for="stampCoral" style="--stamp:#f26b5b" aria-label="珊瑚红"></label></span>
+              <span class="stamp-option"><input id="stampBlue" type="radio" name="color" value="#194b68"><label for="stampBlue" style="--stamp:#194b68" aria-label="邮政蓝"></label></span>
+              <span class="stamp-option"><input id="stampMint" type="radio" name="color" value="#3d8b7f"><label for="stampMint" style="--stamp:#3d8b7f" aria-label="薄荷绿"></label></span>
+              <span class="stamp-option"><input id="stampViolet" type="radio" name="color" value="#9a6fb0"><label for="stampViolet" style="--stamp:#9a6fb0" aria-label="夜班紫"></label></span>
+              <span class="stamp-option"><input id="stampGold" type="radio" name="color" value="#d89132"><label for="stampGold" style="--stamp:#d89132" aria-label="分拣金"></label></span>
+            </div>
+          </fieldset>
+          <div class="field">
+            <div class="field-row"><label for="noteInput">留言内容</label><small id="charCount">0 / 120</small></div>
+            <textarea class="note-input" id="noteInput" name="text" maxlength="120" required placeholder="例如：今天也很辛苦，但还是走到了这里。" aria-describedby="charCount"></textarea>
+          </div>
+          <div class="dispatch-actions">
+            <span class="privacy-note">只保存在当前浏览器。GitHub Pages 不会把内容上传到远程服务器。</span>
+            <button class="dispatch-btn" id="dispatchBtn" type="submit" disabled>投递留言 →</button>
+          </div>
+        </form>
+      </aside>
+    </section>
+
+    <section class="sorting-yard" id="sortingYard" aria-labelledby="sortingTitle">
+      <div class="section-head">
+        <div>
+          <p class="section-label">LIVE SORTING BELTS</p>
+          <h2 id="sortingTitle">正在分拣的留言</h2>
+        </div>
+        <p class="sorting-copy">弹幕来自下方留言格。点赞和新投递会自动重新分拣；动画暂停不影响发布与浏览。</p>
+        <button class="pause-btn" id="pauseBtn" type="button" aria-pressed="false">暂停分拣带</button>
+      </div>
+      <div class="belt" aria-hidden="true"><div class="belt-run" id="laneOne"></div></div>
+      <div class="belt reverse" aria-hidden="true"><div class="belt-run" id="laneTwo"></div></div>
+    </section>
+
+    <section class="archive" aria-labelledby="archiveTitle">
+      <div class="archive-head">
+        <div class="archive-title"><p>LOCAL PIGEONHOLES</p><h2 id="archiveTitle">留言分拣格</h2></div>
+        <div class="filters" aria-label="留言筛选">
+          <button class="filter-btn" type="button" data-filter="all" aria-pressed="true">全部 <span id="allCount">0</span></button>
+          <button class="filter-btn" type="button" data-filter="popular" aria-pressed="false">高赞 <span id="popularCount">0</span></button>
+          <button class="filter-btn" type="button" data-filter="mine" aria-pressed="false">我的 <span id="mineCount">0</span></button>
+        </div>
+      </div>
+      <ul class="note-grid" id="noteGrid"></ul>
+      <div class="empty-state" id="emptyState" hidden><strong>这个分拣格还是空的。</strong><span>换个筛选条件，或者投递第一张属于你的明信片。</span></div>
+    </section>
+
+    <footer class="footer">
+      <span>100 Apps Challenge · App #044 · POST/44</span>
+      <div class="footer-stats"><span><strong id="totalNotes">0</strong> 留言</span><span><strong id="totalLikes">0</strong> 邮戳</span></div>
+      <span class="footer-note">最多 80 条 · 纯文本 · localStorage / BroadcastChannel</span>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./wall-core.js"></script>
+  <script>
+    (()=>{
+      "use strict";
+      const Core=window.Post44Core;
+      if(!Core)return;
+      const STORAGE_KEY="post44-wall-v1",PROFILE_KEY="post44-profile-v1",OWNER_KEY="post44-owner-v1",CHANNEL_NAME="post44-sync-v1";
+      const $=id=>document.getElementById(id);
+      const now=Date.now();
+      const SEEDS=[
+        {id:"seed_first",text:"别急，天亮之前走过的每一步都算数。",author:"三号窗口",color:"#f26b5b",createdAt:1788048001000,updatedAt:1788048001000,likes:8,seed:true},
+        {id:"seed_second",text:"今天的风很好，适合把不顺利留在昨天。",author:"晚班邮差",color:"#194b68",createdAt:1788048002000,updatedAt:1788048002000,likes:5,seed:true},
+        {id:"seed_third",text:"给明天的自己留一颗糖，也留一点耐心。",author:"一楼信箱",color:"#3d8b7f",createdAt:1788048003000,updatedAt:1788048003000,likes:4,seed:true},
+        {id:"seed_fourth",text:"项目会完成，咖啡也会凉，先伸个懒腰吧。",author:"还在改稿的人",color:"#9a6fb0",createdAt:1788048004000,updatedAt:1788048004000,likes:12,seed:true},
+        {id:"seed_fifth",text:"记得夸夸今天没有放弃的你。",author:"北门值守",color:"#d89132",createdAt:1788048005000,updatedAt:1788048005000,likes:7,seed:true},
+        {id:"seed_sixth",text:"如果你也睡不着，就把烦恼寄存在这里。",author:"夜班灯房",color:"#194b68",createdAt:1788048006000,updatedAt:1788048006000,likes:9,seed:true}
+      ];
+      let notes=Core.mergeNotes(SEEDS,loadNotes()),filter="all",paused=false,toastTimer=0;
+      const ownerId=getOwnerId(),tabId=makeId("tab"),channel=openChannel();
+      const profile=loadProfile();
+      $("authorInput").value=profile.author||"";
+      const selectedColor=document.querySelector(`input[name="color"][value="${Core.cleanColor(profile.color)}"]`);
+      if(selectedColor)selectedColor.checked=true;
+
+      function makeId(prefix){return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`}
+      function getOwnerId(){try{let id=localStorage.getItem(OWNER_KEY);if(!/^[a-zA-Z0-9_-]{4,80}$/.test(id||"")){id=makeId("owner");localStorage.setItem(OWNER_KEY,id)}return id}catch(error){return makeId("owner")}}
+      function loadNotes(){try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");return Array.isArray(value)?value:[]}catch(error){return []}}
+      function loadProfile(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}")||{}}catch(error){return {}}}
+      function saveProfile(){try{localStorage.setItem(PROFILE_KEY,JSON.stringify({author:Core.cleanAuthor($("authorInput").value)==="匿名投递员"?"":Core.cleanAuthor($("authorInput").value),color:selectedStamp()}))}catch(error){}}
+      function persist(broadcast=true){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(notes))}catch(error){showToast("浏览器存储空间不足，本次更改只在当前页面保留")};if(broadcast&&channel)channel.postMessage({type:"notes",source:tabId,notes})}
+      function openChannel(){if(!("BroadcastChannel" in window))return null;const instance=new BroadcastChannel(CHANNEL_NAME);instance.addEventListener("message",event=>{const message=event.data;if(!message||message.source===tabId)return;if(message.type==="hello"){instance.postMessage({type:"notes",source:tabId,notes});return}if(message.type==="notes"&&Array.isArray(message.notes)){const merged=Core.mergeNotes(notes,message.notes);if(JSON.stringify(merged)!==JSON.stringify(notes)){notes=merged;persist(false);render()}}});instance.postMessage({type:"hello",source:tabId});return instance}
+      function selectedStamp(){return document.querySelector('input[name="color"]:checked')?.value||Core.COLORS[0]}
+      function formatDate(value){return new Intl.DateTimeFormat("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
+      function showToast(text){clearTimeout(toastTimer);$("toast").textContent=text;$("toast").classList.add("show");toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2200)}
+      function updateComposer(){const text=$("noteInput").value;$("charCount").textContent=`${text.length} / ${Core.TEXT_LIMIT}`;$("dispatchBtn").disabled=!Core.cleanText(text)}
+      function dispatchNote(){const text=Core.cleanText($("noteInput").value);if(!text){showToast("先写下一句要投递的话");$("noteInput").focus();return}const createdAt=Date.now();const newNote=Core.normalizeNote({id:makeId("note"),text,author:$("authorInput").value,color:selectedStamp(),createdAt,updatedAt:createdAt,likes:0,likedByMe:false,ownerId,seed:false});if(!newNote)return;notes=Core.mergeNotes(notes,[newNote]);persist();saveProfile();filter="all";$("noteInput").value="";updateComposer();render();showToast("留言已投进分拣带");document.querySelector(".sorting-yard").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})}
+      function toggleLike(id){const current=notes.find(note=>note.id===id);if(!current)return;const next=Core.toggleLike(current);notes=Core.mergeNotes(notes,[next]);persist();render();showToast(next.likedByMe?"已盖上一枚喜欢邮戳":"已收回喜欢邮戳")}
+      function setFilter(next){if(!["all","popular","mine"].includes(next))return;filter=next;render()}
+
+      function render(){renderBelts();renderGrid();renderCounts();document.querySelectorAll("[data-filter]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.filter===filter)))}
+      function renderBelts(){const featured=[...notes].sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);const one=featured.filter((_,index)=>index%2===0),two=featured.filter((_,index)=>index%2===1);renderLane($("laneOne"),one.length?one:featured);renderLane($("laneTwo"),two.length?two:featured)}
+      function renderLane(lane,items){lane.replaceChildren();for(let copy=0;copy<2;copy++){const group=document.createElement("div");group.className="belt-group";for(const [index,note] of items.entries()){const parcel=document.createElement("article");parcel.className="parcel";parcel.style.setProperty("--parcel",note.color);parcel.style.setProperty("--tilt",`${((index%3)-1)*.7}deg`);const stripe=document.createElement("i");stripe.className="parcel-stripe";const copyBox=document.createElement("div"),text=document.createElement("span"),meta=document.createElement("span"),likes=document.createElement("span");text.className="parcel-text";text.textContent=note.text;meta.className="parcel-meta";meta.textContent=`${note.author} · ${formatDate(note.createdAt)}`;likes.className="parcel-likes";likes.textContent=`♥ ${note.likes}`;copyBox.append(text,meta);parcel.append(stripe,copyBox,likes);group.appendChild(parcel)}lane.appendChild(group)}}
+      function renderGrid(){const visible=Core.filterNotes(notes,filter,ownerId),grid=$("noteGrid"),fragment=document.createDocumentFragment();for(const note of visible){const li=document.createElement("li");li.className=`note-card${note.seed?" seed":""}`;li.style.setProperty("--card-color",note.color);const meta=document.createElement("div");meta.className="card-meta";const author=document.createElement("strong"),time=document.createElement("time");author.textContent=note.author;time.dateTime=new Date(note.createdAt).toISOString();time.textContent=formatDate(note.createdAt);meta.append(author,time);const text=document.createElement("p");text.className="card-text";text.textContent=note.text;const foot=document.createElement("div");foot.className="card-foot";const id=document.createElement("span");id.className="mail-id";id.textContent=`MAIL / ${note.id.slice(-6).toUpperCase()}`;const like=document.createElement("button");like.className="like-btn";like.type="button";like.dataset.likeId=note.id;like.setAttribute("aria-pressed",String(note.likedByMe));like.setAttribute("aria-label",`${note.likedByMe?"取消喜欢":"喜欢"}，当前 ${note.likes} 个邮戳`);const heart=document.createElement("span");heart.className="heart";heart.textContent="♥";const count=document.createElement("span");count.textContent=String(note.likes);like.append(heart,count);foot.append(id,like);li.append(meta,text,foot);fragment.appendChild(li)}grid.replaceChildren(fragment);$("emptyState").hidden=visible.length>0}
+      function renderCounts(){const info=Core.stats(notes),mine=Core.filterNotes(notes,"mine",ownerId).length;$("allCount").textContent=String(info.notes);$("popularCount").textContent=String(info.popular);$("mineCount").textContent=String(mine);$("totalNotes").textContent=String(info.notes);$("totalLikes").textContent=String(info.likes)}
+
+      $("noteForm").addEventListener("submit",event=>{event.preventDefault();dispatchNote()});
+      $("noteInput").addEventListener("input",updateComposer);
+      $("noteInput").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter"){event.preventDefault();dispatchNote()}});
+      $("authorInput").addEventListener("change",saveProfile);$("stampOptions").addEventListener("change",saveProfile);
+      $("noteGrid").addEventListener("click",event=>{const button=event.target.closest("[data-like-id]");if(button)toggleLike(button.dataset.likeId)});
+      document.querySelector(".filters").addEventListener("click",event=>{const button=event.target.closest("[data-filter]");if(button)setFilter(button.dataset.filter)});
+      $("pauseBtn").addEventListener("click",()=>{paused=!paused;$("sortingYard").classList.toggle("paused",paused);$("pauseBtn").setAttribute("aria-pressed",String(paused));$("pauseBtn").textContent=paused?"继续分拣带":"暂停分拣带";showToast(paused?"分拣带已暂停":"分拣带继续运行")});
+      window.addEventListener("storage",event=>{if(event.key!==STORAGE_KEY)return;const merged=Core.mergeNotes(SEEDS,loadNotes());if(JSON.stringify(merged)!==JSON.stringify(notes)){notes=merged;render()}});
+      window.addEventListener("beforeunload",()=>channel?.close());
+      window.post44={getState:()=>({ownerId,filter,paused,notes:notes.map(note=>({...note}))})};
+      persist(false);updateComposer();render();
+    })();
+  </script>
+</body>
+</html>

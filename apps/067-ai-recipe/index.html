@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#18201e">
+  <meta name="description" content="PANTRY/67：输入冰箱食材，获得可执行的本地或 AI 增强菜谱、缺料清单与烹饪步骤。">
+  <title>PANTRY/67 · AI 菜谱推荐</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到备料台</a>
+
+  <div class="app-shell">
+    <header class="masthead">
+      <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+        <span class="brand-mark" aria-hidden="true">P67</span>
+        <span>
+          <strong>PANTRY/67</strong>
+          <small>100 APPS · SERVICE WINDOW</small>
+        </span>
+      </a>
+      <div class="service-board" aria-label="推荐服务状态">
+        <span class="service-light" aria-hidden="true"></span>
+        <span>
+          <small>当前出单方式</small>
+          <strong id="source-status">本地配餐 · 随时可用</strong>
+        </span>
+      </div>
+      <button class="saved-trigger" id="open-saved" type="button">
+        收藏菜谱 <span id="saved-count" aria-label="收藏数量">0</span>
+      </button>
+    </header>
+
+    <main id="main-content" class="workspace">
+      <section class="pantry-panel" aria-labelledby="pantry-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">今晚吃什么，从现有食材开始</p>
+            <h1 id="pantry-title">清点冰箱，马上出单。</h1>
+          </div>
+          <div class="station-tag" aria-hidden="true">备料台<br>STATION A</div>
+        </div>
+
+        <form id="pantry-form" novalidate>
+          <div class="ingredient-station">
+            <label for="ingredient-input">冰箱里有什么？</label>
+            <p class="field-help" id="ingredient-help">输入后按 Enter；也可用逗号、顿号一次加入多种食材。</p>
+            <div class="ingredient-entry">
+              <input id="ingredient-input" name="ingredient" type="text" maxlength="160"
+                placeholder="例如：番茄、鸡蛋、剩米饭" aria-describedby="ingredient-help ingredient-error" autocomplete="off">
+              <button id="add-ingredient" type="button">放上台面</button>
+            </div>
+            <p class="field-error" id="ingredient-error" role="alert"></p>
+            <div class="ingredient-magnets" id="ingredient-chips" aria-label="已加入的食材"></div>
+
+            <div class="quick-shelf">
+              <span>常用食材</span>
+              <div class="quick-list" id="quick-list">
+                <button type="button" data-ingredient="鸡蛋">鸡蛋</button>
+                <button type="button" data-ingredient="番茄">番茄</button>
+                <button type="button" data-ingredient="土豆">土豆</button>
+                <button type="button" data-ingredient="鸡胸肉">鸡胸肉</button>
+                <button type="button" data-ingredient="豆腐">豆腐</button>
+                <button type="button" data-ingredient="蘑菇">蘑菇</button>
+                <button type="button" data-ingredient="米饭">剩米饭</button>
+                <button type="button" data-ingredient="面条">面条</button>
+              </div>
+            </div>
+            <div class="bench-actions">
+              <button class="text-button" id="load-sample" type="button">装入示例冰箱</button>
+              <button class="text-button danger" id="clear-pantry" type="button">清空台面</button>
+            </div>
+          </div>
+
+          <fieldset class="settings-grid">
+            <legend>这顿饭的条件</legend>
+            <label>
+              <span>用餐人数</span>
+              <select id="servings" name="servings">
+                <option value="1">1 人</option>
+                <option value="2" selected>2 人</option>
+                <option value="3">3 人</option>
+                <option value="4">4 人</option>
+                <option value="6">6 人</option>
+              </select>
+            </label>
+            <label>
+              <span>最多用时</span>
+              <select id="max-minutes" name="maxMinutes">
+                <option value="15">15 分钟</option>
+                <option value="30">30 分钟</option>
+                <option value="45" selected>45 分钟</option>
+                <option value="60">60 分钟</option>
+                <option value="90">90 分钟</option>
+              </select>
+            </label>
+            <label>
+              <span>饮食偏好</span>
+              <select id="diet" name="diet">
+                <option value="any">不限</option>
+                <option value="vegetarian">蛋奶素</option>
+                <option value="vegan">纯素</option>
+                <option value="high-protein">高蛋白</option>
+                <option value="low-carb">低碳水</option>
+              </select>
+            </label>
+            <label>
+              <span>口味方向</span>
+              <select id="cuisine" name="cuisine">
+                <option value="any">不限菜系</option>
+                <option value="家常">家常</option>
+                <option value="川味">川味</option>
+                <option value="粤式">粤式</option>
+                <option value="日韩">日韩</option>
+                <option value="西式">西式</option>
+                <option value="轻食">轻食</option>
+                <option value="东南亚">东南亚</option>
+              </select>
+            </label>
+            <label class="full-field">
+              <span>忌口 / 过敏原</span>
+              <input id="exclude" name="exclude" type="text" maxlength="100" placeholder="例如：花生、乳制品、虾仁">
+            </label>
+          </fieldset>
+
+          <button class="recommend-button" id="recommend-button" type="submit">
+            <span>开始配餐</span>
+            <small>先本地出单，再尝试 AI 增强</small>
+          </button>
+          <p class="safety-note">严重食物过敏请核对配料标签与交叉污染风险；营养数据仅为估算。</p>
+        </form>
+      </section>
+
+      <section class="printer-panel" aria-labelledby="printer-title">
+        <div class="printer-head">
+          <div>
+            <p class="eyebrow">KITCHEN ORDER</p>
+            <h2 id="printer-title">出单口</h2>
+          </div>
+          <p id="printer-status">等待食材</p>
+        </div>
+
+        <div class="printer-machine">
+          <div class="printer-controls" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </div>
+          <div class="printer-slot" aria-hidden="true"><span></span></div>
+
+          <div class="empty-ticket" id="empty-ticket">
+            <span class="empty-icon" aria-hidden="true">⌁</span>
+            <strong>还没有厨房订单</strong>
+            <p>把冰箱食材放上左侧台面，三份候选菜谱会从这里出单。</p>
+          </div>
+
+          <div class="ticket-output" id="ticket-output" hidden>
+            <ol class="recipe-tabs" id="recipe-tabs" aria-label="候选菜谱"></ol>
+            <article class="recipe-ticket" id="recipe-ticket" aria-live="polite">
+              <header class="ticket-heading">
+                <div>
+                  <p id="ticket-kicker">今晚主推 · 订单 01</p>
+                  <h3 id="recipe-title"></h3>
+                </div>
+                <strong class="match-stamp" id="match-stamp"></strong>
+              </header>
+              <p class="recommend-reason" id="recommend-reason"></p>
+              <div class="recipe-facts" id="recipe-facts"></div>
+
+              <div class="ticket-actions">
+                <button id="favorite-button" type="button" aria-pressed="false">收藏这张菜谱</button>
+                <button id="shop-missing" type="button">缺料加入采购夹</button>
+              </div>
+
+              <section class="ticket-section" aria-labelledby="ingredients-title">
+                <div class="section-rule">
+                  <h4 id="ingredients-title">备料清单</h4>
+                  <span id="serving-note"></span>
+                </div>
+                <ul class="recipe-ingredients" id="recipe-ingredients"></ul>
+              </section>
+
+              <section class="ticket-section" aria-labelledby="steps-title">
+                <div class="section-rule">
+                  <h4 id="steps-title">开火步骤</h4>
+                  <span>按顺序完成</span>
+                </div>
+                <ol class="recipe-steps" id="recipe-steps"></ol>
+              </section>
+
+              <section class="ticket-section substitutions-section" id="substitutions-section" aria-labelledby="substitutions-title">
+                <div class="section-rule"><h4 id="substitutions-title">替代建议</h4></div>
+                <ul id="substitutions"></ul>
+              </section>
+
+              <section class="nutrition-strip" aria-label="每份估算营养">
+                <span>每份估算</span>
+                <dl id="nutrition"></dl>
+              </section>
+              <footer class="ticket-footer">PANTRY/67 · COOK WITH WHAT YOU HAVE</footer>
+            </article>
+          </div>
+        </div>
+
+        <aside class="shopping-clipboard" aria-labelledby="shopping-title">
+          <div class="clipboard-head">
+            <div>
+              <p class="eyebrow">补货，不重复买已有食材</p>
+              <h3 id="shopping-title">采购夹 <span id="shopping-count">0</span></h3>
+            </div>
+            <div>
+              <button id="copy-shopping" type="button" disabled>复制</button>
+              <button id="clear-shopping" type="button" disabled>清空</button>
+            </div>
+          </div>
+          <p class="shopping-empty" id="shopping-empty">菜谱缺少的食材可以一键夹到这里。</p>
+          <ul id="shopping-list"></ul>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>本地推荐无需登录；AI 模式由服务端安全代理，浏览器不会接触 API Key。</p>
+      <a href="../../">返回挑战追踪器 ↗</a>
+    </footer>
+  </div>
+
+  <dialog id="saved-dialog" class="saved-dialog">
+    <div class="dialog-head">
+      <div><p class="eyebrow">你的厨房夹页</p><h2>收藏菜谱</h2></div>
+      <button id="close-saved" type="button" aria-label="关闭收藏菜谱">×</button>
+    </div>
+    <div class="saved-list" id="saved-list"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="live-region" role="status" aria-live="polite"></div>
+
+  <script src="recipe-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

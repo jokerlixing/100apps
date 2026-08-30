@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="PORT/54 是一个在浏览器中编排 HTTP 请求、检查响应并保存本地历史的 API 测试工作台。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2313263b'/%3E%3Cpath d='M7 7h18v18H7z' fill='%23ff6b35'/%3E%3Cpath d='M12 12h8v8h-8z' fill='white'/%3E%3C/svg%3E">
+  <title>PORT/54 · API 测试工作台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#requestUrl">跳到请求地址</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-code">PORT</span>
+      <span class="brand-index">/54</span>
+      <span class="brand-copy">HTTP REQUEST LAB</span>
+    </a>
+    <div class="masthead-note">
+      <span class="signal-lamp" aria-hidden="true"></span>
+      <span>浏览器直连 · 数据仅留本机</span>
+    </div>
+    <button class="ghost-btn history-trigger" id="historyOpen" type="button" aria-controls="historyDrawer" aria-expanded="false">
+      最近请求 <b id="historyCount">0</b>
+    </button>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">PATCH CABLE / READY</p>
+        <h1 id="pageTitle">把接口接上，<br><em>看清每个字节。</em></h1>
+      </div>
+      <p class="intro-copy">编排 HTTP 请求、定位状态与响应头，再把可复用的请求留在本机。目标服务若未开放 CORS，PORT 会告诉你下一步该检查什么。</p>
+    </section>
+
+    <section class="endpoint-console" aria-labelledby="endpointTitle">
+      <div class="console-label">
+        <span>01 / ENDPOINT</span>
+        <strong id="endpointTitle">请求发射轨</strong>
+      </div>
+      <form id="requestForm" class="endpoint-form" novalidate>
+        <label class="sr-only" for="requestMethod">请求方法</label>
+        <select id="requestMethod" class="method-select" aria-label="请求方法">
+          <option>GET</option>
+          <option>POST</option>
+          <option>PUT</option>
+          <option>PATCH</option>
+          <option>DELETE</option>
+          <option>HEAD</option>
+        </select>
+        <label class="sr-only" for="requestUrl">请求 URL</label>
+        <input id="requestUrl" class="url-input" type="text" inputmode="url" autocomplete="url" spellcheck="false" value="https://jsonplaceholder.typicode.com/todos/1" placeholder="https://api.example.com/v1/items" aria-describedby="urlMessage" required>
+        <label class="timeout-field" for="timeoutSeconds">
+          <span>超时</span>
+          <input id="timeoutSeconds" type="number" min="3" max="60" step="1" value="15" inputmode="numeric">
+          <span>秒</span>
+        </label>
+        <button id="sendButton" class="send-btn" type="submit">
+          <span>发送请求</span><i aria-hidden="true">↗</i>
+        </button>
+        <button id="cancelButton" class="cancel-btn" type="button" hidden>停止</button>
+      </form>
+      <div class="route-preview">
+        <span id="urlMessage" class="route-state">最终 URL</span>
+        <code id="finalUrl">https://jsonplaceholder.typicode.com/todos/1</code>
+      </div>
+    </section>
+
+    <div class="workbench">
+      <section class="instrument request-instrument" aria-labelledby="requestPanelTitle">
+        <header class="instrument-head">
+          <div>
+            <span>02 / OUTBOUND</span>
+            <h2 id="requestPanelTitle">请求编排</h2>
+          </div>
+          <span class="instrument-badge" id="requestBadge">GET · NO BODY</span>
+        </header>
+
+        <div class="tab-strip" role="tablist" aria-label="请求设置">
+          <button id="requestTabQuery" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="requestPanelQuery" data-request-tab="query">查询参数 <b id="queryCount">0</b></button>
+          <button id="requestTabHeaders" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="requestPanelHeaders" data-request-tab="headers">请求头 <b id="headerCount">1</b></button>
+          <button id="requestTabBody" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="requestPanelBody" data-request-tab="body">正文</button>
+        </div>
+
+        <div id="requestPanelQuery" class="tab-panel" role="tabpanel" aria-labelledby="requestTabQuery" data-request-panel="query">
+          <div class="panel-toolbar">
+            <p>启用的参数会合并到最终 URL，已有参数会保留。</p>
+            <button class="line-btn" type="button" data-add-row="query">＋ 添加参数</button>
+          </div>
+          <div class="kv-labels" aria-hidden="true"><span>启用</span><span>参数名</span><span>值</span><span>移除</span></div>
+          <div id="queryRows" class="kv-rows" aria-label="查询参数"></div>
+        </div>
+
+        <div id="requestPanelHeaders" class="tab-panel" role="tabpanel" aria-labelledby="requestTabHeaders" data-request-panel="headers" hidden>
+          <div class="panel-toolbar">
+            <p>Authorization 等敏感值不会写入历史记录。</p>
+            <button class="line-btn" type="button" data-add-row="headers">＋ 添加请求头</button>
+          </div>
+          <div class="kv-labels" aria-hidden="true"><span>启用</span><span>请求头</span><span>值</span><span>移除</span></div>
+          <div id="headerRows" class="kv-rows" aria-label="请求头"></div>
+        </div>
+
+        <div id="requestPanelBody" class="tab-panel body-panel" role="tabpanel" aria-labelledby="requestTabBody" data-request-panel="body" hidden>
+          <div class="body-toolbar">
+            <label for="bodyMode">正文类型</label>
+            <select id="bodyMode">
+              <option value="none">无正文</option>
+              <option value="json">JSON</option>
+              <option value="text">纯文本</option>
+            </select>
+            <button id="formatBody" class="line-btn" type="button">格式化 JSON</button>
+          </div>
+          <div id="bodyMethodNotice" class="body-notice" hidden>GET 与 HEAD 请求不会发送正文；内容会保留，切换方法后可继续编辑。</div>
+          <label class="sr-only" for="requestBody">请求正文</label>
+          <textarea id="requestBody" class="code-editor" spellcheck="false" placeholder="{&#10;  &quot;name&quot;: &quot;PORT/54&quot;&#10;}"></textarea>
+          <div class="editor-foot"><span id="bodyStatus">未设置正文</span><span id="bodyBytes">0 B</span></div>
+        </div>
+      </section>
+
+      <div class="pulse-rail" id="pulseRail" data-state="idle" aria-hidden="true">
+        <span class="pulse-node top"></span>
+        <span class="pulse-line"></span>
+        <span class="pulse-core"></span>
+        <span class="pulse-line"></span>
+        <span class="pulse-node bottom"></span>
+      </div>
+
+      <section class="instrument response-instrument" aria-labelledby="responsePanelTitle">
+        <header class="instrument-head response-head">
+          <div>
+            <span>03 / INBOUND</span>
+            <h2 id="responsePanelTitle">响应检查</h2>
+          </div>
+          <div class="response-actions">
+            <button id="copyResponse" class="icon-btn" type="button" disabled>复制</button>
+            <button id="downloadResponse" class="icon-btn" type="button" disabled>下载</button>
+          </div>
+        </header>
+
+        <div id="responseEmpty" class="response-empty">
+          <div class="empty-orbit" aria-hidden="true"><span></span></div>
+          <p class="empty-kicker">NO SIGNAL YET</p>
+          <h3>等待第一份响应</h3>
+          <p>直接发送上方示例，或装载一个公开请求开始检查。</p>
+          <div class="example-grid">
+            <button type="button" data-example="todo"><b>GET</b><span>单条任务</span><small>JSONPlaceholder</small></button>
+            <button type="button" data-example="post"><b>POST</b><span>创建文章</span><small>JSON 正文</small></button>
+            <button type="button" data-example="repo"><b>GET</b><span>仓库信息</span><small>GitHub API</small></button>
+          </div>
+        </div>
+
+        <div id="responseResult" class="response-result" hidden>
+          <div class="response-summary">
+            <div class="metric status-metric"><span>状态</span><strong id="responseStatus">—</strong><small id="responseStatusText">等待</small></div>
+            <div class="metric"><span>耗时</span><strong id="responseTime">—</strong><small>毫秒</small></div>
+            <div class="metric"><span>大小</span><strong id="responseSize">—</strong><small id="responseKind">TEXT</small></div>
+          </div>
+
+          <div class="tab-strip response-tabs" role="tablist" aria-label="响应详情">
+            <button id="responseTabBody" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="responsePanelBody" data-response-tab="body">响应正文</button>
+            <button id="responseTabHeaders" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="responsePanelHeaders" data-response-tab="headers">响应头 <b id="responseHeaderCount">0</b></button>
+            <button id="responseTabRequest" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="responsePanelRequest" data-response-tab="request">请求快照</button>
+          </div>
+
+          <div id="responsePanelBody" class="tab-panel response-panel" role="tabpanel" aria-labelledby="responseTabBody" data-response-panel="body">
+            <div class="viewer-toolbar"><span id="responseContentType">—</span><span id="responseLines">0 行</span></div>
+            <pre id="responseBody" class="code-viewer" tabindex="0"></pre>
+          </div>
+          <div id="responsePanelHeaders" class="tab-panel response-panel" role="tabpanel" aria-labelledby="responseTabHeaders" data-response-panel="headers" hidden>
+            <pre id="responseHeaders" class="code-viewer" tabindex="0"></pre>
+          </div>
+          <div id="responsePanelRequest" class="tab-panel response-panel" role="tabpanel" aria-labelledby="responseTabRequest" data-response-panel="request" hidden>
+            <pre id="requestSnapshot" class="code-viewer" tabindex="0"></pre>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="lab-footer">
+      <p><b>CORS 提醒</b> 浏览器会遵守目标服务的跨域规则；接口若拒绝当前来源，请改用服务端代理或在目标服务配置允许的 Origin。</p>
+      <p>PORT/54 · 100 Apps Challenge · 请求历史只保存在当前浏览器</p>
+    </footer>
+  </main>
+
+  <div id="drawerScrim" class="drawer-scrim" hidden></div>
+  <aside id="historyDrawer" class="history-drawer" aria-labelledby="historyTitle" aria-hidden="true">
+    <header>
+      <div><span>LOCAL LOG / 12 MAX</span><h2 id="historyTitle">最近请求</h2></div>
+      <button id="historyClose" class="close-btn" type="button" aria-label="关闭最近请求">×</button>
+    </header>
+    <div id="historyList" class="history-list"></div>
+    <div class="history-foot">
+      <p>敏感请求头会被遮罩，响应正文不会保存。</p>
+      <button id="clearHistory" class="danger-btn" type="button" disabled>清空历史</button>
+    </div>
+  </aside>
+
+  <div id="confirmDialog" class="dialog-mask" hidden>
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDescription">
+      <span>LOG PURGE</span>
+      <h2 id="confirmTitle">清空全部历史？</h2>
+      <p id="confirmDescription">这会移除当前浏览器中的请求记录，无法撤销。</p>
+      <div><button id="confirmCancel" class="ghost-btn" type="button">保留记录</button><button id="confirmClear" class="danger-btn" type="button">确认清空</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
+
+  <script src="api-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

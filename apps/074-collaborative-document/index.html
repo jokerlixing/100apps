@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#20242a">
+  <meta name="description" content="GALLEY/74 校样室：本地优先、可选 WebSocket 的在线协同文档。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>GALLEY/74 · 在线协同文档</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#editor">跳到文档正文</a>
+
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="GALLEY/74 首页">
+      <span class="brand-mark" aria-hidden="true">G</span>
+      <span><b>GALLEY</b><small>校样室 · 074</small></span>
+    </a>
+
+    <div class="room-strip">
+      <button class="room-button" id="roomButton" type="button" aria-haspopup="dialog">
+        <span>ROOM</span>
+        <b id="roomCode">GALLEY-74</b>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      <span class="connection-pill" id="connectionPill" data-state="local">
+        <i aria-hidden="true"></i><span id="connectionText">本机协作</span>
+      </span>
+    </div>
+
+    <div class="people-strip" aria-label="当前协作者">
+      <div class="avatar-stack" id="avatarStack"></div>
+      <span id="memberCount">1 人在线</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="button button-quiet" id="identityButton" type="button" aria-haspopup="dialog">
+        <span class="button-icon" aria-hidden="true">✎</span>
+        <span id="identityLabel">我的署名</span>
+      </button>
+      <button class="button button-primary" id="shareButton" type="button">
+        <span class="button-icon" aria-hidden="true">↗</span> 分享房间
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-tabs" aria-label="工作区面板">
+    <button type="button" data-pane="shelf">文档</button>
+    <button type="button" data-pane="editor" class="active">正文</button>
+    <button type="button" data-pane="margin">批注</button>
+  </nav>
+
+  <main class="workspace">
+    <aside class="shelf pane" id="shelfPane" data-pane="shelf" aria-label="文档抽屉">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">DOCUMENT DRAWER</span>
+          <h2>文档抽屉</h2>
+        </div>
+        <button class="square-button" id="newDocumentButton" type="button" title="新建文档" aria-label="新建文档">＋</button>
+      </div>
+
+      <section class="current-file" aria-labelledby="currentFileHeading">
+        <span class="file-tab">正在校样</span>
+        <h3 id="currentFileHeading">协作发布稿</h3>
+        <p><span id="drawerWordCount">0</span> 字 · 第 <span id="drawerRevision">0</span> 版</p>
+      </section>
+
+      <section class="recent-section" aria-labelledby="recentHeading">
+        <div class="section-label">
+          <h3 id="recentHeading">最近房间</h3>
+          <span>本机</span>
+        </div>
+        <div class="recent-list" id="recentList"></div>
+      </section>
+
+      <section class="field-note" aria-labelledby="fieldNoteHeading">
+        <span class="pin" aria-hidden="true"></span>
+        <h3 id="fieldNoteHeading">交稿提示</h3>
+        <p>静态页面可在同一浏览器开两个标签页检验实时同步。启动仓库内的 WebSocket 服务后，可跨设备进入同一房间。</p>
+        <button class="text-button" id="copyRoomButton" type="button">复制房间号</button>
+      </section>
+    </aside>
+
+    <section class="editor-stage pane active" data-pane="editor" aria-label="文档编辑器">
+      <div class="format-bar" role="toolbar" aria-label="文字格式">
+        <div class="format-group">
+          <button type="button" data-command="formatBlock" data-value="p" title="正文">正文</button>
+          <button type="button" data-command="formatBlock" data-value="h2" title="二级标题">H2</button>
+          <button type="button" data-command="formatBlock" data-value="blockquote" title="引用">❞</button>
+        </div>
+        <span class="bar-rule" aria-hidden="true"></span>
+        <div class="format-group">
+          <button type="button" data-command="bold" title="粗体"><b>B</b></button>
+          <button type="button" data-command="italic" title="斜体"><i>I</i></button>
+          <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+          <button type="button" data-command="insertUnorderedList" title="项目符号">• 列表</button>
+        </div>
+        <span class="bar-rule" aria-hidden="true"></span>
+        <div class="format-group">
+          <button type="button" data-command="undo" title="撤销" aria-label="撤销">↶</button>
+          <button type="button" data-command="redo" title="重做" aria-label="重做">↷</button>
+          <button type="button" data-command="removeFormat" title="清除格式">清除</button>
+        </div>
+        <button class="comment-tool" id="selectionCommentButton" type="button" title="给选中文字添加批注">
+          <span aria-hidden="true">＋</span> 批注选中内容
+        </button>
+      </div>
+
+      <div class="paper-wrap">
+        <article class="paper" aria-label="校样纸">
+          <div class="paper-meta">
+            <span>GALLEY PROOF</span>
+            <span id="paperRoom">GALLEY-74</span>
+          </div>
+          <label class="visually-hidden" for="documentTitle">文档标题</label>
+          <textarea class="document-title" id="documentTitle" maxlength="120" rows="1" autocomplete="off">协作发布稿</textarea>
+          <div class="title-rule" aria-hidden="true"><span></span></div>
+          <div
+            class="editor"
+            id="editor"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-label="文档正文"
+            spellcheck="true"
+            data-placeholder="从这里开始写作……"
+          ></div>
+          <footer class="paper-footer">
+            <div><span id="wordCount">0 字</span><span id="charCount">0 字符</span></div>
+            <div class="save-state" id="saveState" data-state="saved"><i aria-hidden="true"></i><span>已保存</span></div>
+            <span class="page-number">— 1 —</span>
+          </footer>
+        </article>
+        <div class="proof-mark proof-mark-a" aria-hidden="true">改</div>
+        <div class="proof-mark proof-mark-b" aria-hidden="true">校</div>
+      </div>
+    </section>
+
+    <aside class="margin pane" id="marginPane" data-pane="margin" aria-label="批注与版本">
+      <div class="margin-tabs" role="tablist" aria-label="边栏内容">
+        <button id="commentsTab" type="button" role="tab" aria-selected="true" aria-controls="commentsPanel">批注 <span id="openCommentCount">0</span></button>
+        <button id="versionsTab" type="button" role="tab" aria-selected="false" aria-controls="versionsPanel">版本 <span id="versionCount">0</span></button>
+      </div>
+
+      <section class="margin-panel" id="commentsPanel" role="tabpanel" aria-labelledby="commentsTab">
+        <div class="comment-composer">
+          <div class="selection-quote" id="selectionQuote">先在正文中选中一段文字</div>
+          <label for="commentInput">留下校对意见</label>
+          <textarea id="commentInput" maxlength="1000" rows="3" placeholder="例如：这里需要补充数据来源"></textarea>
+          <div class="composer-actions">
+            <span id="commentCounter">0 / 1000</span>
+            <button class="button button-proof" id="addCommentButton" type="button">添加批注</button>
+          </div>
+        </div>
+        <div class="comment-filter" role="group" aria-label="筛选批注">
+          <button type="button" data-filter="open" class="active">待处理</button>
+          <button type="button" data-filter="all">全部</button>
+        </div>
+        <div class="comment-list" id="commentList"></div>
+      </section>
+
+      <section class="margin-panel" id="versionsPanel" role="tabpanel" aria-labelledby="versionsTab" hidden>
+        <div class="version-intro">
+          <span class="eyebrow">REVISION TAPE</span>
+          <h2>版本记录</h2>
+          <p>每次同步都会保留上一版。恢复历史会生成一个新版本，不会抹掉现有记录。</p>
+        </div>
+        <div class="version-list" id="versionList"></div>
+        <div class="export-actions">
+          <button class="button button-quiet" id="exportJsonButton" type="button">导出备份</button>
+          <button class="button button-quiet" id="exportHtmlButton" type="button">导出 HTML</button>
+          <button class="button button-quiet" id="importButton" type="button">导入备份</button>
+          <input id="importFile" type="file" accept="application/json,.json" hidden>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog class="dialog" id="roomDialog" aria-labelledby="roomDialogTitle">
+    <form method="dialog" id="roomForm">
+      <div class="dialog-kicker">ROOM ROUTING</div>
+      <h2 id="roomDialogTitle">进入协作文档</h2>
+      <p>房间号相同的成员会看到同一份文档。WebSocket 地址留空时使用本机协作。</p>
+      <label>房间号<input id="roomInput" name="room" maxlength="24" autocomplete="off"></label>
+      <label>我的署名<input id="memberNameInput" name="name" maxlength="32" autocomplete="name"></label>
+      <label>WebSocket 服务（可选）<input id="wsInput" name="ws" inputmode="url" placeholder="wss://example.com/ws"></label>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel" type="button" data-close-dialog="roomDialog">取消</button>
+        <button class="button button-primary" value="default" type="submit">进入房间</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog compact-dialog" id="restoreDialog" aria-labelledby="restoreDialogTitle">
+    <form method="dialog" id="restoreForm">
+      <div class="dialog-kicker">RESTORE PROOF</div>
+      <h2 id="restoreDialogTitle">恢复这个版本？</h2>
+      <p id="restoreDialogText">当前内容会先保留为历史，再生成一个恢复版本。</p>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel" type="button" data-close-dialog="restoreDialog">取消</button>
+        <button class="button button-proof" value="default" type="submit">恢复版本</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="sync-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

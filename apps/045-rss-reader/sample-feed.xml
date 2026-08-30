@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>DIAL/45 本地测试频道</title>
+    <link>https://example.com/dial45/</link>
+    <description>用于验证 RSS 读取、纯文本摘要与已读状态的本地订阅源。</description>
+    <item>
+      <title>测试信号一：RSS 解析已经接通</title>
+      <link>https://example.com/dial45/signal-one</link>
+      <guid>dial45-signal-one</guid>
+      <pubDate>Sun, 30 Aug 2026 12:30:00 GMT</pubDate>
+      <description><![CDATA[<p>第一条测试文章包含 <strong>HTML 标签</strong>，页面应当只显示纯文本。</p>]]></description>
+    </item>
+    <item>
+      <title>测试信号二：聚合时间线保持顺序</title>
+      <link>https://example.com/dial45/signal-two</link>
+      <guid>dial45-signal-two</guid>
+      <pubDate>Sun, 30 Aug 2026 11:20:00 GMT</pubDate>
+      <description>第二条文章用于验证频道筛选与未读计数。</description>
+    </item>
+    <item>
+      <title>测试信号三：刷新不会覆盖已读状态</title>
+      <link>https://example.com/dial45/signal-three</link>
+      <guid>dial45-signal-three</guid>
+      <pubDate>Sun, 30 Aug 2026 10:10:00 GMT</pubDate>
+      <description>第三条文章用于验证幂等合并与刷新持久化。</description>
+    </item>
+  </channel>
+</rss>

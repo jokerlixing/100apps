@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#172b36">
+  <meta name="description" content="TALLY/96 是一款本地优先的语音记账工具：说一句、校对小票、保存到账本。">
+  <title>TALLY/96 · 语音记账</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="bookkeeping-core.js"></script>
+  <script defer src="storage.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge 追踪器">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><strong>TALLY/96</strong><small>LOCAL VOICE LEDGER</small></span>
+    </a>
+    <div class="local-seal"><span aria-hidden="true"></span>账本只存当前浏览器</div>
+    <nav class="top-actions" aria-label="数据操作">
+      <button class="utility-button" id="export-csv" type="button">导出 CSV</button>
+      <button class="utility-button" id="export-json" type="button">备份 JSON</button>
+      <button class="utility-button icon-button" id="import-trigger" type="button" aria-label="导入 JSON 备份">导入</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </nav>
+  </header>
+
+  <main>
+    <section class="counter" aria-labelledby="page-title">
+      <div class="capture-panel">
+        <p class="eyebrow"><span>COUNTER OPEN</span> 先说，再确认</p>
+        <h1 id="page-title">说完，账就<br><em>落下来了。</em></h1>
+        <p class="lede">“昨天打车 28 块，支付宝。” 本地规则会先把原话拆成一张可编辑小票；你确认后，它才进入账本。</p>
+
+        <div class="voice-machine" id="voice-machine">
+          <div class="machine-head">
+            <div>
+              <span class="machine-label">INPUT / 输入</span>
+              <strong id="recognition-status">正在检查浏览器语音能力…</strong>
+            </div>
+            <div class="signal-light" aria-hidden="true"><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="wave-window" aria-hidden="true">
+            <div class="wave-line">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <span>READY · 00:00</span>
+          </div>
+
+          <label class="transcript-field" for="transcript-input">
+            <span>这笔账怎么说？</span>
+            <textarea id="transcript-input" maxlength="300" rows="3" placeholder="例如：午饭花了 32.5 元，微信付的"></textarea>
+          </label>
+
+          <div class="capture-actions">
+            <button class="voice-button" id="voice-button" type="button">
+              <span class="mic-icon" aria-hidden="true"></span>
+              <span><strong>按下说一笔</strong><small>再次按下可停止</small></span>
+            </button>
+            <button class="parse-button" id="parse-button" type="button">生成解析小票 <span aria-hidden="true">↓</span></button>
+          </div>
+        </div>
+
+        <div class="example-strip" aria-label="示例语句">
+          <span>没有麦克风？试一句</span>
+          <button type="button" data-example="今天午饭花了32.5元，微信付的">午饭 32.5</button>
+          <button type="button" data-example="昨天工资到账一万两千元，银行卡">工资 12000</button>
+          <button type="button" data-example="8月28日打车28块，支付宝">打车 28</button>
+        </div>
+
+        <aside class="privacy-note">
+          <span aria-hidden="true">⌁</span>
+          <p><strong>本地账本，不是假装 AI。</strong>解析由页面内的确定性规则完成；浏览器语音服务是否联网取决于浏览器提供商。金额没听清时，TALLY 不会猜。</p>
+        </aside>
+      </div>
+
+      <section class="receipt-stage" aria-labelledby="receipt-title">
+        <div class="receipt-shadow" aria-hidden="true"></div>
+        <form class="receipt" id="receipt-form" novalidate>
+          <div class="receipt-top">
+            <span>TALLY LOCAL STORE</span>
+            <span>NO. <b id="receipt-number">096-000</b></span>
+          </div>
+          <div class="receipt-heading">
+            <p id="receipt-mode">等待原话</p>
+            <h2 id="receipt-title">解析小票</h2>
+            <span class="confidence-badge" id="confidence-badge">尚未解析</span>
+          </div>
+
+          <div class="receipt-message" id="receipt-message" role="status" aria-live="polite">
+            先在左侧说一句或输入文字。只有你点击“确认入账”后，数据才会保存。
+          </div>
+
+          <fieldset class="type-switch" id="type-switch" disabled>
+            <legend>收支方向</legend>
+            <label><input type="radio" name="type" value="expense" checked><span>− 支出</span></label>
+            <label><input type="radio" name="type" value="income"><span>＋ 收入</span></label>
+          </fieldset>
+
+          <div class="receipt-grid">
+            <label class="amount-field">
+              <span>金额 / CNY</span>
+              <span class="money-input"><b>¥</b><input id="amount-input" name="amount" type="number" min="0.01" max="99999999.99" step="0.01" inputmode="decimal" placeholder="0.00" required disabled></span>
+            </label>
+            <label>
+              <span>日期</span>
+              <input id="date-input" name="date" type="date" required disabled>
+            </label>
+            <label>
+              <span>分类</span>
+              <select id="category-input" name="category" disabled></select>
+            </label>
+            <label>
+              <span>账户</span>
+              <select id="account-input" name="account" disabled></select>
+            </label>
+            <label class="full-field">
+              <span>备注</span>
+              <input id="note-input" name="note" type="text" maxlength="120" placeholder="这笔钱花在哪？" disabled>
+            </label>
+          </div>
+
+          <div class="source-line">
+            <span>原始输入</span>
+            <p id="receipt-source">—</p>
+          </div>
+          <div class="match-tape" id="match-tape" aria-label="已识别字段"></div>
+
+          <div class="receipt-actions">
+            <button class="cancel-button" id="cancel-edit" type="button" hidden>取消编辑</button>
+            <button class="save-button" id="save-transaction" type="submit" disabled>确认入账</button>
+          </div>
+          <p class="receipt-foot">TALLY/96 · VERIFY BEFORE SAVE · LOCAL TIME</p>
+        </form>
+      </section>
+    </section>
+
+    <section class="ledger-section" aria-labelledby="ledger-title">
+      <header class="section-heading">
+        <div>
+          <p class="eyebrow"><span>MONTH TAPE</span> 当前月汇总</p>
+          <h2 id="ledger-title">账本走纸记录</h2>
+        </div>
+        <label class="month-control">查看月份 <input id="month-filter" type="month"></label>
+      </header>
+
+      <div class="summary-register">
+        <article><span>本月收入</span><strong id="summary-income">¥0.00</strong><small>INCOME</small></article>
+        <article><span>本月支出</span><strong id="summary-expense">¥0.00</strong><small>EXPENSE</small></article>
+        <article class="balance-card"><span>月度结余</span><strong id="summary-balance">¥0.00</strong><small>BALANCE</small></article>
+        <article><span>入账笔数</span><strong id="summary-count">0</strong><small>ENTRIES</small></article>
+      </div>
+
+      <div class="ledger-layout">
+        <aside class="category-panel" aria-labelledby="category-title">
+          <div class="panel-title"><span>EXPENSE MIX</span><h3 id="category-title">支出去向</h3></div>
+          <div class="category-bars" id="category-bars"></div>
+          <p class="category-empty" id="category-empty">这个月还没有支出。说第一笔，小票会从这里开始累积。</p>
+        </aside>
+
+        <div class="entries-panel">
+          <div class="ledger-tools">
+            <label class="search-control"><span class="visually-hidden">搜索账目</span><input id="search-filter" type="search" placeholder="搜索备注或原话"></label>
+            <label><span class="visually-hidden">筛选收支</span><select id="type-filter"><option value="all">全部收支</option><option value="expense">只看支出</option><option value="income">只看收入</option></select></label>
+            <label><span class="visually-hidden">筛选分类</span><select id="category-filter"><option value="all">全部分类</option></select></label>
+            <button class="reset-filter" id="reset-filters" type="button">清除筛选</button>
+          </div>
+          <div class="entries-list" id="entries-list"></div>
+          <div class="ledger-empty" id="ledger-empty">
+            <span aria-hidden="true">∿</span>
+            <strong>没有符合条件的账目</strong>
+            <p>换一个月份或清除筛选；也可以回到上方，说一笔新账。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="data-desk" aria-label="本地数据管理">
+      <div><span>LOCAL DATA DESK</span><strong>演示数据与个人账本都只在这台浏览器里。</strong></div>
+      <p>首次打开会放入 5 条演示账目，方便检查统计和筛选。你可以重置演示账本，也可以清空后从零开始。</p>
+      <div class="data-actions">
+        <button id="reset-demo" type="button">恢复 5 条演示</button>
+        <button class="danger-button" id="clear-ledger" type="button">清空全部账目</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="../../">← 返回 100 Apps Challenge</a>
+    <p>APP 096 / 100 · 原生 JavaScript · Web Speech API · localStorage</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

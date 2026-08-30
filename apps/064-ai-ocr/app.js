@@ -183,7 +183,11 @@
     dom.queueSize.textContent = Core.formatBytes(totalBytes);
     dom.queueEmpty.hidden = state.queue.length > 0;
     dom.run.disabled = state.running || !runnable;
-    dom.runLabel.textContent = summary.completed || summary.failed ? '继续批次' : '开始批次';
+    dom.runLabel.textContent = !runnable && state.queue.length
+      ? '批次完成'
+      : summary.completed || summary.failed
+        ? '继续批次'
+        : '开始批次';
     dom.stop.hidden = !state.running;
     dom.clear.disabled = state.running || !state.queue.length;
     dom.language.disabled = state.running;

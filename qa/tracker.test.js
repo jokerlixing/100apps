@@ -55,6 +55,17 @@ test('app 065 is published and included in the official completion state', () =>
   assert.equal(doneIds.has(65), true, 'INIT_DONE must mark app 065 as done');
 });
 
+test('app 064 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app64 = ideas[63];
+
+  assert.equal(app64[0], 'AI识图取字');
+  assert.equal(app64[1], 'GLYPH/64：本地批量OCR+中英模型+校样导出');
+  assert.equal(app64[3], 'https://jokerlixing.github.io/100apps/apps/064-ai-ocr/');
+  assert.equal(doneIds.has(64), true, 'INIT_DONE must mark app 064 as done');
+});
+
 test('official completion state migrates stale browser cache entries', () => {
   const ideas = extractIdeas();
   const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173b57">
+  <meta name="description" content="SWITCHYARD/90 是一个本地优先的触发器、条件与动作自动化工作流编排台。">
+  <title>SWITCHYARD/90 · 自动化工作流调度台</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#dispatch-main">跳到工作流编排</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps 追踪器">
+      <span class="brand-signal" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><strong>SWITCHYARD<em>/90</em></strong><small>自动化工作流调度台</small></span>
+    </a>
+    <div class="system-strip" aria-label="运行状态">
+      <span class="system-label">运行边界</span>
+      <strong><i class="live-dot"></i> 本机浏览器</strong>
+      <span id="system-summary">0 条线路 · 0 条启用</span>
+    </div>
+    <nav class="top-actions" aria-label="数据工具">
+      <button class="button button-ghost" id="open-templates" type="button">调用模板</button>
+      <button class="button button-ghost" id="import-button" type="button">导入</button>
+      <button class="button button-ghost" id="export-button" type="button">导出</button>
+      <button class="icon-button" id="open-guide" type="button" aria-label="打开使用说明">?</button>
+    </nav>
+  </header>
+
+  <main class="workspace" id="dispatch-main">
+    <aside class="roster-panel" aria-labelledby="roster-title">
+      <div class="panel-heading">
+        <div><span class="kicker">Route registry</span><h1 id="roster-title">线路名册</h1></div>
+        <span class="count-badge" id="workflow-count">00</span>
+      </div>
+
+      <label class="search-box" for="workflow-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="workflow-search" type="search" placeholder="按名称或说明查找" autocomplete="off">
+      </label>
+
+      <div class="segmented" id="workflow-filters" aria-label="工作流状态筛选">
+        <button type="button" data-filter="all" aria-pressed="true">全部</button>
+        <button type="button" data-filter="enabled" aria-pressed="false">已启用</button>
+        <button type="button" data-filter="paused" aria-pressed="false">已停用</button>
+      </div>
+
+      <div class="workflow-list" id="workflow-list" aria-live="polite"></div>
+
+      <button class="new-route" id="new-workflow" type="button"><span>＋</span> 新建空白线路</button>
+      <p class="local-note"><span aria-hidden="true">⌂</span> 数据只保存在当前浏览器</p>
+    </aside>
+
+    <section class="editor-panel" aria-labelledby="editor-title">
+      <div id="editor-empty" class="empty-state" hidden>
+        <span class="empty-signal" aria-hidden="true"></span>
+        <h2>没有可调度的线路</h2>
+        <p>新建一条空白线路，或从模板调入一个完整示例。</p>
+        <button class="button button-primary" type="button" data-action="empty-template">调用模板</button>
+      </div>
+      <div id="workflow-editor"></div>
+    </section>
+
+    <aside class="console-panel" aria-labelledby="console-title">
+      <div class="panel-heading console-heading">
+        <div><span class="kicker">Test carriage</span><h2 id="console-title">试运行台</h2></div>
+        <span class="console-clock" id="console-clock">--:--:--</span>
+      </div>
+
+      <label class="payload-field" for="payload-input">
+        <span>事件载荷 <b>JSON</b></span>
+        <textarea id="payload-input" spellcheck="false" rows="11" aria-describedby="payload-help"></textarea>
+      </label>
+      <p class="field-help" id="payload-help">字段可在条件路径和 <code>{{字段}}</code> 模板中使用。</p>
+      <p class="payload-error" id="payload-error" role="alert" hidden></p>
+
+      <button class="run-button" id="run-workflow" type="button">
+        <span class="run-symbol" aria-hidden="true">▶</span>
+        <span><strong>发送测试事件</strong><small id="run-source">手动触发</small></span>
+      </button>
+
+      <section class="latest-run" id="latest-run" aria-live="polite">
+        <div class="empty-run"><span>○</span><p>还没有运行记录<br><small>发送测试事件查看每一步结果</small></p></div>
+      </section>
+
+      <div class="metric-strip" aria-label="当前工作流运行统计">
+        <div><span>运行</span><strong id="metric-runs">0</strong></div>
+        <div><span>通过</span><strong id="metric-passed">0</strong></div>
+        <div><span>失败</span><strong id="metric-failed">0</strong></div>
+      </div>
+
+      <section class="history-section" aria-labelledby="history-title">
+        <div class="history-heading"><h3 id="history-title">最近调度</h3><button id="clear-history" type="button">清空</button></div>
+        <div class="history-list" id="history-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="boundary-bar">
+    <strong>LOCAL DISPATCH</strong>
+    <span>页面打开时执行手动、事件与间隔触发；关闭页面后定时器会停止。</span>
+    <span>Webhook 仅生成请求预览，不会自动发送数据。</span>
+  </footer>
+
+  <dialog class="modal template-modal" id="template-dialog" aria-labelledby="template-title">
+    <form method="dialog" class="modal-shell">
+      <header><div><span class="kicker">Ready-made routes</span><h2 id="template-title">从模板调入线路</h2></div><button class="modal-close" value="cancel" aria-label="关闭模板">×</button></header>
+      <p class="modal-intro">模板会复制成一条停用线路，先检查载荷和动作，再决定是否启用。</p>
+      <div class="template-grid" id="template-grid"></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal guide-modal" id="guide-dialog" aria-labelledby="guide-title">
+    <form method="dialog" class="modal-shell">
+      <header><div><span class="kicker">Dispatch manual</span><h2 id="guide-title">三步完成一次自动化</h2></div><button class="modal-close" value="cancel" aria-label="关闭说明">×</button></header>
+      <ol class="guide-steps">
+        <li><span>TRIGGER</span><div><strong>选择列车何时进站</strong><p>手动适合即时测试，事件按名称匹配，间隔触发只在本页打开时运行。</p></div></li>
+        <li><span>SWITCH</span><div><strong>用条件决定线路方向</strong><p>条件路径从 JSON 载荷取值；“全部”或“任一”控制多条条件如何组合。</p></div></li>
+        <li><span>ACTION</span><div><strong>依次执行到站动作</strong><p>设置字段会传给后续动作；通知、日志与 Webhook 预览都能引用模板字段。</p></div></li>
+      </ol>
+      <div class="guide-boundary"><strong>隐私边界</strong><p>项目不含账号或云端服务，配置与历史写入本机 localStorage。导出 JSON 可用于备份或换浏览器。</p></div>
+      <div class="modal-actions"><button class="button button-danger" id="reset-demo" type="button">恢复示例数据</button><button class="button button-primary" value="cancel">开始编排</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal confirm-modal" id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="modal-shell">
+      <header><div><span class="kicker">Confirm route</span><h2 id="confirm-title">确认操作</h2></div><button class="modal-close" value="cancel" aria-label="取消">×</button></header>
+      <p id="confirm-message"></p>
+      <div class="modal-actions"><button class="button button-ghost" value="cancel">取消</button><button class="button button-danger" id="confirm-accept" value="default">确认</button></div>
+    </form>
+  </dialog>
+
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./workflow-core.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

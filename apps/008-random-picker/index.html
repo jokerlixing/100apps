@@ -50,6 +50,7 @@ textarea:focus{border-color:var(--green)}
 textarea::placeholder{color:var(--dim)}
 .mini{background:transparent;border:1px solid var(--line);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:12px;cursor:pointer;transition:.15s}@media(hover:hover){
 .mini:hover{border-color:var(--blue);color:var(--blue)}}
+.mini.armed{border-color:var(--red);background:rgba(224,108,117,.12);color:var(--red);white-space:nowrap}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 
 /* 历史 */
@@ -88,7 +89,7 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-he
         <textarea id="names" placeholder="张三&#10;李四&#10;王五&#10;……"></textarea>
         <div class="row">
           <button class="mini" onclick="loadDemo()">示例名单</button>
-          <button class="mini" onclick="clearNames()">清空</button>
+          <button class="mini" id="clearNamesBtn" onclick="clearNames()">清空</button>
           <button class="mini" onclick="shuffleNames()">名单洗牌</button>
         </div>
       </div>
@@ -142,9 +143,29 @@ function loadDemo(){
   loadNames();saveNames();updatePool();
   toast("已载入 12 人示例名单");
 }
+let clearNamesArmed=false,clearNamesTimer=null;
+function disarmClearNames(){
+  clearNamesArmed=false;
+  const btn=$("clearNamesBtn");
+  btn.classList.remove("armed");
+  btn.textContent="清空";
+  btn.setAttribute("aria-label","清空名单");
+}
 function clearNames(){
-  if(!confirm("清空名单？"))return;
+  const btn=$("clearNamesBtn");
+  if(!clearNamesArmed){
+    clearNamesArmed=true;
+    btn.classList.add("armed");
+    btn.textContent="确认清空？";
+    btn.setAttribute("aria-label","再次点击确认清空名单");
+    clearTimeout(clearNamesTimer);
+    clearNamesTimer=setTimeout(disarmClearNames,3000);
+    return;
+  }
+  clearTimeout(clearNamesTimer);
+  disarmClearNames();
   $("names").value="";loadNames();saveNames();updatePool();
+  toast("名单已清空");
 }
 function shuffleNames(){
   loadNames();

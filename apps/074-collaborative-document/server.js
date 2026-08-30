@@ -294,10 +294,14 @@ function createGalleyServer(options = {}) {
     close() {
       for (const room of rooms.values()) {
         if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
-        for (const client of room.clients.values()) client.socket.close(1001, 'Server closing');
+        for (const client of room.clients.values()) client.socket.terminate();
       }
+      server.closeAllConnections?.();
       return new Promise((resolve) => {
-        wss.close(() => server.close(() => resolve()));
+        wss.close(() => {
+          server.closeAllConnections?.();
+          server.close(() => resolve());
+        });
       });
     },
   };

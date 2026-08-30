@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer as createNetServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +16,6 @@ const persistScreenshots = process.env.UPDATE_SCREENSHOTS === '1' || Boolean(pro
 const outputDir = path.resolve(process.argv[2] || (persistScreenshots ? path.join(appDir, 'assets') : path.join(os.tmpdir(), `codex-app74-output-${process.pid}`)));
 const profile = path.resolve(os.tmpdir(), `codex-app74-profile-${process.pid}`);
 const downloadDir = path.resolve(os.tmpdir(), `codex-app74-downloads-${process.pid}`);
-const debugPort = 9874 + (process.pid % 300);
 const room = `SMOKE-${process.pid}`;
 const chromeCandidates = [
   path.join(process.env.PROGRAMFILES || '', 'Google/Chrome/Application/chrome.exe'),
@@ -39,6 +39,17 @@ async function waitFor(check, timeout = 12_000, label = 'condition') {
   throw new Error(`Timed out waiting for ${label}`);
 }
 
+function reservePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createNetServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close((error) => error ? reject(error) : resolve(port));
+    });
+  });
+}
+
 class CdpClient {
   constructor(webSocketUrl) {
     this.nextId = 1;
@@ -58,6 +69,7 @@ class CdpClient {
         const pending = this.pending.get(message.id);
         if (!pending) return;
         this.pending.delete(message.id);
+        clearTimeout(pending.timer);
         if (message.error) pending.reject(new Error(message.error.message));
         else pending.resolve(message.result);
         return;
@@ -70,10 +82,15 @@ class CdpClient {
     this.listeners.set(method, [...(this.listeners.get(method) || []), listener]);
   }
 
-  send(method, params = {}) {
+  send(method, params = {}, timeout = 10_000) {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`CDP request timed out: ${method}`));
+      }, timeout);
+      timer.unref?.();
+      this.pending.set(id, { resolve, reject, timer });
       this.socket.send(JSON.stringify({ id, method, params }));
     });
   }
@@ -106,7 +123,11 @@ async function preparePage(client, url, runtimeErrors) {
 }
 
 async function screenshot(client, filename) {
-  const result = await client.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  const result = await client.send('Page.captureScreenshot', {
+    format: 'png',
+    captureBeyondViewport: false,
+    optimizeForSpeed: true,
+  }, 30_000);
   writeFileSync(path.join(outputDir, filename), Buffer.from(result.data, 'base64'));
 }
 
@@ -131,6 +152,7 @@ async function run() {
   const service = createGalleyServer({ roomIdleMs: 5000 });
   const address = await service.listen(0, '127.0.0.1');
   const baseUrl = `http://127.0.0.1:${address.port}/?room=${room}`;
+  const debugPort = await reservePort();
   const browser = spawn(chrome, [
     '--headless=new', '--no-first-run', '--disable-gpu', '--hide-scrollbars', '--disable-background-networking',
     `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`, '--window-size=1440,1000', 'about:blank',
@@ -151,6 +173,7 @@ async function run() {
     await first.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
     await preparePage(first, baseUrl, runtimeErrors);
     await first.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir });
+    console.log('[smoke] first editor connected');
 
     const initial = await evaluate(first, `(() => ({
       title: document.querySelector('#documentTitle').value,
@@ -165,6 +188,7 @@ async function run() {
     assert.match(initial.columns, /px/);
     assert.equal(initial.scrollWidth, initial.clientWidth);
     assert.match(initial.editorText, /一起编辑/);
+    console.log('[smoke] initial layout verified');
 
     await evaluate(first, `(() => {
       const title = document.querySelector('#documentTitle');
@@ -175,12 +199,14 @@ async function run() {
       editor.dispatchEvent(new Event('input', { bubbles: true }));
     })()`);
     await waitForExpression(first, `Number(document.querySelector('#drawerRevision').textContent) >= 1 && document.querySelector('#saveState').textContent.includes('已同步')`);
+    console.log('[smoke] first revision saved');
 
     const second = await createPage(debugPort, baseUrl, runtimeErrors);
     clients.push(second);
     await waitForExpression(first, `document.querySelector('#memberCount').textContent.includes('2')`);
     assert.equal(await evaluate(second, `document.querySelector('#documentTitle').value`), '八月发布检查清单');
     assert.match(await evaluate(second, `document.querySelector('#editor').textContent`), /林星负责核对链接/);
+    console.log('[smoke] second editor synchronized');
 
     await evaluate(first, `(() => {
       const paragraph = document.querySelector('#editor p');
@@ -197,6 +223,7 @@ async function run() {
     })()`);
     await waitForExpression(second, `document.querySelector('#openCommentCount').textContent === '1'`);
     assert.match(await evaluate(second, `document.querySelector('.comment-card').textContent`), /部署地址确认后/);
+    console.log('[smoke] comment synchronized');
 
     await evaluate(second, `(() => {
       const title = document.querySelector('#documentTitle');
@@ -205,6 +232,7 @@ async function run() {
     })()`);
     await waitForExpression(first, `document.querySelector('#documentTitle').value.includes('协同终稿')`);
     await waitForExpression(first, `Number(document.querySelector('#versionCount').textContent) >= 2`);
+    console.log('[smoke] remote title and versions synchronized');
 
     await evaluate(first, `document.querySelector('#exportJsonButton').click(); document.querySelector('#exportHtmlButton').click()`);
     const jsonFile = await waitFor(() => readdirSync(downloadDir).find((name) => name.endsWith('.json')), 5000, 'JSON export');
@@ -213,10 +241,14 @@ async function run() {
     assert.equal(backup.title, '八月发布清单 · 协同终稿');
     assert.equal(backup.comments.length, 1);
     assert.match(readFileSync(path.join(downloadDir, htmlFile), 'utf8'), /交稿前最后一轮/);
+    console.log('[smoke] JSON and HTML exports verified');
 
     await evaluate(first, `document.querySelector('#commentsTab').click()`);
     await sleep(300);
-    await screenshot(first, 'screenshot-desktop.png');
+    if (persistScreenshots) {
+      await screenshot(first, 'screenshot-desktop.png');
+      console.log('[smoke] desktop layout captured');
+    } else console.log('[smoke] desktop layout verified');
 
     await first.send('Emulation.setDeviceMetricsOverride', {
       width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844,
@@ -234,7 +266,10 @@ async function run() {
     assert.equal(mobile.activePane, 'margin');
     assert.equal(mobile.scrollWidth, mobile.clientWidth);
     assert.equal(mobile.commentVisible, true);
-    await screenshot(first, 'screenshot-mobile.png');
+    if (persistScreenshots) {
+      await screenshot(first, 'screenshot-mobile.png');
+      console.log('[smoke] mobile layout captured');
+    } else console.log('[smoke] mobile layout verified');
 
     await first.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
     await evaluate(first, `(() => {
@@ -246,6 +281,7 @@ async function run() {
     await waitForExpression(second, `document.querySelector('#documentTitle').value === '协作发布稿'`);
     assert.match(await evaluate(second, `document.querySelector('#editor').textContent`), /一起编辑/);
     assert.deepEqual(runtimeErrors, []);
+    console.log('[smoke] version restore and runtime errors verified');
 
     const result = {
       initial,
@@ -260,8 +296,10 @@ async function run() {
       outputDir,
     };
     console.log(JSON.stringify(result, null, 2));
-    await first.send('Browser.close');
   } finally {
+    if (clients[0]) {
+      try { await Promise.race([clients[0].send('Browser.close'), sleep(800)]); } catch {}
+    }
     for (const client of clients) client.close();
     if (!browser.killed) browser.kill();
     await service.close();

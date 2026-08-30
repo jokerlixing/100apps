@@ -12,6 +12,7 @@ test("normalizeUrl adds https and removes fragments", () => {
 
 test("normalizeUrl accepts explicit http URLs", () => {
   assert.equal(core.normalizeUrl("http://example.com"), "http://example.com/");
+  assert.equal(core.normalizeUrl("https://fc.example.com"), "https://fc.example.com/");
 });
 
 test("normalizeUrl rejects unsafe and unreachable targets", () => {

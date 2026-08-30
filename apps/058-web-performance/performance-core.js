@@ -44,13 +44,8 @@
     if (!host) return true;
     if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true;
     if (isPrivateIpv4(host)) return true;
-    return (
-      host === "::" ||
-      host === "::1" ||
-      host.startsWith("fc") ||
-      host.startsWith("fd") ||
-      host.startsWith("fe80:")
-    );
+    if (!host.includes(":")) return false;
+    return host === "::" || host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:");
   }
 
   function normalizeUrl(input) {

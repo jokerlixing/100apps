@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e9edf6">
+  <meta name="description" content="TRACE/58 网页性能检测器：用 PageSpeed Insights 检测公开网址，阅读 Lighthouse 指标、优化机会与请求瀑布。">
+  <title>TRACE/58 · 网页性能检测器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#auditForm">跳到检测表单</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge">
+      <span class="brand-signal" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>
+        <strong>PULSELINE</strong>
+        <small>WEB DIAGNOSTICS</small>
+      </span>
+    </a>
+    <div class="issue-mark" aria-label="项目编号 058">
+      <span>APP</span>
+      <b>058</b>
+    </div>
+  </header>
+
+  <main>
+    <section class="launch-panel" aria-labelledby="pageTitle">
+      <div class="launch-copy">
+        <p class="eyebrow"><span>LIVE LIGHTHOUSE</span> / PUBLIC URL ONLY</p>
+        <h1 id="pageTitle">给网页做一次<br><em>速度体检</em></h1>
+        <p class="lede">输入一个公开网址，读取真实性能分数、核心加载指标和最值得先修的瓶颈。</p>
+      </div>
+
+      <form class="audit-form" id="auditForm" novalidate>
+        <label class="url-label" for="urlInput">待检测网址</label>
+        <div class="url-rail">
+          <span class="protocol-mark" aria-hidden="true">//</span>
+          <input id="urlInput" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="example.com" aria-describedby="urlHint urlError">
+          <button class="run-button" id="runButton" type="submit">
+            <span>开始检测</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h12M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <p class="field-hint" id="urlHint">自动补全 HTTPS。PageSpeed 无法检测 localhost、内网或需登录页面。</p>
+        <p class="field-error" id="urlError" role="alert" hidden></p>
+
+        <div class="form-controls">
+          <fieldset class="device-switch">
+            <legend>模拟设备</legend>
+            <label>
+              <input type="radio" name="strategy" value="mobile" checked>
+              <span><b aria-hidden="true">▯</b> 移动端</span>
+            </label>
+            <label>
+              <input type="radio" name="strategy" value="desktop">
+              <span><b aria-hidden="true">▭</b> 桌面端</span>
+            </label>
+          </fieldset>
+          <button class="text-button" id="sampleButton" type="button">先看示例报告 <span aria-hidden="true">↗</span></button>
+        </div>
+      </form>
+    </section>
+
+    <section class="status-deck" id="loadingView" aria-labelledby="loadingTitle" hidden>
+      <div class="scanner-stage" aria-hidden="true">
+        <div class="scanner-grid"></div>
+        <div class="scanner-beam"></div>
+        <div class="packet packet-a"></div>
+        <div class="packet packet-b"></div>
+        <div class="packet packet-c"></div>
+      </div>
+      <div class="loading-copy">
+        <p class="section-code">TRACE SESSION / ACTIVE</p>
+        <h2 id="loadingTitle">正在建立性能轨迹</h2>
+        <p id="loadingMessage">正在连接 PageSpeed 服务…</p>
+        <div class="progress-track" role="progressbar" aria-label="检测进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8" id="progressTrack">
+          <i id="progressFill"></i>
+        </div>
+        <div class="progress-meta"><span id="progressValue">08%</span><span>通常需要 20–60 秒</span></div>
+        <button class="cancel-button" id="cancelButton" type="button">取消本次检测</button>
+      </div>
+    </section>
+
+    <section class="error-deck" id="errorView" aria-labelledby="errorTitle" hidden>
+      <span class="error-code" aria-hidden="true">!</span>
+      <div>
+        <p class="section-code">TRACE SESSION / INTERRUPTED</p>
+        <h2 id="errorTitle">检测没有完成</h2>
+        <p id="errorMessage">请检查网址后重试。</p>
+      </div>
+      <div class="error-actions">
+        <button class="secondary-button" id="retryButton" type="button">重新检测</button>
+        <button class="plain-button" id="errorSampleButton" type="button">加载示例报告</button>
+      </div>
+    </section>
+
+    <section class="result-shell" id="resultView" tabindex="-1" aria-labelledby="reportTitle" hidden>
+      <div class="report-strip">
+        <div>
+          <p class="section-code" id="reportMode">LIVE REPORT / MOBILE</p>
+          <h2 id="reportTitle">性能诊断报告</h2>
+        </div>
+        <div class="report-address">
+          <span id="reportTime">—</span>
+          <a id="reportUrl" href="#" target="_blank" rel="noopener noreferrer">—</a>
+        </div>
+      </div>
+
+      <div class="score-grid">
+        <article class="score-card" id="scoreCard">
+          <div class="score-dial" id="scoreDial" style="--score-angle:0deg">
+            <div>
+              <span>PERF</span>
+              <strong id="scoreValue">—</strong>
+              <small id="scoreLabel">等待数据</small>
+            </div>
+          </div>
+          <div class="grade-stamp">
+            <span>GRADE</span>
+            <b id="scoreGrade">—</b>
+          </div>
+          <p id="scoreSummary">Lighthouse 实验室性能分数</p>
+        </article>
+
+        <div class="metrics-board">
+          <div class="board-head">
+            <div>
+              <p class="section-code">CORE SIGNALS</p>
+              <h3>关键加载指标</h3>
+            </div>
+            <div class="legend" aria-label="指标等级图例"><span class="good">良好</span><span class="needs-work">需优化</span><span class="poor">较慢</span></div>
+          </div>
+          <div class="metric-grid" id="metricGrid"></div>
+          <p class="metric-note">数据来自一次受控的 Lighthouse 实验室测试，实际访客体验会因网络和设备而变化。</p>
+        </div>
+      </div>
+
+      <section class="trace-board" aria-labelledby="traceTitle">
+        <div class="board-head trace-head">
+          <div>
+            <p class="section-code">REQUEST TRACE</p>
+            <h3 id="traceTitle">请求瀑布摘要</h3>
+          </div>
+          <dl class="trace-stats">
+            <div><dt>请求</dt><dd id="requestCount">—</dd></div>
+            <div><dt>传输</dt><dd id="pageWeight">—</dd></div>
+            <div><dt>跨度</dt><dd id="traceDuration">—</dd></div>
+          </dl>
+        </div>
+        <div class="trace-ruler" aria-hidden="true"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>END</span></div>
+        <ol class="trace-list" id="traceList"></ol>
+      </section>
+
+      <div class="lower-grid">
+        <section class="opportunity-board" aria-labelledby="opportunityTitle">
+          <div class="board-head">
+            <div>
+              <p class="section-code">PRIORITY QUEUE</p>
+              <h3 id="opportunityTitle">先修这些问题</h3>
+            </div>
+            <span class="queue-count" id="opportunityCount">0</span>
+          </div>
+          <ol class="opportunity-list" id="opportunityList"></ol>
+        </section>
+
+        <aside class="history-board" aria-labelledby="historyTitle">
+          <div class="board-head">
+            <div>
+              <p class="section-code">LOCAL LOG</p>
+              <h3 id="historyTitle">最近检测</h3>
+            </div>
+            <button class="clear-button" id="clearHistoryButton" type="button">清空</button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+          <p class="privacy-note">历史只保存在当前浏览器，最多 6 条。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="empty-deck" id="emptyView" aria-label="检测说明">
+      <div class="empty-trace" aria-hidden="true">
+        <span class="axis-label top">FAST</span>
+        <i style="--x:5%;--w:24%;--y:18%"></i>
+        <i style="--x:12%;--w:53%;--y:38%"></i>
+        <i style="--x:36%;--w:28%;--y:58%"></i>
+        <i style="--x:63%;--w:20%;--y:78%"></i>
+        <span class="axis-label bottom">LOAD TRACE →</span>
+      </div>
+      <div class="empty-copy">
+        <p class="section-code">BEFORE YOU RUN</p>
+        <h2>一次检测，三层答案</h2>
+        <ol>
+          <li><b>01</b><span><strong>看总分</strong>快速判断当前性能区间</span></li>
+          <li><b>02</b><span><strong>看指标</strong>定位首屏、阻塞与布局问题</span></li>
+          <li><b>03</b><span><strong>看队列</strong>按收益顺序开始优化</span></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>TRACE/58 · 100 APPS CHALLENGE</p>
+    <p>DATA: <a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" rel="noopener noreferrer">GOOGLE PAGESPEED INSIGHTS V5 ↗</a></p>
+  </footer>
+
+  <div class="sr-status" id="liveStatus" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script src="performance-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

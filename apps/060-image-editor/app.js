@@ -198,7 +198,7 @@
     if (!sourceImage) return;
     canvas.width = Math.max(1, Math.round(width));
     canvas.height = Math.max(1, Math.round(height));
-    const context = canvas.getContext("2d", { alpha: options.background == null });
+    const context = canvas.getContext("2d");
     const source = currentSourceSize();
     const crop = Core.normalizeCrop(recipe.crop);
 

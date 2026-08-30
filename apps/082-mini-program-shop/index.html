@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173c35">
+  <meta name="description" content="云岫山货铺：可完整体验选品、购物车、优惠、模拟支付与订单留存的微信小程序商城模拟器。">
+  <title>云岫山货铺 · App 082</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#productGrid">跳到商品列表</a>
+
+  <header class="mini-header">
+    <a class="brand" href="#top" aria-label="云岫山货铺首页">
+      <span class="brand-seal" aria-hidden="true">岫</span>
+      <span class="brand-copy">
+        <strong>云岫山货铺</strong>
+        <small>今日山里 · 今日发出</small>
+      </span>
+    </a>
+    <div class="header-actions">
+      <button class="icon-button" id="ordersButton" type="button" aria-label="查看我的订单">
+        <span aria-hidden="true">票</span>
+        <span>订单</span>
+      </button>
+      <button class="cart-pill" id="headerCartButton" type="button" aria-label="打开购物车">
+        <span aria-hidden="true">竹篮</span>
+        <strong id="headerCartCount">0</strong>
+      </button>
+    </div>
+  </header>
+
+  <main id="top" class="page-shell">
+    <div class="store-column">
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="hero-copy">
+          <p class="eyebrow"><span>APP 082</span> 小程序商城模拟器</p>
+          <h1 id="heroTitle">把一座山，<br><em>装进今天的饭桌。</em></h1>
+          <p class="hero-lead">八样当季山货，产地、规格和价格都写明白。从竹篮到订单，三分钟走完一次安心下单。</p>
+          <div class="hero-actions">
+            <a class="primary-link" href="#market">去逛今日山货 <span aria-hidden="true">↓</span></a>
+            <button class="text-button" id="showCouponButton" type="button">领取新人券</button>
+          </div>
+          <dl class="market-facts" aria-label="商城服务说明">
+            <div><dt>14:00</dt><dd>前下单当日发</dd></div>
+            <div><dt>¥99</dt><dd>山路快递包邮</dd></div>
+            <div><dt>本地</dt><dd>订单只存在本机</dd></div>
+          </dl>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="mountain-sun"></div>
+          <div class="bamboo-tray">
+            <span class="produce produce-one">菌</span>
+            <span class="produce produce-two">茶</span>
+            <span class="produce produce-three">蜜</span>
+            <span class="tray-label">本周山选</span>
+          </div>
+          <span class="route-note">海拔 1,180m<br>山路直送</span>
+          <span class="hero-stamp">当季<br>不囤货</span>
+        </div>
+      </section>
+
+      <section id="market" class="market-section" aria-labelledby="marketTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">山货架 / MARKET SHELF</p>
+            <h2 id="marketTitle">今天想带什么下山？</h2>
+          </div>
+          <p id="productCount" class="result-count" aria-live="polite">8 件山货</p>
+        </div>
+
+        <div class="market-tools">
+          <label class="search-field" for="searchInput">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="搜茶、菌菇、果干……">
+            <button id="clearSearchButton" type="button" aria-label="清空搜索" hidden>×</button>
+          </label>
+          <div class="category-tabs" id="categoryTabs" role="group" aria-label="商品分类"></div>
+        </div>
+
+        <div class="product-grid" id="productGrid" aria-live="polite"></div>
+        <div class="empty-market" id="emptyMarket" hidden>
+          <span aria-hidden="true">空篮</span>
+          <h3>这层山路没找到货</h3>
+          <p>换个关键词，或回到“全部”看看今天的八样山选。</p>
+          <button class="secondary-button" id="resetFilterButton" type="button">看全部山货</button>
+        </div>
+      </section>
+
+      <section class="promise-strip" aria-labelledby="promiseTitle">
+        <div class="promise-intro">
+          <p class="eyebrow">货从哪里来</p>
+          <h2 id="promiseTitle">每一件都有来路，<br>每一单都有明细。</h2>
+        </div>
+        <ol class="promise-list">
+          <li><strong>01 产地写清</strong><span>村名、海拔与采收批次跟着商品走。</span></li>
+          <li><strong>02 价格算清</strong><span>优惠、运费在支付前逐项展开。</span></li>
+          <li><strong>03 数据留本地</strong><span>这是体验项目，不上传地址，不真实扣款。</span></li>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="receipt-rail" aria-labelledby="receiptTitle">
+      <div class="receipt-paper">
+        <div class="receipt-head">
+          <span class="receipt-kicker">CURRENT BASKET</span>
+          <h2 id="receiptTitle">今日竹篮</h2>
+          <time id="receiptDate"></time>
+        </div>
+        <div id="railCartItems" class="receipt-items"></div>
+        <div id="railEmpty" class="receipt-empty">
+          <span aria-hidden="true">◌</span>
+          <p>竹篮还是空的<br>从左边挑一件山货</p>
+        </div>
+        <div class="shipping-progress" id="shippingProgress">
+          <div><span id="shippingMessage">再选 ¥99.00 包邮</span><strong id="shippingPercent">0%</strong></div>
+          <span class="progress-track"><i id="shippingBar"></i></span>
+        </div>
+        <dl class="receipt-totals">
+          <div><dt>商品小计</dt><dd id="railSubtotal">¥0.00</dd></div>
+          <div><dt>预计运费</dt><dd id="railShipping">¥0.00</dd></div>
+          <div class="total-row"><dt>预计合计</dt><dd id="railTotal">¥0.00</dd></div>
+        </dl>
+        <button class="checkout-button" id="railCheckoutButton" type="button" disabled>
+          去结算 <span id="railCheckoutCount">0 件</span>
+        </button>
+        <p class="receipt-note">模拟支付 · 不会产生真实扣款</p>
+        <div class="receipt-barcode" aria-hidden="true"></div>
+      </div>
+    </aside>
+  </main>
+
+  <nav class="mobile-tabs" aria-label="小程序导航">
+    <a href="#top" class="mobile-tab is-active"><span aria-hidden="true">⌂</span><span>逛山货</span></a>
+    <a href="#market" class="mobile-tab"><span aria-hidden="true">▦</span><span>分类</span></a>
+    <button class="mobile-tab" id="mobileOrdersButton" type="button"><span aria-hidden="true">票</span><span>订单</span></button>
+    <button class="mobile-cart-tab" id="mobileCartButton" type="button">
+      <span>竹篮</span><strong id="mobileCartCount">0</strong>
+    </button>
+  </nav>
+
+  <dialog id="productDialog" class="product-dialog">
+    <button class="dialog-close" data-close-dialog="productDialog" type="button" aria-label="关闭商品详情">×</button>
+    <div id="productDialogContent"></div>
+  </dialog>
+
+  <dialog id="cartDialog" class="sheet-dialog cart-dialog">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="dialog-heading">
+      <div><p class="eyebrow">BAMBOO BASKET</p><h2>今日竹篮</h2></div>
+      <button class="dialog-close inline-close" data-close-dialog="cartDialog" type="button" aria-label="关闭购物车">×</button>
+    </div>
+    <div id="cartDialogItems" class="cart-dialog-items"></div>
+    <div id="cartDialogEmpty" class="dialog-empty" hidden>
+      <span aria-hidden="true">空篮</span><h3>还没有山货</h3><p>关闭竹篮，挑一件今天想带回家的。</p>
+    </div>
+    <div id="cartDialogSummary" class="cart-summary">
+      <p id="cartShippingMessage">再选 ¥99.00 包邮</p>
+      <div><span>预计合计</span><strong id="cartDialogTotal">¥0.00</strong></div>
+      <button class="checkout-button" id="cartCheckoutButton" type="button">核对订单</button>
+    </div>
+  </dialog>
+
+  <dialog id="checkoutDialog" class="checkout-dialog">
+    <form id="checkoutForm" novalidate>
+      <div class="dialog-heading checkout-heading">
+        <div><p class="eyebrow">ORDER TAPE / 结算</p><h2>把山货送到哪里？</h2></div>
+        <button class="dialog-close inline-close" data-close-dialog="checkoutDialog" type="button" aria-label="关闭结算">×</button>
+      </div>
+
+      <div class="checkout-layout">
+        <div class="checkout-fields">
+          <fieldset class="delivery-picker">
+            <legend>配送方式</legend>
+            <label><input type="radio" name="deliveryType" value="delivery" checked><span><strong>山路快递</strong><small>满 ¥99 包邮，预计 2–3 天</small></span></label>
+            <label><input type="radio" name="deliveryType" value="pickup"><span><strong>到店自提</strong><small>云岫杭州小铺，不收运费</small></span></label>
+          </fieldset>
+
+          <section class="form-section" aria-labelledby="addressTitle">
+            <div class="form-section-head"><h3 id="addressTitle">收货信息</h3><span>仅保存在当前浏览器</span></div>
+            <div class="field-grid">
+              <label class="field"><span>收货人</span><input id="receiverInput" name="receiver" autocomplete="name" placeholder="怎么称呼你"><small data-error-for="receiver"></small></label>
+              <label class="field"><span>手机号</span><input id="phoneInput" name="phone" inputmode="tel" autocomplete="tel" placeholder="11 位手机号"><small data-error-for="phone"></small></label>
+              <label class="field field-wide delivery-address"><span>所在地区</span><input id="regionInput" name="region" autocomplete="address-level1" placeholder="省 / 市 / 区"><small data-error-for="region"></small></label>
+              <label class="field field-wide delivery-address"><span>详细地址</span><textarea id="detailInput" name="detail" autocomplete="street-address" rows="2" placeholder="街道、门牌号、小区楼栋"></textarea><small data-error-for="detail"></small></label>
+            </div>
+          </section>
+
+          <section class="form-section coupon-section" aria-labelledby="couponTitle">
+            <div class="form-section-head"><h3 id="couponTitle">优惠</h3><span>新人券满 ¥68 减 ¥12</span></div>
+            <label class="coupon-field"><span class="sr-only">优惠码</span><input id="couponInput" name="coupon" autocomplete="off" placeholder="输入 WELCOME12"><button id="applyCouponButton" type="button">使用</button></label>
+            <p id="couponFeedback" class="coupon-feedback"></p>
+          </section>
+
+          <section class="form-section" aria-labelledby="paymentTitle">
+            <div class="form-section-head"><h3 id="paymentTitle">支付方式</h3><span>演示环境</span></div>
+            <label class="payment-option"><input type="radio" name="paymentMethod" value="wechat" checked><span class="wechat-mark" aria-hidden="true">微</span><span><strong>微信支付（模拟）</strong><small>确认后生成本地订单，不会真实扣款</small></span><em>已选择</em></label>
+            <small class="field-error standalone-error" data-error-for="paymentMethod"></small>
+          </section>
+        </div>
+
+        <aside class="checkout-receipt" aria-label="订单金额明细">
+          <p class="receipt-kicker">FINAL CHECK</p>
+          <h3>订单纸带</h3>
+          <div id="checkoutLineItems" class="checkout-line-items"></div>
+          <dl class="checkout-totals">
+            <div><dt>商品小计</dt><dd id="checkoutSubtotal">¥0.00</dd></div>
+            <div><dt>优惠</dt><dd id="checkoutDiscount">−¥0.00</dd></div>
+            <div><dt>运费</dt><dd id="checkoutShipping">¥0.00</dd></div>
+            <div class="total-row"><dt>需要支付</dt><dd id="checkoutTotal">¥0.00</dd></div>
+          </dl>
+          <small class="field-error standalone-error" data-error-for="cart"></small>
+          <button class="pay-button" id="payButton" type="submit"><span>确认模拟支付</span><strong id="payButtonTotal">¥0.00</strong></button>
+          <p>点击即代表你已了解：这是作品演示，不会发起真实支付。</p>
+        </aside>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="successDialog" class="success-dialog">
+    <div class="success-mark" aria-hidden="true"><span>已付</span></div>
+    <p class="eyebrow">LOCAL ORDER CREATED</p>
+    <h2>山货已经装箱。</h2>
+    <p>模拟支付完成，订单已保存在这台设备上。你可以去“我的订单”随时回看。</p>
+    <div id="successReceipt" class="success-receipt"></div>
+    <div class="success-actions">
+      <button class="primary-button" id="viewOrderButton" type="button">查看这笔订单</button>
+      <button class="secondary-button" id="continueShoppingButton" type="button">继续逛山货</button>
+    </div>
+  </dialog>
+
+  <dialog id="ordersDialog" class="orders-dialog">
+    <div class="dialog-heading">
+      <div><p class="eyebrow">LOCAL ORDER BOOK</p><h2>我的订单</h2></div>
+      <button class="dialog-close inline-close" data-close-dialog="ordersDialog" type="button" aria-label="关闭订单列表">×</button>
+    </div>
+    <p class="orders-privacy">这些订单只保存在当前浏览器；清除网站数据后会消失。</p>
+    <div id="ordersList" class="orders-list"></div>
+    <div id="ordersEmpty" class="dialog-empty" hidden><span aria-hidden="true">票夹</span><h3>还没有订单</h3><p>完成一次模拟支付，订单纸带会收进这里。</p></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="storageNotice" class="storage-notice" role="alert" hidden>浏览器未允许本地保存；当前操作可继续，但刷新后不会保留。</div>
+
+  <script src="shop-core.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

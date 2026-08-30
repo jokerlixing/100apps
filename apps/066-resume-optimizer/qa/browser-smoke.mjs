@@ -159,6 +159,36 @@ async function run() {
 
     await evaluate(client, `document.querySelector('#open-settings').click()`);
     assert.equal(await evaluate(client, `document.querySelector('#settings-dialog').open`), true);
+    await screenshot(client, 'app66-settings-dialog-cdp.png');
+    await evaluate(client, `document.querySelector('.dialog-close').click()`);
+    await waitForExpression(client, `!document.querySelector('#settings-dialog').open`);
+
+    await evaluate(client, `document.querySelector('#open-settings').click()`);
+    assert.equal(await evaluate(client, `document.querySelector('#settings-dialog').open`), true);
+    await evaluate(client, `document.querySelector('#key-input').value = 'discard-on-cancel'`);
+    await evaluate(client, `document.querySelector('.dialog-actions .secondary-button').click()`);
+    await waitForExpression(client, `!document.querySelector('#settings-dialog').open`);
+
+    await evaluate(client, `document.querySelector('#open-settings').click()`);
+    assert.equal(await evaluate(client, `document.querySelector('#settings-dialog').open`), true);
+    assert.equal(await evaluate(client, `document.querySelector('#key-input').value`), '');
+    await client.send('Input.dispatchKeyEvent', {
+      type: 'rawKeyDown',
+      key: 'Escape',
+      code: 'Escape',
+      windowsVirtualKeyCode: 27,
+      nativeVirtualKeyCode: 27,
+    });
+    await client.send('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      key: 'Escape',
+      code: 'Escape',
+      windowsVirtualKeyCode: 27,
+      nativeVirtualKeyCode: 27,
+    });
+    await waitForExpression(client, `!document.querySelector('#settings-dialog').open`);
+
+    await evaluate(client, `document.querySelector('#open-settings').click()`);
     await evaluate(client, `(() => {
       document.querySelector('#model-input').value = 'test-model';
       document.querySelector('#key-input').value = 'proof-secret-not-persisted';

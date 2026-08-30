@@ -363,6 +363,7 @@ SQL、A/B 测试、数据分析、用户研究、Figma、项目管理
   function openSettings(forAi = false) {
     state.pendingAi = forAi;
     refs.settingsError.textContent = '';
+    refs.settingsForm.reset();
     if (state.settings) {
       refs.endpoint.value = state.settings.endpoint;
       refs.model.value = state.settings.model;
@@ -372,13 +373,14 @@ SQL、A/B 测试、数据分析、用户研究、Figma、项目管理
     window.setTimeout(() => refs.endpoint.focus(), 30);
   }
 
+  function closeSettings() {
+    state.pendingAi = false;
+    refs.settingsError.textContent = '';
+    if (refs.dialog.open) refs.dialog.close('cancel');
+  }
+
   function saveSettings(event) {
     event.preventDefault();
-    if (event.submitter?.value === 'cancel') {
-      state.pendingAi = false;
-      refs.dialog.close('cancel');
-      return;
-    }
     try {
       const endpoint = Core.validateEndpoint(refs.endpoint.value);
       const model = Core.normalizeText(refs.model.value).slice(0, 120);
@@ -471,6 +473,11 @@ SQL、A/B 测试、数据分析、用户研究、Figma、项目管理
     refs.analyze.addEventListener('click', analyze);
     $('#download-report').addEventListener('click', downloadReport);
     $('#open-settings').addEventListener('click', () => openSettings(false));
+    document.querySelectorAll('[data-close-settings]').forEach((button) => button.addEventListener('click', closeSettings));
+    refs.dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeSettings();
+    });
     refs.settingsForm.addEventListener('submit', saveSettings);
     refs.evidenceList.addEventListener('click', (event) => {
       const button = event.target.closest('[data-evidence-id]');

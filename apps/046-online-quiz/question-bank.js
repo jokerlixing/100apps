@@ -43,6 +43,18 @@
       answerIds: ["false"], explanation: "localStorage 只保存字符串，对象需要显式 JSON 序列化和解析。"
     },
     {
+      id: "web-07", category: "Web", difficulty: "basic", type: "single",
+      prompt: "HTML 图片无法显示时，哪个属性提供替代文字？",
+      options: [{ id: "a", label: "alt" }, { id: "b", label: "title" }, { id: "c", label: "srcset" }, { id: "d", label: "loading" }],
+      answerIds: ["a"], explanation: "img 元素的 alt 属性提供文本替代，图片不可见时仍能传达其含义，也方便辅助技术读取。"
+    },
+    {
+      id: "web-08", category: "Web", difficulty: "advanced", type: "multiple",
+      prompt: "下列哪些做法通常有助于改善网页资源加载性能？",
+      options: [{ id: "a", label: "预加载首屏关键资源" }, { id: "b", label: "与关键第三方源预连接" }, { id: "c", label: "把所有图片都转成超大原图" }, { id: "d", label: "延迟加载首屏外图片" }],
+      answerIds: ["a", "b", "d"], explanation: "预加载关键资源、预连接关键源和延迟加载非首屏图片都能缩短关键路径；无差别使用超大原图会增加传输和解码开销。"
+    },
+    {
       id: "science-01", category: "科学", difficulty: "basic", type: "single",
       prompt: "标准大气压下，纯水的冰点是多少摄氏度？",
       options: [{ id: "a", label: "0°C" }, { id: "b", label: "10°C" }, { id: "c", label: "32°C" }, { id: "d", label: "100°C" }],
@@ -77,6 +89,18 @@
       prompt: "在封闭系统中，熵永远只能保持不变。",
       options: [{ id: "true", label: "正确" }, { id: "false", label: "错误" }],
       answerIds: ["false"], explanation: "热力学第二定律指出孤立系统的熵不会减少；可保持不变，也可以增加。"
+    },
+    {
+      id: "science-07", category: "科学", difficulty: "basic", type: "single",
+      prompt: "绿色植物进行光合作用时，主要从空气中吸收哪种气体？",
+      options: [{ id: "a", label: "氧气" }, { id: "b", label: "二氧化碳" }, { id: "c", label: "氮气" }, { id: "d", label: "氦气" }],
+      answerIds: ["b"], explanation: "植物利用光能把二氧化碳和水合成有机物，并释放氧气。"
+    },
+    {
+      id: "science-08", category: "科学", difficulty: "advanced", type: "multiple",
+      prompt: "下列哪些属于电磁波？",
+      options: [{ id: "a", label: "可见光" }, { id: "b", label: "X 射线" }, { id: "c", label: "无线电波" }, { id: "d", label: "空气中的声波" }],
+      answerIds: ["a", "b", "c"], explanation: "可见光、X 射线和无线电波都属于电磁波；声波是需要介质传播的机械波。"
     },
     {
       id: "logic-01", category: "逻辑", difficulty: "basic", type: "single",
@@ -115,6 +139,18 @@
       answerIds: ["false"], explanation: "这是肯定后件的错误；洒水等其他原因也可能让地面湿。"
     },
     {
+      id: "logic-07", category: "逻辑", difficulty: "basic", type: "single",
+      prompt: "数列 3、6、11、18 的下一项是？",
+      options: [{ id: "a", label: "24" }, { id: "b", label: "25" }, { id: "c", label: "27" }, { id: "d", label: "29" }],
+      answerIds: ["c"], explanation: "相邻两项依次增加 3、5、7，下一次增加 9，所以得到 27。"
+    },
+    {
+      id: "logic-08", category: "逻辑", difficulty: "advanced", type: "multiple",
+      prompt: "若集合 A 是 B 的子集，B 又是 C 的子集，哪些结论必然成立？",
+      options: [{ id: "a", label: "A 是 C 的子集" }, { id: "b", label: "A 中每个元素都属于 C" }, { id: "c", label: "C 是 A 的子集" }, { id: "d", label: "A 与 C 必然相等" }],
+      answerIds: ["a", "b"], explanation: "子集关系具有传递性，因此 A 中的元素一定都在 C 中，但不能反推 C 包含于 A，也不能推出两者相等。"
+    },
+    {
       id: "life-01", category: "常识", difficulty: "basic", type: "single",
       prompt: "处理电器起火时，首先更合适的做法是？",
       options: [{ id: "a", label: "在安全前提下切断电源" }, { id: "b", label: "直接泼水" }, { id: "c", label: "用手搬走设备" }, { id: "d", label: "打开设备外壳" }],
@@ -149,6 +185,18 @@
       prompt: "备份策略中的“3-2-1”通常意味着保留 3 份数据、使用 2 种介质、其中 1 份异地保存。",
       options: [{ id: "true", label: "正确" }, { id: "false", label: "错误" }],
       answerIds: ["true"], explanation: "3-2-1 是常见备份原则，用介质和位置冗余降低单点故障风险。"
+    },
+    {
+      id: "life-07", category: "常识", difficulty: "basic", type: "single",
+      prompt: "收到自称银行发送的陌生链接并要求立即登录时，更稳妥的做法是？",
+      options: [{ id: "a", label: "直接点击并输入密码" }, { id: "b", label: "转发给所有联系人" }, { id: "c", label: "通过官方 App 或客服电话核验" }, { id: "d", label: "回复短信索要证明" }],
+      answerIds: ["c"], explanation: "不应通过陌生链接提交敏感信息，应绕开消息中的入口，从银行官方渠道独立核验。"
+    },
+    {
+      id: "life-08", category: "常识", difficulty: "advanced", type: "multiple",
+      prompt: "给手机应用授权时，哪些做法更有助于保护隐私？",
+      options: [{ id: "a", label: "只授予功能必需的权限" }, { id: "b", label: "定期检查并撤销不用的权限" }, { id: "c", label: "首次打开就允许全部权限" }, { id: "d", label: "优先选择仅使用期间授权" }],
+      answerIds: ["a", "b", "d"], explanation: "最小权限、定期复查和按使用期间授权可以减少不必要的数据访问；无条件允许全部权限会扩大风险面。"
     }
   ];
 

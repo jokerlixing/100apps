@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2447f9">
+  <meta name="description" content="FITROOM/92：用一份母版资料生成、比较并管理多个岗位定制简历版本。">
+  <title>FITROOM/92 · 简历投递助手</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">跳到工作台</a>
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps 追踪器">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><b>FITROOM</b><small>APP / 092</small></span>
+    </a>
+    <div class="masthead-note">
+      <span class="status-dot" aria-hidden="true"></span>
+      <p><strong>本地打版中</strong><small>资料只保存在这台浏览器</small></p>
+    </div>
+    <nav class="utility-actions" aria-label="数据操作">
+      <button type="button" class="quiet-button" id="export-button">导出备份</button>
+      <button type="button" class="quiet-button" id="import-button">导入备份</button>
+      <button type="button" class="quiet-button danger-text" id="reset-button">重置示例</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </nav>
+  </header>
+
+  <section class="intro-strip" aria-labelledby="page-title">
+    <p class="intro-index">MASTER DATA → ROLE CUT → READY RESUME</p>
+    <h1 id="page-title">一份经历，<em>裁成每个岗位需要的版本。</em></h1>
+    <p class="intro-copy">母版始终是事实来源。FITROOM 只重排和强调你已经写下的证据，不替你虚构项目，也不上传个人信息。</p>
+  </section>
+
+  <main class="workspace" id="workspace">
+    <section class="work-panel master-panel" aria-labelledby="master-heading">
+      <div class="panel-heading">
+        <div>
+          <p class="section-code">MASTER / 母版资料</p>
+          <h2 id="master-heading">只维护这一份</h2>
+        </div>
+        <span class="save-state" id="save-state" role="status">已保存</span>
+      </div>
+
+      <form id="master-form" novalidate>
+        <div class="form-grid two-columns">
+          <label class="field"><span>姓名 <b>必填</b></span><input id="profile-name" name="name" autocomplete="name" maxlength="120" required></label>
+          <label class="field"><span>职业标题</span><input id="profile-headline" name="headline" maxlength="180" placeholder="例：产品经理 / 增长方向"></label>
+          <label class="field"><span>邮箱</span><input id="profile-email" name="email" type="email" autocomplete="email" maxlength="180"></label>
+          <label class="field"><span>电话</span><input id="profile-phone" name="phone" autocomplete="tel" maxlength="80"></label>
+          <label class="field"><span>所在城市</span><input id="profile-location" name="location" autocomplete="address-level2" maxlength="120"></label>
+          <label class="field"><span>作品链接</span><input id="profile-website" name="website" type="url" autocomplete="url" maxlength="240"></label>
+        </div>
+        <label class="field field-wide"><span>个人简介</span><textarea id="profile-summary" name="summary" rows="4" maxlength="2000"></textarea><small>写事实与方向；不同版本会保留这段原文。</small></label>
+        <label class="field field-wide"><span>核心技能</span><textarea id="profile-skills" name="skills" rows="3" maxlength="1200" placeholder="用逗号或换行分隔"></textarea><small>越具体，岗位合身尺越准确。</small></label>
+        <label class="field field-wide"><span>教育经历</span><textarea id="profile-education" name="education" rows="2" maxlength="600"></textarea></label>
+      </form>
+
+      <section class="record-section" aria-labelledby="experience-heading">
+        <div class="record-heading"><div><span>WORK HISTORY</span><h3 id="experience-heading">工作经历</h3></div><button type="button" class="add-button" data-add="experience"><span aria-hidden="true">＋</span> 添加</button></div>
+        <div class="record-list" id="experience-list"></div>
+      </section>
+
+      <section class="record-section" aria-labelledby="project-heading">
+        <div class="record-heading"><div><span>SELECTED WORK</span><h3 id="project-heading">项目经历</h3></div><button type="button" class="add-button" data-add="project"><span aria-hidden="true">＋</span> 添加</button></div>
+        <div class="record-list" id="project-list"></div>
+      </section>
+    </section>
+
+    <section class="work-panel cutting-panel" aria-labelledby="cut-heading">
+      <div class="panel-heading">
+        <div>
+          <p class="section-code">ROLE CUT / 职位版型</p>
+          <h2 id="cut-heading">贴入这次投递</h2>
+        </div>
+        <span class="pattern-number">PATTERN 92</span>
+      </div>
+
+      <form id="target-form" novalidate>
+        <div class="form-grid two-columns">
+          <label class="field"><span>目标公司</span><input id="target-company" name="company" maxlength="180" placeholder="例：星轨数据"></label>
+          <label class="field"><span>岗位名称 <b>必填</b></span><input id="target-role" name="role" maxlength="180" required placeholder="例：增长产品经理"></label>
+        </div>
+        <label class="field field-wide"><span>职位描述</span><textarea id="target-job" name="jobText" rows="10" maxlength="12000" placeholder="粘贴岗位职责和任职要求。匹配只在本地完成。"></textarea></label>
+        <div class="live-match" id="live-match" aria-live="polite">
+          <div class="live-score"><strong id="live-score">0</strong><span>%<small>当前覆盖</small></span></div>
+          <p id="live-summary">贴入职位描述后，这里会显示母版已覆盖与仍缺少的关键词。</p>
+        </div>
+        <button type="submit" class="primary-button" id="generate-button"><span>生成新版本</span><b aria-hidden="true">↗</b></button>
+        <p class="form-error" id="target-error" role="alert" hidden></p>
+      </form>
+
+      <section class="version-rack" aria-labelledby="rack-heading">
+        <div class="rack-heading"><div><span>VERSION RACK</span><h3 id="rack-heading">版本衣架</h3></div><output id="version-count">0 版</output></div>
+        <div class="version-list" id="version-list" role="list"></div>
+        <div class="empty-rack" id="empty-rack" hidden>
+          <span aria-hidden="true">⌁</span>
+          <p>还没有定制版本。先填写岗位，再按“生成新版本”。</p>
+        </div>
+      </section>
+    </section>
+
+    <section class="preview-panel" aria-labelledby="preview-heading">
+      <div class="preview-tools" id="preview-tools">
+        <div class="preview-title-block">
+          <p class="section-code">READY RESUME / 成衣预览</p>
+          <label for="version-title">版本名称</label>
+          <input id="version-title" maxlength="220" aria-describedby="snapshot-note">
+          <small id="snapshot-note">这是生成时的母版快照；母版修改不会悄悄改动它。</small>
+        </div>
+        <div class="preview-actions">
+          <label class="status-control"><span>投递状态</span><select id="version-status">
+            <option value="draft">草稿</option>
+            <option value="ready">可投递</option>
+            <option value="applied">已投递</option>
+            <option value="interview">面试中</option>
+            <option value="offer">已录用</option>
+            <option value="closed">已结束</option>
+          </select></label>
+          <button type="button" class="tool-button" id="recut-button">用最新母版重裁</button>
+          <button type="button" class="tool-button" id="copy-button">复制纯文本</button>
+          <button type="button" class="tool-button strong" id="print-button">打印 / PDF</button>
+          <button type="button" class="icon-button danger" id="delete-version-button" aria-label="删除当前版本">×</button>
+        </div>
+      </div>
+
+      <div class="preview-stage" id="preview-stage">
+        <aside class="fit-ruler" aria-labelledby="fit-heading">
+          <div class="ruler-head"><p>ROLE FIT</p><h2 id="fit-heading">岗位合身尺</h2></div>
+          <div class="score-gauge" id="score-gauge" style="--score:0">
+            <div class="gauge-scale" aria-hidden="true"></div>
+            <div class="gauge-fill" aria-hidden="true"></div>
+            <div class="gauge-value"><strong id="fit-score">0</strong><span>%</span></div>
+          </div>
+          <div class="fit-group"><h3>已覆盖 <output id="matched-count">0</output></h3><div class="keyword-list matched" id="matched-keywords"></div></div>
+          <div class="fit-group"><h3>仍缺少 <output id="missing-count">0</output></h3><div class="keyword-list missing" id="missing-keywords"></div></div>
+          <p class="fit-note">分数只表示文本关键词覆盖，不代表招聘平台排名或录用概率。</p>
+        </aside>
+
+        <article class="resume-sheet" id="resume-sheet" aria-labelledby="resume-name">
+          <header class="resume-header">
+            <div><p class="resume-label">TARGETED RESUME · <span id="resume-target">待选择</span></p><h2 id="resume-name">请选择一个版本</h2><p class="resume-headline" id="resume-headline"></p></div>
+            <p class="resume-contact" id="resume-contact"></p>
+          </header>
+          <section class="resume-section" id="resume-summary-section"><h3>PROFILE / 个人简介</h3><p id="resume-summary"></p></section>
+          <section class="resume-section"><h3>CAPABILITIES / 核心技能</h3><div class="resume-skills" id="resume-skills"></div></section>
+          <section class="resume-section"><h3>EXPERIENCE / 工作经历</h3><div id="resume-experiences"></div></section>
+          <section class="resume-section"><h3>PROJECTS / 项目经历</h3><div id="resume-projects"></div></section>
+          <section class="resume-section"><h3>EDUCATION / 教育经历</h3><p id="resume-education"></p></section>
+          <footer class="resume-footer"><span>FITROOM/92 · LOCAL VERSION</span><time id="resume-time"></time></footer>
+        </article>
+
+        <div class="preview-empty" id="preview-empty" hidden>
+          <span class="empty-pattern" aria-hidden="true">92</span>
+          <h2 id="preview-heading">先生成一版，再检查合身度。</h2>
+          <p>右侧会呈现真实简历排版、岗位关键词覆盖和缺口；所有内容都来自左侧母版。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p><strong>FITROOM/92</strong> 静态、本地、无账号。请在投递前逐条核对事实和措辞。</p>
+    <a href="../../">返回 100 Apps 追踪器</a>
+  </footer>
+
+  <dialog class="editor-dialog" id="entry-dialog">
+    <form method="dialog" id="entry-form">
+      <div class="dialog-heading"><div><p id="entry-kicker">MASTER RECORD</p><h2 id="entry-title">编辑经历</h2></div><button value="cancel" class="dialog-close" aria-label="关闭">×</button></div>
+      <input type="hidden" id="entry-kind"><input type="hidden" id="entry-id">
+      <div class="form-grid two-columns">
+        <label class="field"><span id="entry-primary-label">职位</span><input id="entry-primary" maxlength="180" required></label>
+        <label class="field"><span id="entry-secondary-label">公司</span><input id="entry-secondary" maxlength="180"></label>
+      </div>
+      <label class="field" id="entry-period-field"><span>时间</span><input id="entry-period" maxlength="120" placeholder="2022 — 至今"></label>
+      <label class="field" id="entry-tags-field"><span>标签</span><input id="entry-tags" maxlength="600" placeholder="用逗号分隔"></label>
+      <label class="field"><span>成果与职责</span><textarea id="entry-bullets" rows="7" maxlength="3000" placeholder="每行一条，尽量写清动作、范围和结果。"></textarea></label>
+      <p class="form-error" id="entry-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button value="cancel" class="quiet-button">取消</button><button type="submit" value="default" class="primary-button compact">保存记录</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirm-dialog">
+    <form method="dialog">
+      <p class="dialog-code">IRREVERSIBLE CUT</p>
+      <h2 id="confirm-title">确认删除？</h2>
+      <p id="confirm-copy">删除后无法恢复。</p>
+      <div class="dialog-actions"><button value="cancel" class="quiet-button">取消</button><button value="confirm" class="danger-button" id="confirm-action">确认删除</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="resume-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2458e6">
+  <meta name="description" content="INDEX/100：星哥的 100 Apps Challenge 个人作品集，浏览一百个真实项目与完整交付记录。">
+  <title>INDEX/100 · 星哥的个人作品集</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="portfolio-core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#archive">跳到项目档案</a>
+
+  <header class="masthead">
+    <a class="wordmark" href="#top" aria-label="INDEX/100 首页">
+      <span>INDEX</span><b>/100</b>
+    </a>
+    <nav aria-label="主要导航">
+      <a href="#selected">代表作</a>
+      <a href="#practice">方法</a>
+      <a href="#archive">全部项目</a>
+      <a href="#contact">联系</a>
+    </nav>
+    <button class="tone-button" id="tone-button" type="button" aria-pressed="false">
+      <span aria-hidden="true">◐</span><span class="tone-label">夜读</span>
+    </button>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="issue-line"><span>ISSUE 100</span><span>SHANGHAI · 2026</span></p>
+        <h1 id="hero-title">把一百次<br><em>交付</em>，变成<br>一份答案。</h1>
+        <p class="hero-lede">我用一百个应用练习同一件事：把模糊问题收窄成一个可运行、可检查、可继续改进的产品。</p>
+        <div class="hero-actions">
+          <a class="button button-paper" href="#selected">查看代表作 <span aria-hidden="true">↓</span></a>
+          <a class="button button-ghost" href="../../index.html">挑战追踪器 <span aria-hidden="true">↗</span></a>
+        </div>
+        <dl class="hero-note">
+          <div><dt>范围</dt><dd>Web / AI / 工具 / 实验</dd></div>
+          <div><dt>原则</dt><dd>先完成完整路径，再增加复杂度</dd></div>
+        </dl>
+      </div>
+
+      <div class="index-instrument" aria-labelledby="instrument-title">
+        <div class="instrument-head">
+          <div>
+            <p class="kicker">LIVE PROJECT LEDGER</p>
+            <h2 id="instrument-title">一百格，<br>一百次落地。</h2>
+          </div>
+          <div class="completion-seal" aria-label="官方完成进度">
+            <strong id="done-count">—</strong><span>/ <span id="total-count">100</span></span>
+            <small>OFFICIAL</small>
+          </div>
+        </div>
+
+        <p class="board-help" id="board-help">每一格对应一个真实项目。悬停、聚焦或点击即可翻阅。</p>
+        <div class="punchboard" id="punchboard" role="grid" aria-describedby="board-help" aria-label="100 个应用项目索引"></div>
+        <div class="board-legend" aria-hidden="true">
+          <span><i class="legend-done"></i>已完成</span>
+          <span><i class="legend-todo"></i>计划中</span>
+          <span><i class="legend-current"></i>当前项目</span>
+        </div>
+
+        <article class="project-readout" id="project-readout" aria-live="polite">
+          <div class="readout-meta">
+            <span id="readout-code">APP —</span>
+            <span id="readout-status">读取中</span>
+          </div>
+          <h3 id="readout-name">正在装订项目索引</h3>
+          <p id="readout-description">从挑战追踪器读取最新作品名称、说明和上线地址。</p>
+          <a id="readout-link" href="#archive">浏览项目档案 <span aria-hidden="true">↗</span></a>
+        </article>
+        <p class="data-status" id="data-status" role="status">正在读取挑战追踪器…</p>
+      </div>
+    </section>
+
+    <section class="selected section-shell" id="selected" aria-labelledby="selected-title">
+      <header class="section-heading">
+        <p class="kicker">SELECTED EVIDENCE</p>
+        <h2 id="selected-title">作品先说话。</h2>
+        <p>不是技术名词陈列，而是几条已经走通的用户路径。每一项都能打开、操作和检查。</p>
+      </header>
+      <div class="featured-list" id="featured-list" aria-live="polite"></div>
+    </section>
+
+    <section class="practice" id="practice" aria-labelledby="practice-title">
+      <div class="practice-title">
+        <p class="kicker">WORKING PRACTICE</p>
+        <h2 id="practice-title">复杂度不是起点，<br>闭环才是。</h2>
+        <p>100 Apps Challenge 不是组件堆砌。每个项目都从一条可验证承诺开始，到一份能运行的证据结束。</p>
+      </div>
+      <ol class="practice-steps">
+        <li>
+          <span>DEFINE</span>
+          <h3>先写清楚“一件事”</h3>
+          <p>把需求压缩成一个核心动作、一个完成标准和一条失败退路。</p>
+        </li>
+        <li>
+          <span>BUILD</span>
+          <h3>让完整路径先跑通</h3>
+          <p>界面、状态、错误和存储一起工作，而不是只把漂亮画面做出来。</p>
+        </li>
+        <li>
+          <span>PROVE</span>
+          <h3>留下可复查的证据</h3>
+          <p>用自动测试、浏览器验收、响应式截图和公开链接证明它真的可用。</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="archive section-shell" id="archive" aria-labelledby="archive-title">
+      <header class="archive-heading">
+        <div>
+          <p class="kicker">COMPLETE ARCHIVE</p>
+          <h2 id="archive-title">从 001 翻到 100。</h2>
+        </div>
+        <button class="export-button" id="export-button" type="button">下载作品清单 <span aria-hidden="true">↓</span></button>
+      </header>
+
+      <form class="archive-controls" id="archive-controls" role="search">
+        <label class="search-control">
+          <span>搜索项目</span>
+          <input id="search-input" type="search" placeholder="名称、说明或编号，如 062" autocomplete="off">
+        </label>
+        <label>
+          <span>难度</span>
+          <select id="level-filter">
+            <option value="all">全部 Level</option>
+            <option value="1">L1 · 入门</option>
+            <option value="2">L2 · 进阶</option>
+            <option value="3">L3 · 全功能</option>
+            <option value="4">L4 · 全栈 AI</option>
+            <option value="5">L5 · 综合</option>
+          </select>
+        </label>
+        <label>
+          <span>状态</span>
+          <select id="status-filter">
+            <option value="all">全部状态</option>
+            <option value="done">已完成</option>
+            <option value="todo">计划中</option>
+          </select>
+        </label>
+        <button id="clear-filters" type="button">清除筛选</button>
+      </form>
+
+      <div class="archive-summary">
+        <p id="result-count" role="status">正在整理档案…</p>
+        <p><span id="linked-count">—</span> 个项目可直接访问</p>
+      </div>
+      <ol class="archive-list" id="archive-list"></ol>
+      <div class="empty-state" id="empty-state" hidden>
+        <strong>没有找到对应项目。</strong>
+        <p>换一个关键词，或清除难度与状态筛选。</p>
+        <button type="button" id="empty-clear">显示全部项目</button>
+      </div>
+    </section>
+
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <p class="contact-index">100 / 100</p>
+      <div>
+        <p class="kicker">NEXT CONVERSATION</p>
+        <h2 id="contact-title">想聊一个值得做完的问题？</h2>
+        <p>从代码、产品到交互，我更愿意用一个能运行的原型开始讨论。</p>
+      </div>
+      <div class="contact-actions">
+        <a href="https://github.com/jokerlixing" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        <a href="../../index.html">全部挑战 <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>INDEX/100 · 100 APPS CHALLENGE</span>
+    <span>Designed and built by 星哥</span>
+  </footer>
+
+  <dialog class="project-dialog" id="project-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-topline">
+      <span id="dialog-code">APP —</span>
+      <button id="dialog-close" type="button" aria-label="关闭项目详情">关闭 ×</button>
+    </div>
+    <div class="dialog-body">
+      <p class="dialog-status" id="dialog-status">状态</p>
+      <h2 id="dialog-title">项目标题</h2>
+      <p id="dialog-description">项目说明</p>
+      <dl>
+        <div><dt>难度</dt><dd id="dialog-level">Level —</dd></div>
+        <div><dt>交付</dt><dd id="dialog-delivery">—</dd></div>
+      </dl>
+      <a class="button dialog-link" id="dialog-link" href="#" target="_blank" rel="noopener noreferrer">打开线上项目 <span aria-hidden="true">↗</span></a>
+      <p class="dialog-unavailable" id="dialog-unavailable" hidden>这个项目还没有公开访问链接，可在根追踪器查看当前进度。</p>
+    </div>
+  </dialog>
+</body>
+</html>

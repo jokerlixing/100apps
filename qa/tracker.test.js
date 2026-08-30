@@ -407,3 +407,38 @@ test('official completion state migrates a stale app 077 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/077-short-link-hub/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 091 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app91 = ideas[90];
+
+  assert.equal(app91[0], '爬虫数据看板');
+  assert.match(app91[1], /^PULSEWATCH\/91/);
+  assert.equal(app91[3], 'https://jokerlixing.github.io/100apps/apps/091-crawler-dashboard/');
+  assert.equal(doneIds.has(91), true, 'INIT_DONE must mark app 091 as done');
+});
+
+test('official completion state migrates a stale app 091 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:91,name:"爬虫数据看板",desc:"定时抓取+变化监控+推送",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^PULSEWATCH\/91/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/091-crawler-dashboard/');
+  assert.equal(context.result.didSave, true);
+});

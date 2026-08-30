@@ -648,6 +648,42 @@ test('official completion state migrates a stale app 094 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 095 AI art gallery is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app95 = ideas[94];
+
+  assert.equal(app95[0], 'AI 绘画广场');
+  assert.equal(app95[1], 'MUSE/95：本地提示词生图+原创AI样片+配方画廊与PNG下载');
+  assert.equal(app95[3], 'https://jokerlixing.github.io/100apps/apps/095-ai-art-gallery/');
+  assert.equal(doneIds.has(95), true, 'INIT_DONE must mark app 095 as done');
+});
+
+test('official completion state migrates a stale app 095 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:95,name:"AI绘画广场",desc:"文生图+画廊+提示词分享",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, 'AI 绘画广场');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^MUSE\/95/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/095-ai-art-gallery/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 093 collaborative whiteboard is published and officially complete', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

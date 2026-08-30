@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="JIG/87 表单装配台：拖拽字段、实时试填，并导出 JSON 或可独立运行的 HTML 表单。">
+  <title>JIG/87 · 表单装配台</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="model.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="top-frame">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge 追踪器">
+      <span class="brand-code">JIG/87</span>
+      <h1 class="brand-name">表单装配台</h1>
+    </a>
+    <div class="build-state" aria-label="当前草稿状态">
+      <span class="signal-dot" aria-hidden="true"></span>
+      <span id="savedStatus">本地草稿已就绪</span>
+    </div>
+    <div class="top-actions" aria-label="表单文件操作">
+      <button class="tool-button" id="undoButton" type="button" disabled title="撤销（Ctrl+Z）">↶ 撤销</button>
+      <button class="tool-button" id="redoButton" type="button" disabled title="重做（Ctrl+Y）">↷ 重做</button>
+      <button class="tool-button" id="newButton" type="button">新建空白</button>
+      <button class="tool-button" id="starterButton" type="button">载入样例</button>
+      <button class="tool-button" id="exportJsonButton" type="button">导出 JSON</button>
+      <label class="tool-button file-button" for="importInput">导入 JSON</label>
+      <input id="importInput" class="visually-hidden" type="file" accept="application/json,.json">
+      <button class="tool-button export-button" id="exportHtmlButton" type="button">导出 HTML</button>
+      <button class="tool-button preview-button" id="openPreviewButton" type="button">试填表单 ↗</button>
+    </div>
+  </header>
+
+  <main class="builder-grid">
+    <aside class="parts-panel bench-panel" aria-labelledby="partsTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">PARTS BIN / 零件仓</p>
+          <h2 id="partsTitle">选择字段</h2>
+        </div>
+        <span class="panel-index">A</span>
+      </div>
+      <p class="panel-help">点击添加，或把零件拖到中间的装配卡槽。</p>
+      <div class="parts-bin" id="partsBin">
+        <button class="part-item" type="button" draggable="true" data-field-type="text"><b>Aa</b><span>单行文本</span><small>姓名、标题</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="email"><b>@</b><span>邮箱地址</span><small>自动校验</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="number"><b>12</b><span>数字</span><small>可设范围</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="textarea"><b>¶</b><span>长文本</span><small>多行回答</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="select"><b>⌄</b><span>下拉选择</span><small>单选节省空间</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="radio"><b>◉</b><span>单项选择</span><small>展示全部选项</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="checkbox"><b>☑</b><span>多项选择</span><small>允许多选</small></button>
+        <button class="part-item" type="button" draggable="true" data-field-type="date"><b>日</b><span>日期</span><small>日历输入</small></button>
+        <button class="part-item wide-part" type="button" draggable="true" data-field-type="heading"><b>H</b><span>分段标题</span><small>组织表单结构</small></button>
+      </div>
+      <div class="bench-note">
+        <strong>装配规则</strong>
+        <p>最多 60 个字段、每组选项最多 12 项。草稿只保存在当前浏览器。</p>
+      </div>
+    </aside>
+
+    <section class="assembly-panel bench-panel" aria-labelledby="assemblyTitle">
+      <div class="panel-heading assembly-heading">
+        <div>
+          <p class="panel-kicker">ASSEMBLY RAIL / 装配轨</p>
+          <h2 id="assemblyTitle">正在组装</h2>
+        </div>
+        <div class="field-counter"><b id="fieldCount">0</b><span>/ 60 字段</span></div>
+      </div>
+
+      <div class="calibration-ruler" aria-hidden="true">
+        <span>000</span><span>160</span><span>320</span><span>480</span><span>640 mm</span>
+      </div>
+
+      <section class="form-meta" aria-labelledby="formMetaTitle">
+        <div class="meta-tag" id="formMetaTitle">FORM PLATE / 表单铭牌</div>
+        <label for="formTitle">表单标题</label>
+        <input id="formTitle" type="text" maxlength="80" autocomplete="off">
+        <label for="formDescription">表单说明</label>
+        <textarea id="formDescription" rows="2" maxlength="240"></textarea>
+        <div class="meta-row">
+          <label for="submitLabel">提交按钮文字</label>
+          <input id="submitLabel" type="text" maxlength="30" autocomplete="off">
+        </div>
+      </section>
+
+      <div class="assembly-workspace">
+        <div class="empty-assembly" id="emptyAssembly">
+          <span class="empty-glyph" aria-hidden="true">＋</span>
+          <strong>装配轨还是空的</strong>
+          <p>从左侧点击一个字段，或将零件拖到这条轨道。</p>
+        </div>
+        <div class="assembly-list" id="assemblyList" aria-label="表单字段装配顺序"></div>
+      </div>
+    </section>
+
+    <aside class="inspector-panel bench-panel" aria-labelledby="inspectorTitle">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">CALIBRATION / 校准台</p>
+          <h2 id="inspectorTitle">字段参数</h2>
+        </div>
+        <span class="panel-index">C</span>
+      </div>
+      <div id="inspector" class="inspector" aria-live="polite">
+        <div class="inspector-empty">
+          <span aria-hidden="true">⌖</span>
+          <p>选择装配轨上的字段，在这里调整标签、宽度和校验规则。</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="status-strip">
+    <span>JIG/87 · SCHEMA v1</span>
+    <span>零依赖 · 本地优先 · GitHub Pages 可运行</span>
+    <span id="liveRegion" class="live-copy" role="status" aria-live="polite"></span>
+  </footer>
+
+  <dialog class="preview-dialog" id="previewDialog" aria-labelledby="previewDialogTitle">
+    <div class="preview-shell">
+      <header class="preview-header">
+        <div>
+          <p>TEST BENCH / 试填工位</p>
+          <h2 id="previewDialogTitle">表单预览</h2>
+        </div>
+        <button class="icon-button" id="closePreviewButton" type="button" aria-label="关闭表单预览">×</button>
+      </header>
+      <form id="previewForm" class="preview-form" novalidate></form>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

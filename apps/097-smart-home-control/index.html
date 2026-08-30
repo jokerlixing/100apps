@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="HABITAT/97 智能家居中控：通过交互户型控制设备、切换场景、管理自动化并查看能耗。">
+  <meta name="theme-color" content="#eef1ec">
+  <title>HABITAT/97 · 智能家居中控</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">跳到住宅中控</a>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="HABITAT 97 智能家居中控">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>
+          <strong>HABITAT<em>/97</em></strong>
+          <small>住宅数字孪生中控</small>
+        </span>
+      </div>
+
+      <div class="house-presence">
+        <span class="presence-dot" aria-hidden="true"></span>
+        <span>云栖宅 · 在线</span>
+        <b id="onlineCount">10 / 10</b>
+      </div>
+
+      <div class="topbar-meta">
+        <div class="weather" aria-label="模拟环境数据">
+          <span aria-hidden="true">☀</span>
+          <span>上海 · 晴</span>
+          <b>27°C</b>
+        </div>
+        <time id="currentTime" datetime="">--:--</time>
+        <button class="quiet-button" id="resetButton" type="button">恢复默认</button>
+      </div>
+    </header>
+
+    <main class="dashboard" id="mainContent">
+      <aside class="scene-rail" aria-label="场景与自动化">
+        <section class="rail-section scene-section" aria-labelledby="sceneHeading">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">SCENES</span>
+              <h2 id="sceneHeading">整屋场景</h2>
+            </div>
+            <span class="section-count">04</span>
+          </div>
+          <div class="scene-list" id="sceneList"></div>
+        </section>
+
+        <section class="rail-section automation-section" aria-labelledby="automationHeading">
+          <div class="section-heading compact-heading">
+            <div>
+              <span class="eyebrow">AUTOMATION</span>
+              <h2 id="automationHeading">自动化</h2>
+            </div>
+            <span class="section-count">03</span>
+          </div>
+          <div class="automation-list" id="automationList"></div>
+          <button class="event-button" id="airEventButton" type="button">
+            <span aria-hidden="true">≋</span>
+            <span><b>模拟空气变化</b><small>触发 PM2.5 自动化</small></span>
+            <span aria-hidden="true">↗</span>
+          </button>
+        </section>
+      </aside>
+
+      <section class="home-stage" aria-labelledby="homeHeading">
+        <header class="stage-heading">
+          <div>
+            <span class="eyebrow">LIVE FLOORPLAN · BUILDING A</span>
+            <h1 id="homeHeading">早上好，家里一切正常。</h1>
+            <p>点击房间查看设备；场景切换会同时联动整屋。</p>
+          </div>
+          <span class="privacy-badge"><span aria-hidden="true">⌂</span> 本地运行</span>
+        </header>
+
+        <div class="metric-strip" aria-label="住宅实时指标">
+          <div class="metric">
+            <span>当前功率</span>
+            <strong><b id="powerMetric">--</b> W</strong>
+            <small id="powerHint">低于节能阈值</small>
+          </div>
+          <div class="metric">
+            <span>活跃设备</span>
+            <strong><b id="activeMetric">--</b> / 10</strong>
+            <small>全部设备在线</small>
+          </div>
+          <div class="metric">
+            <span>舒适指数</span>
+            <strong><b id="comfortMetric">--</b> / 100</strong>
+            <small id="comfortHint">温湿度适宜</small>
+          </div>
+        </div>
+
+        <div class="floorplan-wrap">
+          <div class="floorplan" id="floorplan" aria-label="可交互住宅户型图"></div>
+          <svg class="energy-route" viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden="true">
+            <path class="route-base" d="M94 526 L300 526 L300 305 L502 305 L502 108 M502 305 L765 305 L765 105 M502 305 L765 526"></path>
+            <path class="route-pulse" d="M94 526 L300 526 L300 305 L502 305 L502 108 M502 305 L765 305 L765 105 M502 305 L765 526"></path>
+          </svg>
+          <div class="floor-legend" aria-hidden="true">
+            <span><i class="legend-dot active"></i>设备运行</span>
+            <span><i class="legend-dot"></i>待机</span>
+            <span><i class="legend-line"></i>能源总线</span>
+          </div>
+        </div>
+
+        <div class="stage-note">
+          <span class="stage-note-index">HOUSE NOTE / 01</span>
+          <p id="stageNote">客厅空调正在维持 24°C，卧室净化器以 48% 档位运行。</p>
+          <span class="solar-credit">今日光伏抵扣 <b>1.8 kWh</b></span>
+        </div>
+      </section>
+
+      <aside class="control-deck" aria-label="房间设备与能耗">
+        <section class="device-panel" aria-labelledby="roomHeading">
+          <div class="deck-heading">
+            <div>
+              <span class="eyebrow">ROOM CONTROL</span>
+              <h2 id="roomHeading">客厅</h2>
+            </div>
+            <span class="room-climate" id="roomClimate">24.3° · 52%</span>
+          </div>
+          <div class="device-list" id="deviceList"></div>
+        </section>
+
+        <section class="energy-panel" aria-labelledby="energyHeading">
+          <div class="deck-heading energy-heading">
+            <div>
+              <span class="eyebrow">ENERGY / 7 DAYS</span>
+              <h2 id="energyHeading">用电趋势</h2>
+            </div>
+            <div class="energy-total"><b id="monthlyMetric">--</b><span>kWh / 月预估</span></div>
+          </div>
+          <div class="energy-chart" id="energyChart" aria-label="最近七日用电柱状图"></div>
+        </section>
+
+        <section class="activity-panel" aria-labelledby="activityHeading">
+          <div class="deck-heading activity-heading">
+            <div>
+              <span class="eyebrow">ACTIVITY</span>
+              <h2 id="activityHeading">最近动作</h2>
+            </div>
+            <span class="live-label">LIVE</span>
+          </div>
+          <ol class="activity-list" id="activityList"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="app-footer">
+      <span>HABITAT/97 · 设备均为本地模拟，不连接真实住宅</span>
+      <span>状态仅保存在当前浏览器</span>
+    </footer>
+  </div>
+
+  <dialog class="reset-dialog" id="resetDialog" aria-labelledby="resetTitle">
+    <form method="dialog">
+      <span class="dialog-icon" aria-hidden="true">↺</span>
+      <h2 id="resetTitle">恢复示范住宅？</h2>
+      <p>设备、场景、自动化和动作记录将恢复默认。此操作不会影响浏览器外的任何数据。</p>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel">保留现状</button>
+        <button class="danger-button" id="confirmResetButton" value="confirm">恢复默认</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="./smart-home-core.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

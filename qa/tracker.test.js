@@ -443,6 +443,41 @@ test('official completion state migrates a stale app 083 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 087 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app87 = ideas[86];
+
+  assert.equal(app87[0], '低代码表单构建器');
+  assert.match(app87[1], /^JIG\/87/);
+  assert.equal(app87[3], 'https://jokerlixing.github.io/100apps/apps/087-low-code-form-builder/');
+  assert.equal(doneIds.has(87), true, 'INIT_DONE must mark app 087 as done');
+});
+
+test('official completion state migrates a stale app 087 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:87,name:"低代码表单构建器",desc:"拖拽组件生成表单+导出代码",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^JIG\/87/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/087-low-code-form-builder/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 092 resume application assistant is published and officially complete', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -664,5 +699,42 @@ test('official completion state migrates a stale app 090 cache entry', () => {
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^SWITCHYARD\/90/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/090-workflow-engine/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('app 099 Mica UI is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app99 = ideas[98];
+
+  assert.equal(app99[0], 'Mica UI 组件库');
+  assert.match(app99[1], /^MICA\/99/);
+  assert.match(app99[1], /12个原生 Web Components/);
+  assert.equal(app99[3], 'https://jokerlixing.github.io/100apps/apps/099-mica-ui/');
+  assert.equal(doneIds.has(99), true, 'INIT_DONE must mark app 099 as done');
+});
+
+test('official completion state migrates a stale app 099 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:99,name:"开源组件库",desc:"旧说明",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, 'Mica UI 组件库');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^MICA\/99/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/099-mica-ui/');
   assert.equal(context.result.didSave, true);
 });

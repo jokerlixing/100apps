@@ -1,0 +1,45 @@
+{
+  "name": "@hundred-apps/mica-ui",
+  "version": "1.0.0",
+  "description": "Dependency-free accessible Web Components with a live specimen documentation site.",
+  "main": "mica-ui.js",
+  "style": "mica-ui.css",
+  "exports": {
+    ".": "./mica-ui.js",
+    "./styles.css": "./mica-ui.css",
+    "./core": "./component-core.js"
+  },
+  "files": [
+    "mica-ui.js",
+    "mica-ui.css",
+    "component-core.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test component-core.test.js",
+    "pack:check": "npm pack --dry-run",
+    "smoke": "node qa/browser-smoke.mjs"
+  },
+  "keywords": [
+    "web-components",
+    "design-system",
+    "component-library",
+    "accessible"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jokerlixing/100apps.git",
+    "directory": "apps/099-mica-ui"
+  },
+  "homepage": "https://jokerlixing.github.io/100apps/apps/099-mica-ui/",
+  "bugs": "https://github.com/jokerlixing/100apps/issues",
+  "license": "MIT",
+  "sideEffects": [
+    "mica-ui.js",
+    "mica-ui.css"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

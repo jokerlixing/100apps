@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#202044">
+  <meta name="description" content="PRESS/40 像素压片室：在浏览器本地批量压缩 JPEG、PNG 与 WebP 图片。">
+  <title>PRESS/40 · 图片压缩工具</title>
+  <style>
+    :root {
+      --paper: #eee9ff;
+      --ink: #202044;
+      --pink: #ff5c8a;
+      --mint: #79dfbd;
+      --yellow: #f5d45f;
+      --white: #ffffff;
+      --mist: #f9f7ff;
+      --muted: #6d6988;
+      --line: rgba(32, 32, 68, .2);
+      --shadow: 7px 7px 0 var(--ink);
+      --display: "Arial Black", "Microsoft YaHei", sans-serif;
+      --body: "Segoe UI", "Microsoft YaHei", sans-serif;
+      --mono: "Cascadia Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(121,223,189,.24) 0 100px, transparent 101px),
+        linear-gradient(rgba(32,32,68,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(32,32,68,.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: auto, 32px 32px, 32px 32px, auto;
+      font-family: var(--body);
+      line-height: 1.5;
+    }
+    button, input, select { font: inherit; }
+    button, select, input[type="range"] { cursor: pointer; }
+    button { color: inherit; }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+    button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible, a:focus-visible {
+      outline: 4px solid var(--yellow);
+      outline-offset: 3px;
+    }
+    [hidden] { display: none !important; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 24px;
+      min-height: 74px;
+      padding: 11px clamp(18px, 4vw, 62px);
+      color: var(--white);
+      background: rgba(32,32,68,.97);
+      border-bottom: 3px solid var(--ink);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-family: var(--display); letter-spacing: -.04em; }
+    .brand-mark { display: grid; place-items: center; width: 45px; aspect-ratio: 1; color: var(--ink); background: var(--yellow); border: 3px solid var(--white); border-radius: 50% 50% 12px 12px; }
+    .brand small { display: block; color: var(--mint); font-family: var(--mono); font-size: .67rem; letter-spacing: .16em; }
+    .process-line { justify-self: center; display: flex; align-items: center; gap: 9px; color: rgba(255,255,255,.7); font-family: var(--mono); font-size: .72rem; font-weight: 900; }
+    .process-line i { width: 42px; height: 2px; background: var(--pink); }
+    .privacy-badge { padding: 8px 12px; color: var(--mint); border: 2px solid var(--mint); border-radius: 99px; font-family: var(--mono); font-size: .69rem; font-weight: 900; }
+
+    .shell { width: min(1220px, calc(100% - 36px)); margin: 0 auto; padding: 34px 0 72px; }
+    .hero { overflow: hidden; border: 3px solid var(--ink); border-radius: 28px; background: var(--white); box-shadow: var(--shadow); }
+    .hero-head { display: grid; grid-template-columns: 1.35fr .65fr; border-bottom: 3px solid var(--ink); }
+    .hero-copy { padding: clamp(30px, 5vw, 60px); }
+    .eyebrow { margin: 0 0 13px; color: var(--pink); font-family: var(--mono); font-size: .74rem; font-weight: 900; letter-spacing: .17em; text-transform: uppercase; }
+    h1 { max-width: 820px; margin: 0; font-family: var(--display); font-size: clamp(2.7rem, 6.2vw, 5.7rem); line-height: .95; letter-spacing: -.075em; }
+    .hero-copy > p:last-child { max-width: 650px; margin: 21px 0 0; color: var(--muted); font-size: clamp(1rem, 1.8vw, 1.18rem); }
+    .darkroom-mark { position: relative; overflow: hidden; min-height: 285px; background: var(--pink); border-left: 3px solid var(--ink); }
+    .darkroom-mark::before { content: ""; position: absolute; inset: 25px; border: 3px dashed var(--ink); border-radius: 50%; background: repeating-conic-gradient(var(--yellow) 0 9deg, transparent 9deg 18deg); }
+    .darkroom-mark::after { content: "40%"; position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; display: grid; place-items: center; width: 125px; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 50%; color: var(--white); background: var(--ink); box-shadow: 0 0 0 12px var(--mint); font-family: var(--display); font-size: 2rem; }
+    .mark-label { position: absolute; right: 14px; bottom: 12px; font-family: var(--mono); font-size: .7rem; font-weight: 900; writing-mode: vertical-rl; }
+
+    .upload-bay { padding: clamp(20px, 4vw, 35px); background: var(--mist); }
+    .drop-zone { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; min-height: 130px; padding: 22px; border: 3px dashed var(--ink); border-radius: 18px; background: var(--white); transition: .2s ease; }
+    .drop-zone[data-dragging="true"] { background: var(--mint); transform: scale(.993); }
+    .drop-icon { display: grid; place-items: center; width: 72px; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 50%; background: var(--yellow); font-family: var(--display); font-size: 1.8rem; }
+    .drop-copy strong { display: block; font-family: var(--display); font-size: clamp(1.25rem, 3vw, 2rem); line-height: 1.1; }
+    .drop-copy span { color: var(--muted); font-size: .86rem; }
+    .drop-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .primary, .secondary, .danger { border: 2px solid var(--ink); border-radius: 10px; padding: 11px 16px; font-weight: 900; }
+    .primary { color: var(--ink); background: var(--pink); box-shadow: 4px 4px 0 var(--ink); }
+    .secondary { background: var(--white); }
+    .danger { color: var(--white); background: #a43c59; }
+    .primary:hover, .secondary:hover, .danger:hover { transform: translate(-1px, -1px); }
+
+    .press-workspace { display: grid; grid-template-columns: 1.05fr .95fr; gap: 22px; margin-top: 28px; }
+    .panel { border: 3px solid var(--ink); border-radius: 20px; background: var(--white); box-shadow: 6px 6px 0 rgba(32,32,68,.16); }
+    .panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 21px 23px; border-bottom: 2px solid var(--ink); }
+    .panel-head h2, .queue-head h2 { margin: 0; font-family: var(--display); font-size: clamp(1.45rem, 3vw, 2.25rem); line-height: 1; letter-spacing: -.045em; }
+    .panel-head p, .queue-head p { margin: 7px 0 0; color: var(--muted); }
+    .step-chip { flex: 0 0 auto; padding: 7px 10px; color: var(--white); background: var(--ink); border-radius: 99px; font-family: var(--mono); font-size: .68rem; }
+    .settings { display: grid; gap: 18px; padding: 23px; }
+    .settings-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px; }
+    label.field { display: grid; gap: 7px; color: var(--ink); font-weight: 900; }
+    label.field small { color: var(--muted); font-weight: 600; }
+    select { width: 100%; min-height: 47px; border: 2px solid var(--ink); border-radius: 10px; padding: 9px 11px; color: var(--ink); background: var(--white); }
+    .range-head { display: flex; justify-content: space-between; gap: 10px; }
+    .range-head output { padding: 3px 8px; color: var(--white); background: var(--ink); border-radius: 6px; font-family: var(--mono); }
+    input[type="range"] { width: 100%; accent-color: var(--pink); }
+    .settings-note { margin: 0; padding: 11px 13px; color: var(--muted); background: var(--paper); border-left: 5px solid var(--yellow); border-radius: 0 9px 9px 0; font-size: .83rem; }
+    .settings-actions { display: flex; gap: 10px; align-items: center; }
+    .settings-actions span { color: var(--muted); font-family: var(--mono); font-size: .7rem; }
+
+    .press-machine { position: relative; overflow: hidden; min-height: 380px; background: var(--ink); color: var(--white); }
+    .machine-grid { position: absolute; inset: 0; opacity: .13; background: linear-gradient(var(--white) 1px, transparent 1px), linear-gradient(90deg,var(--white) 1px,transparent 1px); background-size: 24px 24px; }
+    .machine-label { position: absolute; top: 22px; left: 24px; z-index: 2; font-family: var(--mono); font-size: .72rem; letter-spacing: .15em; }
+    .plate { position: absolute; left: 12%; width: 76%; height: 55px; border: 3px solid var(--white); border-radius: 12px; background: var(--pink); box-shadow: inset 0 -10px 0 rgba(32,32,68,.18); transition: top .25s ease, bottom .25s ease; }
+    .plate.top { top: var(--plate-gap, 23%); }
+    .plate.bottom { bottom: var(--plate-gap, 23%); background: var(--mint); }
+    .pixel-sheet { position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; display: grid; place-items: center; width: 58%; height: 82px; border: 3px dashed var(--yellow); border-radius: 9px; color: var(--yellow); background: rgba(255,255,255,.08); font-family: var(--display); font-size: 1.2rem; }
+    .machine-readout { position: absolute; right: 20px; bottom: 18px; left: 20px; display: flex; justify-content: space-between; gap: 15px; padding: 11px 14px; color: var(--ink); background: var(--yellow); border-radius: 9px; font-family: var(--mono); font-size: .75rem; font-weight: 900; }
+
+    .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin: 29px 0; }
+    .total { min-height: 105px; padding: 18px; border: 2px solid var(--ink); border-radius: 15px; background: var(--white); box-shadow: 4px 4px 0 rgba(32,32,68,.14); }
+    .total strong { display: block; overflow: hidden; font-family: var(--display); font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1; text-overflow: ellipsis; }
+    .total span { color: var(--muted); font-family: var(--mono); font-size: .67rem; font-weight: 900; }
+
+    .queue-section { padding: 0; overflow: hidden; }
+    .queue-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; padding: 22px 24px; border-bottom: 2px solid var(--ink); }
+    .queue-actions { display: flex; gap: 8px; }
+    .contact-sheet { display: grid; gap: 17px; padding: 20px; background: var(--mist); }
+    .empty { margin: 0; padding: 45px 20px; color: var(--muted); border: 2px dashed var(--line); border-radius: 14px; background: var(--white); text-align: center; }
+    .image-card { overflow: hidden; border: 2px solid var(--ink); border-radius: 16px; background: var(--white); }
+    .card-head { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; gap: 13px; align-items: center; padding: 14px 17px; color: var(--white); background: var(--ink); }
+    .file-name { overflow: hidden; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+    .file-type { color: var(--mint); font-family: var(--mono); font-size: .69rem; }
+    .status { padding: 5px 8px; color: var(--ink); background: var(--yellow); border-radius: 99px; font-family: var(--mono); font-size: .65rem; font-weight: 900; }
+    .status[data-state="done"] { background: var(--mint); }
+    .status[data-state="error"] { color: var(--white); background: var(--pink); }
+    .icon-btn { min-width: 34px; min-height: 34px; border: 2px solid var(--white); border-radius: 8px; color: var(--white); background: transparent; font-weight: 900; }
+    .icon-btn[data-armed="true"] { background: var(--pink); }
+    .card-body { display: grid; grid-template-columns: 1fr 1fr 230px; min-height: 220px; }
+    .preview { position: relative; overflow: hidden; min-height: 220px; background: repeating-conic-gradient(#d9d5e7 0 25%, #fff 0 50%) 0/22px 22px; border-right: 2px solid var(--ink); }
+    .preview img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .preview-label { position: absolute; left: 10px; top: 10px; padding: 5px 8px; color: var(--white); background: var(--ink); border-radius: 5px; font-family: var(--mono); font-size: .65rem; }
+    .result-placeholder { display: grid; place-items: center; height: 100%; min-height: 220px; padding: 20px; color: var(--muted); background: rgba(255,255,255,.82); text-align: center; }
+    .file-data { display: flex; flex-direction: column; justify-content: space-between; gap: 15px; padding: 18px; }
+    .data-list { display: grid; gap: 10px; }
+    .data-row { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px dashed var(--line); font-size: .79rem; }
+    .data-row span { color: var(--muted); }
+    .data-row strong { font-family: var(--mono); text-align: right; }
+    .saving { padding: 12px; color: var(--ink); background: var(--mint); border: 2px solid var(--ink); border-radius: 10px; text-align: center; }
+    .saving strong { display: block; font-family: var(--display); font-size: 1.7rem; line-height: 1; }
+    .file-actions { display: grid; grid-template-columns: 1fr; gap: 7px; }
+    .download-link { display: block; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 9px; color: var(--ink); background: var(--yellow); text-align: center; text-decoration: none; font-weight: 900; }
+    .error-note { margin: 0; color: #a42e50; font-size: .8rem; font-weight: 800; }
+    .privacy-note { margin-top: 20px; padding: 18px 20px; border: 3px solid var(--ink); border-radius: 16px; background: var(--mint); box-shadow: 5px 5px 0 var(--ink); }
+    .privacy-note strong { font-family: var(--display); }
+    .privacy-note p { margin: 5px 0 0; font-size: .87rem; }
+    .toast { position: fixed; z-index: 50; right: 22px; bottom: 22px; max-width: min(390px, calc(100% - 44px)); padding: 13px 17px; color: var(--white); background: var(--ink); border: 2px solid var(--white); border-radius: 10px; box-shadow: 5px 5px 0 var(--pink); transform: translateY(150%); opacity: 0; transition: .22s ease; }
+    .toast[data-show="true"] { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 980px) {
+      .press-workspace { grid-template-columns: 1fr; }
+      .press-machine { min-height: 330px; }
+      .card-body { grid-template-columns: 1fr 1fr; }
+      .file-data { grid-column: 1 / -1; }
+      .preview:nth-child(2) { border-right: 0; }
+    }
+    @media (max-width: 760px) {
+      .process-line { display: none; }
+      .topbar { grid-template-columns: 1fr auto; padding-inline: 15px; }
+      .hero-head { grid-template-columns: 1fr; }
+      .darkroom-mark { min-height: 180px; border-top: 3px solid var(--ink); border-left: 0; }
+      .darkroom-mark::before { inset: 18px 25%; }
+      .darkroom-mark::after { width: 90px; }
+      .drop-zone { grid-template-columns: auto 1fr; }
+      .drop-actions { grid-column: 1 / -1; justify-content: flex-start; }
+      .totals { grid-template-columns: repeat(2, 1fr); }
+      .queue-head { align-items: flex-start; flex-direction: column; }
+    }
+    @media (max-width: 540px) {
+      .shell { width: min(100% - 24px, 1220px); padding-top: 22px; }
+      .brand-text { font-size: .9rem; }
+      .privacy-badge { padding: 7px 9px; font-size: .59rem; }
+      .hero { border-radius: 20px; box-shadow: 5px 5px 0 var(--ink); }
+      .hero-copy { padding: 27px 20px; }
+      h1 { font-size: clamp(2.5rem, 14vw, 3.65rem); }
+      .upload-bay { padding: 16px; }
+      .drop-zone { grid-template-columns: 1fr; padding: 18px; }
+      .drop-icon { width: 58px; }
+      .drop-actions { grid-column: auto; }
+      .drop-actions button { flex: 1; }
+      .settings-row { grid-template-columns: 1fr; }
+      .settings-actions { align-items: stretch; flex-direction: column; }
+      .totals { gap: 8px; }
+      .total { min-height: 95px; padding: 14px; }
+      .contact-sheet { padding: 12px; }
+      .card-head { grid-template-columns: minmax(0,1fr) auto auto; }
+      .file-type { grid-column: 1; }
+      .status { grid-column: 2; grid-row: 1 / span 2; }
+      .card-head .icon-btn { grid-column: 3; grid-row: 1 / span 2; }
+      .card-body { grid-template-columns: 1fr; }
+      .preview { border-right: 0; border-bottom: 2px solid var(--ink); }
+      .file-data { grid-column: auto; }
+      .queue-actions { width: 100%; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="PRESS 40 像素压片室"><span class="brand-mark">40</span><span class="brand-text">PRESS/40<small>像素压片室</small></span></div>
+    <div class="process-line" aria-hidden="true"><span>LOAD</span><i></i><span>PRESS</span><i></i><span>SAVE</span></div>
+    <span class="privacy-badge">● 100% 本机处理</span>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-head"><div class="hero-copy"><p class="eyebrow">DIGITAL DARKROOM · APP 040</p><h1 id="heroTitle">把像素里的空气，轻轻挤出去。</h1><p>批量缩小图片体积，保留真正需要的清晰度。文件只在这台设备的浏览器里经过，不需要上传。</p></div><div class="darkroom-mark" aria-hidden="true"><span class="mark-label">ORIGINAL → COMPRESSED · 040</span></div></div>
+      <div class="upload-bay">
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="拖放或选择 JPEG、PNG、WebP 图片">
+          <span class="drop-icon" aria-hidden="true">＋</span><div class="drop-copy"><strong>把图片放进接触表</strong><span>JPEG / PNG / WebP · 最多 20 张 · 单张不超过 25MB</span></div><div class="drop-actions"><button class="primary" type="button" data-action="choose-files">选择图片</button><button class="secondary" type="button" data-action="add-sample">加载测试样片</button></div>
+        </div>
+        <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+      </div>
+    </section>
+
+    <section class="press-workspace" aria-label="压缩设置与像素压片机">
+      <div class="panel">
+        <div class="panel-head"><div><h2>压片参数</h2><p>为整批图片设定同一套输出规则。</p></div><span class="step-chip">CONTROL DESK</span></div>
+        <div class="settings">
+          <div class="settings-row"><label class="field">输出格式<select id="outputFormat"><option value="auto">自动保留原格式</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option><option value="image/png">PNG 无损</option></select></label><label class="field">最大宽度<select id="maxWidth"><option value="0">保持原始尺寸</option><option value="640">640 px</option><option value="1280">1280 px</option><option value="1920">1920 px</option><option value="2560">2560 px</option></select></label></div>
+          <label class="field"><span class="range-head"><span>输出质量 <small>JPEG / WebP 生效</small></span><output id="qualityOutput">72%</output></span><input id="quality" type="range" min="40" max="95" value="72" step="1"></label>
+          <p id="formatNote" class="settings-note">自动模式会保留 JPEG、PNG 或 WebP 原格式；PNG 使用无损导出，不受质量滑杆影响。</p>
+          <div class="settings-actions"><button id="compressAll" class="primary" type="button" data-action="compress-all">开始批量压缩 →</button><span id="batchStatus">等待图片进入队列</span></div>
+        </div>
+      </div>
+      <div id="pressMachine" class="panel press-machine" style="--plate-gap:23%" aria-label="质量 72% 的像素压片机示意">
+        <div class="machine-grid"></div><span class="machine-label">PIXEL PRESS / QUALITY GAUGE</span><div class="plate top"></div><div class="pixel-sheet">QUALITY <span id="machineQuality">72%</span></div><div class="plate bottom"></div><div class="machine-readout"><span id="machineFormat">AUTO FORMAT</span><span id="machineWidth">MAX 1280 PX</span></div>
+      </div>
+    </section>
+
+    <section class="totals" aria-label="压缩汇总">
+      <div class="total"><strong id="totalFiles">0</strong><span>FILES / 图片</span></div>
+      <div class="total"><strong id="totalOriginal">0 B</strong><span>ORIGINAL / 原始体积</span></div>
+      <div class="total"><strong id="totalOutput">—</strong><span>OUTPUT / 输出体积</span></div>
+      <div class="total"><strong id="totalSaved">—</strong><span>SAVED / 已节省</span></div>
+    </section>
+
+    <section class="panel queue-section" aria-labelledby="queueTitle">
+      <div class="queue-head"><div><h2 id="queueTitle">数码接触表</h2><p>逐张检查原片与压缩结果，再决定下载哪些文件。</p></div><div class="queue-actions"><button id="downloadAll" class="secondary" type="button" data-action="download-all" disabled>下载全部结果</button><button id="clearQueue" class="danger" type="button" data-action="clear-queue" disabled>清空队列</button></div></div>
+      <div id="contactSheet" class="contact-sheet" aria-live="polite"></div>
+    </section>
+    <section class="privacy-note"><strong>文件不会离开这台设备。</strong><p>图片通过浏览器 Canvas 在内存中解码、缩放与导出。刷新页面会清空文件和结果，设置会保留；整个过程没有上传接口。</p></section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+      const SETTINGS_KEY = "press40-settings-v2";
+      const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
+      const MAX_FILES = 20;
+      const MAX_BYTES = 25 * 1024 * 1024;
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const escapeHTML = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[char]);
+      const uid = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
+      const fileSignature = file => `${file.name}:${file.size}:${file.lastModified}`;
+
+      function loadSettings() {
+        try {
+          const value = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+          return { format: ["auto", ...ACCEPTED].includes(value?.format) ? value.format : "auto", maxWidth: [0,640,1280,1920,2560].includes(Number(value?.maxWidth)) ? Number(value.maxWidth) : 1280, quality: Math.min(95, Math.max(40, Number(value?.quality) || 72)) };
+        } catch { return { format:"auto", maxWidth:1280, quality:72 }; }
+      }
+
+      let settings = loadSettings();
+      let items = [];
+      let processing = false;
+      let removeArmed = null;
+      let clearArmed = false;
+      let toastTimer = null;
+
+      const saveSettings = () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      const completed = () => items.filter(item => item.status === "done" && item.outputBlob);
+      const humanBytes = bytes => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+        const units = ["B","KB","MB","GB"];
+        const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        const value = bytes / 1024 ** index;
+        return `${value >= 100 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
+      };
+      const dimensionsFor = (width, height, maxWidth) => {
+        if (!maxWidth || width <= maxWidth) return { width, height };
+        const ratio = maxWidth / width;
+        return { width:maxWidth, height:Math.max(1, Math.round(height * ratio)) };
+      };
+      const savingsFor = (original, output) => original ? Math.round((1 - output / original) * 100) : 0;
+
+      function outputTypeFor(fileType) {
+        if (settings.format !== "auto") return settings.format;
+        return ACCEPTED.includes(fileType) ? fileType : "image/jpeg";
+      }
+      const extensionFor = type => ({ "image/jpeg":"jpg", "image/png":"png", "image/webp":"webp" })[type] || "jpg";
+      function downloadName(item) {
+        const base = item.file.name.replace(/\.[^.]+$/, "") || "image";
+        return `${base}-compressed.${extensionFor(item.outputType)}`;
+      }
+
+      function showToast(message) {
+        const toast = $("#toast");
+        toast.textContent = message;
+        toast.dataset.show = "true";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toast.dataset.show = "false"; }, 2500);
+      }
+
+      async function decodeImage(file) {
+        if ("createImageBitmap" in window) {
+          const bitmap = await createImageBitmap(file);
+          return { source:bitmap, width:bitmap.width, height:bitmap.height, close:() => bitmap.close() };
+        }
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        try {
+          await new Promise((resolve,reject) => { image.onload = resolve; image.onerror = () => reject(new Error("图片无法解码")); image.src = url; });
+          return { source:image, width:image.naturalWidth, height:image.naturalHeight, close:() => URL.revokeObjectURL(url) };
+        } catch (error) { URL.revokeObjectURL(url); throw error; }
+      }
+
+      async function addFiles(fileList) {
+        const incoming = [...fileList];
+        if (!incoming.length) return;
+        let added = 0;
+        let rejected = 0;
+        const signatures = new Set(items.map(item => item.signature));
+        for (const file of incoming) {
+          if (items.length >= MAX_FILES) { rejected += 1; continue; }
+          const signature = fileSignature(file);
+          if (!ACCEPTED.includes(file.type) || file.size > MAX_BYTES || signatures.has(signature)) { rejected += 1; continue; }
+          const item = { id:uid("image"), file, signature, originalUrl:URL.createObjectURL(file), width:0, height:0, status:"reading", error:"", outputBlob:null, outputUrl:"", outputType:"", outputWidth:0, outputHeight:0 };
+          items.push(item); signatures.add(signature); added += 1; renderAll();
+          try {
+            const decoded = await decodeImage(file);
+            item.width = decoded.width; item.height = decoded.height; decoded.close(); item.status = "ready";
+          } catch { item.status = "error"; item.error = "浏览器无法读取这张图片。"; }
+          renderAll();
+        }
+        if (added) showToast(`已加入 ${added} 张图片。${rejected ? `另有 ${rejected} 张被跳过。` : ""}`);
+        else showToast("没有加入图片：请检查格式、体积、重复项或数量上限。");
+      }
+
+      function releaseResult(item) {
+        if (item.outputUrl) URL.revokeObjectURL(item.outputUrl);
+        item.outputUrl = ""; item.outputBlob = null; item.outputType = ""; item.outputWidth = 0; item.outputHeight = 0;
+        if (item.status === "done") item.status = "ready";
+      }
+
+      function invalidateResults() {
+        const hadResults = completed().length > 0;
+        items.forEach(releaseResult);
+        if (hadResults) showToast("参数已改变，请重新压缩现有图片。");
+        renderAll();
+      }
+
+      function canvasToBlob(canvas, type, quality) {
+        return new Promise((resolve,reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("浏览器无法生成压缩文件")), type, quality));
+      }
+
+      async function compressItem(item) {
+        if (!item || item.status === "reading" || processing && item.status === "compressing") return;
+        releaseResult(item);
+        item.status = "compressing"; item.error = ""; renderAll();
+        let decoded;
+        try {
+          decoded = await decodeImage(item.file);
+          const size = dimensionsFor(decoded.width, decoded.height, settings.maxWidth);
+          const type = outputTypeFor(item.file.type);
+          const canvas = document.createElement("canvas");
+          canvas.width = size.width; canvas.height = size.height;
+          const context = canvas.getContext("2d", { alpha:type !== "image/jpeg" });
+          if (!context) throw new Error("当前浏览器不支持 Canvas 2D");
+          context.imageSmoothingEnabled = true; context.imageSmoothingQuality = "high";
+          if (type === "image/jpeg") { context.fillStyle = "#ffffff"; context.fillRect(0,0,canvas.width,canvas.height); }
+          context.drawImage(decoded.source, 0, 0, size.width, size.height);
+          const blob = await canvasToBlob(canvas, type, settings.quality / 100);
+          item.outputBlob = blob; item.outputUrl = URL.createObjectURL(blob); item.outputType = type; item.outputWidth = size.width; item.outputHeight = size.height; item.status = "done";
+        } catch (error) { item.status = "error"; item.error = error?.message || "压缩失败，请换一张图片重试。"; }
+        finally { decoded?.close(); renderAll(); }
+      }
+
+      async function compressAll() {
+        if (processing) return;
+        const targets = items.filter(item => ["ready","done","error"].includes(item.status));
+        if (!targets.length) { showToast("先加入至少一张可读取的图片。"); return; }
+        processing = true; setControls();
+        for (let index = 0; index < targets.length; index++) {
+          $("#batchStatus").textContent = `正在处理 ${index + 1}/${targets.length}`;
+          await compressItem(targets[index]);
+        }
+        processing = false; setControls(); renderAll(); showToast(`已完成 ${completed().length} 张图片。`);
+      }
+
+      function renderSettings() {
+        $("#outputFormat").value = settings.format;
+        $("#maxWidth").value = String(settings.maxWidth);
+        $("#quality").value = String(settings.quality);
+        $("#qualityOutput").textContent = `${settings.quality}%`;
+        $("#machineQuality").textContent = `${settings.quality}%`;
+        $("#machineFormat").textContent = settings.format === "auto" ? "AUTO FORMAT" : settings.format.split("/")[1].toUpperCase();
+        $("#machineWidth").textContent = settings.maxWidth ? `MAX ${settings.maxWidth} PX` : "ORIGINAL SIZE";
+        const gap = 12 + (settings.quality - 40) / 55 * 16;
+        $("#pressMachine").style.setProperty("--plate-gap", `${gap}%`);
+        $("#pressMachine").setAttribute("aria-label", `质量 ${settings.quality}% 的像素压片机示意`);
+        $("#formatNote").textContent = settings.format === "image/png" ? "PNG 使用无损导出，质量滑杆不会改变输出；最大宽度仍然有效。" : "JPEG 与 WebP 使用质量设置；自动模式保留原始 JPEG、PNG 或 WebP 格式。";
+      }
+
+      function renderTotals() {
+        const done = completed();
+        const originalAll = items.reduce((sum,item) => sum + item.file.size, 0);
+        const originalDone = done.reduce((sum,item) => sum + item.file.size, 0);
+        const output = done.reduce((sum,item) => sum + item.outputBlob.size, 0);
+        const saved = originalDone ? savingsFor(originalDone, output) : null;
+        $("#totalFiles").textContent = items.length;
+        $("#totalOriginal").textContent = humanBytes(originalAll);
+        $("#totalOutput").textContent = done.length ? humanBytes(output) : "—";
+        $("#totalSaved").textContent = saved === null ? "—" : `${saved}%`;
+      }
+
+      const statusLabel = item => ({ reading:"读取中", ready:"待压缩", compressing:"压片中", done:"已完成", error:"需要处理" })[item.status] || item.status;
+
+      function renderQueue() {
+        const sheet = $("#contactSheet");
+        if (!items.length) { sheet.innerHTML = `<p class="empty">接触表还是空的。选择图片，或者加载一张浏览器生成的测试样片。</p>`; return; }
+        sheet.innerHTML = items.map(item => {
+          const done = item.status === "done" && item.outputBlob;
+          const saving = done ? savingsFor(item.file.size, item.outputBlob.size) : null;
+          const outputPreview = done ? `<img src="${item.outputUrl}" alt="${escapeHTML(item.file.name)} 的压缩结果"><span class="preview-label">COMPRESSED</span>` : `<div class="result-placeholder">${item.status === "compressing" ? "正在压片…" : "压缩后在这里查看结果"}</div>`;
+          const resultRows = done ? `<div class="data-row"><span>输出格式</span><strong>${extensionFor(item.outputType).toUpperCase()}</strong></div><div class="data-row"><span>输出尺寸</span><strong>${item.outputWidth} × ${item.outputHeight}</strong></div><div class="data-row"><span>输出体积</span><strong>${humanBytes(item.outputBlob.size)}</strong></div>` : "";
+          const action = done ? `<a class="download-link" href="${item.outputUrl}" download="${escapeHTML(downloadName(item))}">下载压缩图</a>` : `<button class="secondary" type="button" data-action="compress-one" data-id="${item.id}" ${item.status === "reading" || item.status === "compressing" ? "disabled" : ""}>压缩这一张</button>`;
+          return `<article class="image-card"><div class="card-head"><span class="file-name" title="${escapeHTML(item.file.name)}">${escapeHTML(item.file.name)}</span><span class="file-type">${item.file.type.split("/")[1].toUpperCase()} · ${humanBytes(item.file.size)}</span><span class="status" data-state="${item.status}">${statusLabel(item)}</span><button class="icon-btn" type="button" data-action="remove" data-id="${item.id}" data-armed="${removeArmed === item.id}" aria-label="${removeArmed === item.id ? "再次点击确认移除" : `移除 ${escapeHTML(item.file.name)}`}">${removeArmed === item.id ? "确定" : "×"}</button></div><div class="card-body"><div class="preview"><img src="${item.originalUrl}" alt="${escapeHTML(item.file.name)} 原图"><span class="preview-label">ORIGINAL</span></div><div class="preview">${outputPreview}</div><div class="file-data"><div class="data-list"><div class="data-row"><span>原始尺寸</span><strong>${item.width ? `${item.width} × ${item.height}` : "读取中"}</strong></div><div class="data-row"><span>原始体积</span><strong>${humanBytes(item.file.size)}</strong></div>${resultRows}</div>${done ? `<div class="saving"><strong>${saving}%</strong><span>${saving >= 0 ? "体积已节省" : "体积增加，建议调整格式"}</span></div>` : ""}${item.error ? `<p class="error-note">${escapeHTML(item.error)}</p>` : ""}<div class="file-actions">${action}</div></div></div></article>`;
+        }).join("");
+      }
+
+      function setControls() {
+        const compressible = items.some(item => ["ready","done","error"].includes(item.status));
+        $("#compressAll").disabled = processing || !compressible;
+        $("#downloadAll").disabled = processing || !completed().length;
+        $("#clearQueue").disabled = processing || !items.length;
+        $("#outputFormat").disabled = processing;
+        $("#maxWidth").disabled = processing;
+        $("#quality").disabled = processing;
+        if (!processing) $("#batchStatus").textContent = items.length ? `${items.length} 张图片 · ${completed().length} 张已完成` : "等待图片进入队列";
+      }
+
+      function renderAll() { renderSettings(); renderTotals(); renderQueue(); setControls(); }
+
+      async function addSample() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1800; canvas.height = 1200;
+        const context = canvas.getContext("2d");
+        const gradient = context.createLinearGradient(0,0,1800,1200);
+        gradient.addColorStop(0,"#ff5c8a"); gradient.addColorStop(.48,"#f5d45f"); gradient.addColorStop(1,"#79dfbd");
+        context.fillStyle = gradient; context.fillRect(0,0,1800,1200);
+        for (let i=0;i<70;i++) { context.fillStyle = `hsla(${(i*37)%360},70%,35%,.35)`; context.beginPath(); context.arc((i*193)%1800,(i*127)%1200,35+(i%9)*13,0,Math.PI*2); context.fill(); }
+        context.fillStyle = "#202044"; context.font = "900 150px Arial"; context.fillText("PRESS / 40",120,610); context.font = "700 52px Arial"; context.fillText("LOCAL CANVAS COMPRESSION SAMPLE",130,700);
+        const blob = await canvasToBlob(canvas,"image/jpeg",.98);
+        await addFiles([new File([blob],"press40-test-sample.jpg",{type:"image/jpeg",lastModified:1788060000000})]);
+      }
+
+      function removeItem(id) {
+        if (removeArmed !== id) {
+          removeArmed = id; renderQueue(); showToast("再点一次“确定”移除这张图片。");
+          setTimeout(() => { if (removeArmed === id) { removeArmed = null; renderQueue(); } },3500);
+          return;
+        }
+        const item = items.find(entry => entry.id === id);
+        if (item) { URL.revokeObjectURL(item.originalUrl); releaseResult(item); }
+        items = items.filter(entry => entry.id !== id); removeArmed = null; renderAll(); showToast("图片已从本机队列移除。");
+      }
+
+      function clearQueue() {
+        if (!clearArmed) { clearArmed = true; $("#clearQueue").textContent = "再次点击，确认清空"; showToast("清空会释放当前页面中的所有图片结果。"); setTimeout(() => { if (clearArmed) { clearArmed=false; $("#clearQueue").textContent="清空队列"; } },4000); return; }
+        items.forEach(item => { URL.revokeObjectURL(item.originalUrl); releaseResult(item); });
+        items=[]; clearArmed=false; $("#clearQueue").textContent="清空队列"; renderAll(); showToast("队列已清空。");
+      }
+
+      function downloadAll() {
+        const done = completed();
+        done.forEach((item,index) => setTimeout(() => { const link=document.createElement("a"); link.href=item.outputUrl; link.download=downloadName(item); document.body.append(link); link.click(); link.remove(); },index*180));
+        showToast(`正在准备 ${done.length} 个本地下载。`);
+      }
+
+      function updateSettings() {
+        const next = { format:$("#outputFormat").value, maxWidth:Number($("#maxWidth").value), quality:Number($("#quality").value) };
+        const changed = next.format !== settings.format || next.maxWidth !== settings.maxWidth || next.quality !== settings.quality;
+        settings=next; saveSettings(); renderSettings();
+        if (changed) invalidateResults();
+      }
+
+      document.addEventListener("click", event => {
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+        const action=button.dataset.action;
+        if (action==="choose-files") $("#fileInput").click();
+        if (action==="add-sample") addSample();
+        if (action==="compress-all") compressAll();
+        if (action==="compress-one") compressItem(items.find(item => item.id===button.dataset.id));
+        if (action==="remove") removeItem(button.dataset.id);
+        if (action==="clear-queue") clearQueue();
+        if (action==="download-all") downloadAll();
+      });
+      $("#fileInput").addEventListener("change", event => { addFiles(event.target.files); event.target.value=""; });
+      [$("#outputFormat"),$("#maxWidth"),$("#quality")].forEach(control => control.addEventListener("change",updateSettings));
+      $("#quality").addEventListener("input", event => { $("#qualityOutput").textContent=`${event.target.value}%`; $("#machineQuality").textContent=`${event.target.value}%`; });
+      const zone=$("#dropZone");
+      ["dragenter","dragover"].forEach(type => zone.addEventListener(type,event => { event.preventDefault(); zone.dataset.dragging="true"; }));
+      ["dragleave","drop"].forEach(type => zone.addEventListener(type,event => { event.preventDefault(); zone.dataset.dragging="false"; }));
+      zone.addEventListener("drop",event => addFiles(event.dataTransfer.files));
+      zone.addEventListener("keydown",event => { if (["Enter"," "].includes(event.key)) { event.preventDefault(); $("#fileInput").click(); } });
+      window.addEventListener("beforeunload",() => items.forEach(item => { URL.revokeObjectURL(item.originalUrl); releaseResult(item); }));
+
+      window.press40={ humanBytes, dimensionsFor, savingsFor, outputTypeFor };
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

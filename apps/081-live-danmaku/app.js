@@ -370,12 +370,12 @@
     elements.speedRange.value = String(preferences.speed);
     elements.speedValue.textContent = `${preferences.speed.toFixed(1)}×`;
 
-    $$('[data-mode]').forEach((button) => {
+    $$('button[data-mode]').forEach((button) => {
       const active = button.dataset.mode === preferences.mode;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
     });
-    $$('[data-color]').forEach((button) => {
+    $$('button[data-color]').forEach((button) => {
       const active = button.dataset.color === preferences.color;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
@@ -450,13 +450,13 @@
     elements.muteToggle.addEventListener('click', toggleMuted);
     elements.theaterToggle.addEventListener('click', toggleTheater);
 
-    $$('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+    $$('button[data-mode]').forEach((button) => button.addEventListener('click', () => {
       state.preferences.mode = button.dataset.mode;
       applyPreferences();
       savePreferences();
     }));
 
-    $$('[data-color]').forEach((button) => button.addEventListener('click', () => {
+    $$('button[data-color]').forEach((button) => button.addEventListener('click', () => {
       state.preferences.color = button.dataset.color;
       applyPreferences();
       savePreferences();

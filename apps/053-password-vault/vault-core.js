@@ -18,8 +18,8 @@
     generatorMax: 128,
   });
   const VAULT_VERSION = 1;
-  const MIN_KDF_ITERATIONS = 100000;
-  const MAX_KDF_ITERATIONS = 5000000;
+  const MIN_KDF_ITERATIONS = 600000;
+  const MAX_KDF_ITERATIONS = 2000000;
   const PRODUCTION_KDF_ITERATIONS = 600000;
   const SALT_BYTES = 16;
   const IV_BYTES = 12;
@@ -461,4 +461,3 @@
     sealVault,
   });
 }));
-

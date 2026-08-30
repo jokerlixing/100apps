@@ -198,6 +198,8 @@
     elements.lockButton.hidden = true;
     elements.headerLamp.classList.remove('active');
     setText(elements.headerStatus, '保险箱已锁定');
+    resetSecretVisibility(elements.createMasterToggle, elements.createMaster);
+    resetSecretVisibility(elements.unlockMasterToggle, elements.unlockMaster);
 
     const hasStoredVault = Boolean(state.envelope || state.storageCorrupt);
     elements.createPanel.hidden = hasStoredVault;
@@ -222,8 +224,8 @@
     state.selectedId = null;
     state.lastActivity = 0;
     elements.entryForm.reset();
-    elements.entryPassword.type = 'password';
-    elements.generatedPassword.type = 'password';
+    resetSecretVisibility(elements.entryPasswordToggle, elements.entryPassword);
+    resetSecretVisibility(elements.generatedPasswordToggle, elements.generatedPassword);
     elements.searchInput.value = '';
   }
 
@@ -284,6 +286,12 @@
       setText(button, reveal ? '隐藏' : '显示');
       button.setAttribute('aria-label', reveal ? '隐藏密码' : '显示密码');
     });
+  }
+
+  function resetSecretVisibility(button, input) {
+    input.type = 'password';
+    setText(button, '显示');
+    button.setAttribute('aria-label', '显示密码');
   }
 
   async function handleCreate(event) {
@@ -432,8 +440,7 @@
     elements.entryTitle.value = entry ? entry.title : '';
     elements.entryUsername.value = entry ? entry.username : '';
     elements.entryPassword.value = entry ? entry.password : '';
-    elements.entryPassword.type = 'password';
-    setText(elements.entryPasswordToggle, '显示');
+    resetSecretVisibility(elements.entryPasswordToggle, elements.entryPassword);
     elements.entryUrl.value = entry ? entry.url : '';
     elements.entryNotes.value = entry ? entry.notes : '';
     elements.deleteEntryButton.hidden = !entry;
@@ -860,4 +867,3 @@
 
   initialize();
 }());
-

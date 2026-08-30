@@ -246,10 +246,12 @@ async function run() {
   } finally {
     if (client) client.close();
     if (!browser.killed) browser.kill();
-    await new Promise((resolve) => {
+    await Promise.race([new Promise((resolve) => {
       server.close(resolve);
       if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
-    });
+    }), sleep(1_000)]);
+    server.unref();
+    browser.unref();
     await sleep(300);
     try { rmSync(profile, { recursive: true, force: true }); } catch {}
   }

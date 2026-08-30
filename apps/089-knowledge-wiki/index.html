@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#26345f">
+  <meta name="description" content="LOOM/89 是一个本地优先的个人知识库，支持双链笔记、全文搜索、反向链接和关系图。">
+  <title>LOOM/89 · 个人知识库</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">跳到笔记编辑区</a>
+
+  <header class="topbar">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge 追踪器">
+      <svg class="brand-mark" viewBox="0 0 42 42" aria-hidden="true">
+        <path d="M5 11h32M5 21h32M5 31h32M11 5v32M21 5v32M31 5v32"/>
+        <circle cx="11" cy="11" r="3"/><circle cx="31" cy="21" r="3"/><circle cx="21" cy="31" r="3"/>
+      </svg>
+      <span class="brand-copy">
+        <h1>LOOM/89 <span>个人知识库</span></h1>
+        <span class="brand-subtitle">把笔记织成脉络</span>
+      </span>
+    </a>
+
+    <div class="top-actions" aria-label="知识库操作">
+      <span class="local-badge" title="笔记只保存在此浏览器">
+        <span class="status-dot" aria-hidden="true"></span>本地保存
+      </span>
+      <button class="button button-primary" id="newNoteButton" type="button">
+        <span aria-hidden="true">＋</span> 新建笔记
+        <kbd>Ctrl N</kbd>
+      </button>
+      <div class="menu-wrap">
+        <button class="icon-button" id="moreButton" type="button" aria-label="打开备份与导出菜单" aria-expanded="false" aria-controls="moreMenu">•••</button>
+        <div class="action-menu" id="moreMenu" hidden>
+          <button id="exportBackupButton" type="button"><span aria-hidden="true">⇩</span> 导出完整备份</button>
+          <button id="exportMarkdownButton" type="button"><span aria-hidden="true">M↓</span> 导出当前 Markdown</button>
+          <label class="menu-file" for="importInput"><span aria-hidden="true">⇧</span> 导入 JSON 备份</label>
+          <input id="importInput" class="visually-hidden" type="file" accept="application/json,.json">
+          <div class="menu-rule"></div>
+          <button id="showShortcutsButton" type="button"><span aria-hidden="true">⌨</span> 快捷键与说明</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="library-panel" aria-labelledby="libraryHeading">
+      <div class="panel-heading library-heading">
+        <div>
+          <span class="eyebrow">INDEX / 索引</span>
+          <h2 id="libraryHeading">我的笔记</h2>
+        </div>
+        <span class="count-badge" id="noteCount">0</span>
+      </div>
+
+      <div class="search-field">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+        <input id="searchInput" aria-label="全文搜索" type="search" autocomplete="off" placeholder="搜索标题、正文或标签…">
+        <kbd>⌘ K</kbd>
+      </div>
+
+      <div class="tag-strip" id="tagFilters" aria-label="按标签筛选"></div>
+
+      <div class="list-meta">
+        <span id="resultCount">最近更新</span>
+        <button id="clearSearchButton" type="button" hidden>清除筛选</button>
+      </div>
+
+      <ol class="note-list" id="noteList" aria-label="笔记列表"></ol>
+
+      <div class="empty-list" id="emptyList" hidden>
+        <span class="empty-glyph" aria-hidden="true">⌁</span>
+        <strong>没有找到笔记</strong>
+        <p>换个关键词，或从一张空白页开始。</p>
+        <button class="text-button" id="emptyNewButton" type="button">新建笔记</button>
+      </div>
+
+      <footer class="library-footer">
+        <span><i aria-hidden="true"></i> 数据留在此设备</span>
+        <button id="openGuideButton" type="button">使用说明</button>
+      </footer>
+    </aside>
+
+    <section class="workspace" id="workspace" aria-labelledby="editorHeading">
+      <div class="workspace-rail" aria-hidden="true">
+        <span>089</span><i></i><i></i><i></i><i></i><i></i>
+      </div>
+
+      <div class="editor-header">
+        <div class="document-path">
+          <span>知识库</span><span aria-hidden="true">/</span><strong id="pathTitle">未命名笔记</strong>
+        </div>
+        <div class="editor-actions">
+          <div class="view-switch" aria-label="编辑模式">
+            <button id="editModeButton" class="active" type="button" aria-pressed="true">编辑</button>
+            <button id="previewModeButton" type="button" aria-pressed="false">阅读</button>
+          </div>
+          <button class="icon-button subtle" id="duplicateButton" type="button" aria-label="复制当前笔记" title="复制笔记">⧉</button>
+          <button class="icon-button subtle danger-hover" id="deleteButton" type="button" aria-label="删除当前笔记" title="删除笔记">⌫</button>
+        </div>
+      </div>
+
+      <div class="document-sheet">
+        <label class="visually-hidden" for="titleInput">笔记标题</label>
+        <input class="title-input" id="titleInput" aria-label="笔记标题" maxlength="120" autocomplete="off" value="">
+
+        <div class="tag-editor">
+          <span aria-hidden="true">#</span>
+          <label class="visually-hidden" for="tagsInput">标签，用逗号分隔</label>
+          <input id="tagsInput" maxlength="240" autocomplete="off" placeholder="添加标签，用逗号分隔">
+        </div>
+
+        <div class="format-toolbar" id="formatToolbar" aria-label="Markdown 格式工具栏">
+          <button type="button" data-format="heading" title="二级标题">H2</button>
+          <button type="button" data-format="bold" title="加粗"><strong>B</strong></button>
+          <button type="button" data-format="italic" title="斜体"><em>I</em></button>
+          <button type="button" data-format="list" title="列表">≡</button>
+          <button type="button" data-format="quote" title="引用">❯</button>
+          <span class="toolbar-rule"></span>
+          <button class="link-tool" type="button" data-format="wiki" title="插入双链">[[ 链接 ]]</button>
+        </div>
+
+        <div class="editor-stage" id="editorStage">
+          <label class="visually-hidden" for="contentInput">Markdown 正文</label>
+          <textarea id="contentInput" aria-label="Markdown 正文" spellcheck="true" placeholder="从一个想法开始…&#10;&#10;输入 [[笔记标题]] 建立连接。"></textarea>
+          <div class="link-suggestions" id="linkSuggestions" role="listbox" aria-label="双链笔记建议" hidden></div>
+        </div>
+
+        <article class="preview prose" id="preview" aria-label="笔记阅读预览" hidden></article>
+
+        <footer class="document-footer">
+          <span id="saveStatus"><i aria-hidden="true"></i> 已保存</span>
+          <span id="documentStats">0 字 · 0 条连接</span>
+        </footer>
+      </div>
+    </section>
+
+    <aside class="context-rail" id="contextRail" aria-labelledby="contextHeading">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">THREADS / 脉络</span>
+          <h2 id="contextHeading">当前连接</h2>
+        </div>
+        <button class="icon-button subtle" id="refreshGraphButton" type="button" aria-label="刷新关系图">↻</button>
+      </div>
+
+      <section class="mini-map-section" aria-labelledby="miniMapHeading">
+        <div class="section-label">
+          <h3 id="miniMapHeading">局部星图</h3>
+          <span id="connectionCount">0 条线</span>
+        </div>
+        <svg class="mini-graph" id="miniGraph" viewBox="0 0 280 180" role="img" aria-label="当前笔记局部关系图"></svg>
+        <button class="graph-open-button" id="openGraphButton" type="button">
+          <span>打开完整星图</span><span aria-hidden="true">↗</span>
+        </button>
+      </section>
+
+      <section class="connection-section" aria-labelledby="outgoingHeading">
+        <div class="section-label">
+          <h3 id="outgoingHeading">这页提到</h3>
+          <span id="outgoingCount">0</span>
+        </div>
+        <ul class="connection-list" id="outgoingList"></ul>
+      </section>
+
+      <section class="connection-section" aria-labelledby="backlinkHeading">
+        <div class="section-label">
+          <h3 id="backlinkHeading">哪些页面提到这里</h3>
+          <span id="backlinkCount">0</span>
+        </div>
+        <ul class="connection-list" id="backlinkList"></ul>
+      </section>
+
+      <div class="context-tip">
+        <span aria-hidden="true">[[ ]]</span>
+        <p>在正文中输入双中括号，把一个想法连接到另一页。</p>
+      </div>
+    </aside>
+  </main>
+
+  <dialog class="graph-dialog" id="graphDialog" aria-labelledby="graphDialogTitle">
+    <div class="dialog-frame">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">ATLAS / 全库视图</span>
+          <h2 id="graphDialogTitle">知识关系星图</h2>
+          <p id="graphSummary">0 则笔记 · 0 条连接</p>
+        </div>
+        <button class="dialog-close" id="closeGraphButton" type="button" aria-label="关闭关系图">×</button>
+      </header>
+      <div class="graph-legend" aria-label="关系图图例">
+        <span><i class="legend-current"></i> 当前笔记</span>
+        <span><i class="legend-note"></i> 已有笔记</span>
+        <span><i class="legend-missing"></i> 待创建页面</span>
+        <span class="graph-instruction">点击节点打开；虚线节点点击后创建</span>
+      </div>
+      <svg class="graph-canvas" id="graphCanvas" viewBox="0 0 1040 640" role="img" aria-label="知识关系图"></svg>
+    </div>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="deleteDialog" aria-labelledby="deleteDialogTitle">
+    <form method="dialog">
+      <span class="dialog-symbol" aria-hidden="true">⌫</span>
+      <h2 id="deleteDialogTitle">删除这则笔记？</h2>
+      <p id="deleteDialogCopy">删除后，其他笔记中的双链会变成待创建页面。此操作无法撤销。</p>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel">保留笔记</button>
+        <button class="button button-danger" id="confirmDeleteButton" value="default">确认删除</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="guide-dialog" id="guideDialog" aria-labelledby="guideDialogTitle">
+    <div class="guide-sheet">
+      <header>
+        <div>
+          <span class="eyebrow">FIELD NOTES / 使用说明</span>
+          <h2 id="guideDialogTitle">三步织起你的知识库</h2>
+        </div>
+        <button class="dialog-close" id="closeGuideButton" type="button" aria-label="关闭使用说明">×</button>
+      </header>
+      <ol class="guide-steps">
+        <li><span>01</span><div><strong>写下一页</strong><p>支持标题、列表、引用、代码块等常用 Markdown。</p></div></li>
+        <li><span>02</span><div><strong>用双链连接</strong><p>输入 <code>[[另一页标题]]</code>。未存在的页面可从链接或星图直接创建。</p></div></li>
+        <li><span>03</span><div><strong>沿脉络重访</strong><p>从全文搜索、反向链接或关系星图回到相关上下文。</p></div></li>
+      </ol>
+      <div class="shortcut-grid">
+        <span><kbd>Ctrl/⌘ K</kbd> 全文搜索</span>
+        <span><kbd>Ctrl/⌘ N</kbd> 新建笔记</span>
+        <span><kbd>Ctrl/⌘ S</kbd> 立即保存</span>
+        <span><kbd>Esc</kbd> 关闭窗口</span>
+      </div>
+      <div class="privacy-note">
+        <strong>隐私说明</strong>
+        <p>LOOM/89 不上传笔记。清除浏览器站点数据会同时清除本地知识库，请定期导出 JSON 备份。</p>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="knowledge-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

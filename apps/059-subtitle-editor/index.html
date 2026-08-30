@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#dce3e6">
+  <meta name="description" content="CUT/59 是一款本地优先的 SRT/VTT 字幕时间轴编辑器，支持视频预览、逐条对齐和双格式导出。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2318242e'/%3E%3Cpath d='M12 18h40v28H12z' fill='none' stroke='%23d7e65a' stroke-width='5'/%3E%3Cpath d='M8 13h8m8 0h8m8 0h8m8 0h4M8 51h8m8 0h8m8 0h8m8 0h4' stroke='%23f7f3e8' stroke-width='4'/%3E%3C/svg%3E">
+  <title>CUT/59 · 字幕走片台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark">CUT</span>
+      <span class="brand-number">/59</span>
+      <span class="brand-copy">LOCAL SUBTITLE BENCH<br><b>字幕走片台</b></span>
+    </a>
+    <div class="head-readout" aria-label="项目状态">
+      <span class="lamp" aria-hidden="true"></span>
+      <span><b id="saveState">草稿已就绪</b><small>视频只留在本机</small></span>
+    </div>
+    <div class="head-actions">
+      <label class="button button-primary" for="videoInput">打开视频</label>
+      <label class="button" for="subtitleInput">导入字幕</label>
+      <button class="button button-quiet" id="newButton" type="button">新建</button>
+      <button class="button button-dark" id="exportButton" type="button" aria-haspopup="true" aria-expanded="false">导出 <span aria-hidden="true">▾</span></button>
+      <div class="export-menu" id="exportMenu" hidden>
+        <button type="button" data-export="srt"><b>SRT</b><span>通用字幕格式</span></button>
+        <button type="button" data-export="vtt"><b>WEBVTT</b><span>网页字幕格式</span></button>
+      </div>
+      <input id="videoInput" type="file" accept="video/*" hidden>
+      <input id="subtitleInput" type="file" accept=".srt,.vtt,text/plain,text/vtt,application/x-subrip" hidden>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <section class="monitor-panel machine-panel" aria-labelledby="monitorTitle">
+      <div class="panel-label">
+        <span>MONITOR / A</span>
+        <h1 id="monitorTitle">画面校准窗</h1>
+        <span class="panel-state" id="videoState">WAITING FOR LOCAL MEDIA</span>
+      </div>
+
+      <div class="monitor-shell">
+        <div class="sprocket sprocket-top" aria-hidden="true"></div>
+        <div class="video-stage is-empty" id="videoStage">
+          <video id="video" preload="metadata" playsinline></video>
+          <div class="video-empty" id="videoEmpty">
+            <span class="reel-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <strong>放入一段本地视频</strong>
+            <span>MP4、WebM 或浏览器支持的格式<br>文件不会上传，也不会写入草稿</span>
+            <label class="inline-open" for="videoInput">选择视频文件</label>
+          </div>
+          <div class="safe-frame" aria-hidden="true"></div>
+          <div class="subtitle-overlay" id="subtitleOverlay" aria-live="off"></div>
+          <div class="monitor-badge"><span id="sourceBadge">NO SOURCE</span><span id="frameReadout">FRAME --</span></div>
+        </div>
+        <div class="sprocket sprocket-bottom" aria-hidden="true"></div>
+      </div>
+
+      <div class="transport" aria-label="视频播放控制">
+        <button class="transport-key" id="stepBackButton" type="button" title="后退约一帧（J）" aria-label="后退约一帧">−1F</button>
+        <button class="play-key" id="playButton" type="button" aria-label="播放视频"><span id="playIcon">▶</span></button>
+        <button class="transport-key" id="stepForwardButton" type="button" title="前进约一帧（L）" aria-label="前进约一帧">+1F</button>
+        <div class="time-readout"><b id="currentReadout">00:00.000</b><span>/</span><span id="durationReadout">00:00.000</span></div>
+        <input class="transport-range" id="transportRange" type="range" min="0" max="60000" value="0" step="1" aria-label="视频播放位置">
+        <button class="mute-key" id="muteButton" type="button" aria-label="静音视频" aria-pressed="false">VOL</button>
+      </div>
+    </section>
+
+    <aside class="cue-panel machine-panel" aria-labelledby="cueTitle">
+      <div class="panel-label cue-heading">
+        <span>CUE SHEETS / B</span>
+        <h2 id="cueTitle">字幕场记单</h2>
+        <button class="add-cue-button" id="addCueButton" type="button">＋ 当前处新增</button>
+      </div>
+      <div class="cue-tools">
+        <label class="search-box">
+          <span>FIND</span>
+          <input id="searchInput" type="search" placeholder="搜索字幕文字" autocomplete="off">
+        </label>
+        <div class="cue-summary">
+          <span><b id="cueCount">0</b> 条</span>
+          <span class="warning-summary" id="warningSummary"><b>0</b> 提醒</span>
+        </div>
+      </div>
+      <div class="cue-list" id="cueList" role="listbox" aria-label="字幕条目"></div>
+    </aside>
+
+    <section class="timeline-panel machine-panel" aria-labelledby="timelineTitle">
+      <div class="timeline-head">
+        <div>
+          <span>FILM PATH / C</span>
+          <h2 id="timelineTitle">总览走片尺</h2>
+        </div>
+        <p>点击字幕片段定位 · 拖动蓝色读头校准画面</p>
+      </div>
+      <div class="timeline-ruler" id="timelineRuler">
+        <div class="timeline-ticks" id="timelineTicks" aria-hidden="true"></div>
+        <div class="timeline-cues" id="timelineCues"></div>
+        <div class="timeline-playhead" id="timelinePlayhead" aria-hidden="true"><i></i><span></span></div>
+        <input id="timelineRange" type="range" min="0" max="60000" value="0" step="1" aria-label="总览时间轴播放位置">
+      </div>
+      <div class="timeline-legend">
+        <span><i class="legend-normal"></i> 正常字幕</span>
+        <span><i class="legend-active"></i> 当前字幕</span>
+        <span><i class="legend-warning"></i> 时序提醒</span>
+        <b id="timelineEnd">END 01:00.000</b>
+      </div>
+    </section>
+
+    <section class="inspector-panel machine-panel" aria-labelledby="inspectorTitle">
+      <div class="inspector-title">
+        <span>EDIT BAY / D</span>
+        <h2 id="inspectorTitle">字幕检查器</h2>
+        <p id="selectionLabel">选择一条字幕开始校准</p>
+      </div>
+
+      <div class="empty-inspector" id="emptyInspector">
+        <strong>走片尺已装好</strong>
+        <span>从右侧场记单选择字幕，或在当前播放位置新增一条。</span>
+      </div>
+
+      <form class="inspector-form" id="inspectorForm" hidden>
+        <div class="time-fields">
+          <label><span>IN / 开始</span><input id="startInput" class="timecode-input" inputmode="decimal" spellcheck="false" aria-describedby="timeHelp"></label>
+          <button class="set-time-button" id="setStartButton" type="button">取播放头</button>
+          <span class="time-arrow" aria-hidden="true">→</span>
+          <label><span>OUT / 结束</span><input id="endInput" class="timecode-input" inputmode="decimal" spellcheck="false" aria-describedby="timeHelp"></label>
+          <button class="set-time-button" id="setEndButton" type="button">取播放头</button>
+        </div>
+        <span class="visually-hidden" id="timeHelp">格式为时分秒和毫秒，例如 00:01:02.500</span>
+
+        <div class="nudge-strip" aria-label="整条字幕时间微调">
+          <span>整条平移</span>
+          <button type="button" data-nudge="-500">−500ms</button>
+          <button type="button" data-nudge="-100">−100ms</button>
+          <button type="button" data-nudge="100">+100ms</button>
+          <button type="button" data-nudge="500">+500ms</button>
+        </div>
+
+        <label class="caption-field">
+          <span>CAPTION / 字幕文字 <b id="textCount">0/1000</b></span>
+          <textarea id="captionInput" rows="4" maxlength="1000" placeholder="输入画面此刻要显示的字幕"></textarea>
+        </label>
+
+        <div class="inspector-metrics">
+          <span><small>DURATION</small><b id="durationMetric">0.00 s</b></span>
+          <span><small>READ SPEED</small><b id="speedMetric">0 字/秒</b></span>
+          <span><small>STATUS</small><b id="cueStatus">READY</b></span>
+        </div>
+
+        <div class="inspector-actions">
+          <button class="button button-primary" id="jumpButton" type="button">定位并播放</button>
+          <button class="button" id="splitButton" type="button">在播放头拆分</button>
+          <button class="button" id="duplicateButton" type="button">复制</button>
+          <button class="button button-danger" id="deleteButton" type="button">删除</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <span>CUT/59 · 浏览器本地处理 · 支持 SRT / WEBVTT</span>
+    <span>SPACE 播放 · J / L 逐帧 · [ / ] 取入点 / 出点 · ALT + ← / → 微调</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="subtitle-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

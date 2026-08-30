@@ -1,0 +1,19 @@
+{
+  "name": "@100apps/cli-weather",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SKY/86 - a zero-dependency cross-platform weather CLI with ASCII art",
+  "type": "module",
+  "bin": {
+    "weather86": "./bin/weather.js"
+  },
+  "scripts": {
+    "start": "node ./bin/weather.js",
+    "test": "node --test ./test/api.test.js ./test/args.test.js ./test/cli.test.js ./test/format.test.js",
+    "check": "node --check ./bin/weather.js && node --check ./src/args.js && node --check ./src/api.js && node --check ./src/cli.js && node --check ./src/errors.js && node --check ./src/format.js && node --check ./src/weather-codes.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

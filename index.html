@@ -251,20 +251,20 @@ const IDEAS=[
 ["AI口语陪练","TALKBACK/70：六类情景对练+浏览器语音+可信表达反馈+可选AI追问","4","https://jokerlixing.github.io/100apps/apps/070-ai-speaking-coach/"],
 ["情绪日记","TIDE/71：本地情绪潮汐+可解释趋势+自选 AI 反思","4","https://jokerlixing.github.io/100apps/apps/071-emotion-diary/"],
 ["全栈电商 Demo","COUNTER/72：周末市集选品+可信结算+取货码与订单履约台","4","https://jokerlixing.github.io/100apps/apps/072-fullstack-shop/"],
-["论坛社区","发帖/评论/点赞/用户系统","4"],
+["论坛社区","THREADLINE/73：创作评审主题+引用回复+点赞收藏+本地/服务端身份","4","https://jokerlixing.github.io/100apps/apps/073-forum-community/"],
 ["在线协同文档","多人实时编辑同一文档","4"],
-["项目管理看板","Trello式拖拽看板+成员","4"],
+["项目管理看板","RAIL/75：本地冲刺看板+成员筛选+拖拽轨道与JSON备份","4","https://jokerlixing.github.io/100apps/apps/075-project-board/"],
 ["订阅管理","DUE/76：本地订阅台账+30天续费票带+多币种预算提醒","4","https://jokerlixing.github.io/100apps/apps/076-subscription-manager/"],
-["短链聚合平台","短链+二维码+访问统计后台","4"],
+["短链聚合平台","ROUTE/77：自定义短链+本地二维码+渠道访问统计与双模式存储","4","https://jokerlixing.github.io/100apps/apps/077-short-link-hub/"],
 ["私人网盘","DEPOT/78：本地文件入库+资料夹预览+分享口令+回收站与配额台账","4","https://jokerlixing.github.io/100apps/apps/078-private-cloud/"],
-["音乐播放器","歌单管理+歌词滚动+播放控制","4"],
-["视频网站Demo","视频播放+弹幕+播放列表","4"],
+["音乐播放器","REEL/79：本地音频导入+多歌单管理+同步LRC与离线样带","4","https://jokerlixing.github.io/100apps/apps/079-music-player/"],
+["视频网站 Demo","CHANNEL/80：三部公开片单+本地选片+定时弹幕与进度恢复","4","https://jokerlixing.github.io/100apps/apps/080-video-site/"],
 ["直播弹幕系统","模拟直播间+实时弹幕互动","4"],
-["微信小程序商城","小程序版电商，完整下单流程","4"],
+["微信小程序商城","YUNXIU/82：八样山货选品+竹篮结算+本地订单与模拟微信支付","4","https://jokerlixing.github.io/100apps/apps/082-mini-program-shop/"],
 ["桌面便签应用","Electron桌面端+置顶便签","4"],
 ["划词翻译插件","浏览器插件，选中即翻译","4"],
 ["标签页管理插件","一键整理浏览器标签组","4"],
-["CLI天气工具","命令行查天气+ASCII艺术输出","4"],
+["CLI 天气工具","SKY/86：免密城市查询+ASCII天气图+双语单位与JSON输出","5","https://github.com/jokerlixing/100apps/tree/main/apps/086-cli-weather"],
 ["低代码表单构建器","拖拽组件生成表单+导出代码","5"],
 ["可视化大屏编辑器","图表拖拽布局+数据源绑定","5"],
 ["个人知识库Wiki","双链笔记+全文搜索+关系图","5"],
@@ -283,7 +283,8 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",62:"done",63:"done",64:"done",65:"done",66:"done",67:"done",68:"done",69:"done",70:"done",71:"done",72:"done",76:"done",78:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",62:"done",63:"done",64:"done",65:"done",66:"done",67:"done",68:"done",69:"done",70:"done",71:"done",72:"done",73:"done",75:"done",76:"done",77:"done",78:"done",79:"done",80:"done",82:"done"}; // 挑战官方进度
+INIT_DONE[86]="done";
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

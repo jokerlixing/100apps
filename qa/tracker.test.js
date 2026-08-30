@@ -492,6 +492,41 @@ test('official completion state migrates a stale app 074 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 090 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app90 = ideas[89];
+
+  assert.equal(app90[0], '自动化工作流引擎');
+  assert.match(app90[1], /^SWITCHYARD\/90/);
+  assert.equal(app90[3], 'https://jokerlixing.github.io/100apps/apps/090-workflow-engine/');
+  assert.equal(doneIds.has(90), true, 'INIT_DONE must mark app 090 as done');
+});
+
+test('official completion state migrates a stale app 090 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:90,name:"自动化工作流引擎",desc:"IFTTT简化版：触发器→动作",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^SWITCHYARD\/90/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/090-workflow-engine/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 099 Mica UI is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

@@ -443,3 +443,17 @@ test('official completion state migrates a stale app 097 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/097-smart-home-control/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 082 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app82 = ideas[81];
+
+  assert.equal(app82[0], '微信小程序商城');
+  assert.match(app82[1], /^YUNXIU\/82/);
+  assert.equal(app82[3], 'https://jokerlixing.github.io/100apps/apps/082-mini-program-shop/');
+  assert.equal(doneIds.has(82), true, 'INIT_DONE must mark app 082 as done');
+  for (const pendingId of [74, 81]) {
+    assert.equal(doneIds.has(pendingId), false, `INIT_DONE must preserve pending app ${pendingId}`);
+  }
+});

@@ -102,4 +102,3 @@ test('shifts a cue without allowing a negative start', () => {
     { id: 'a', startMs: 0, endMs: 800, text: 'A' }
   );
 });
-

@@ -59,4 +59,3 @@ node --check apps/059-subtitle-editor/app.js
 - `subtitle-core.js`：无 DOM 依赖的字幕领域逻辑
 - `subtitle-core.test.js`：Node 单元测试
 - `app.js`：视频、编辑、草稿、导入导出和键盘交互
-

@@ -602,4 +602,3 @@
   bindEvents();
   renderProject();
 })();
-

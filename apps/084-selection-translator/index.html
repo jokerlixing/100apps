@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f3f0e8">
+  <meta name="description" content="MARGIN / 84 划词翻译插件：在阅读现场保留语境的双栏翻译批注。">
+  <title>MARGIN / 84 · 划词翻译插件</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#reader">跳到阅读校样</a>
+
+  <header class="topbar">
+    <a class="brand" href="../../" aria-label="返回 100 Apps 挑战追踪器">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span><b>MARGIN / 84</b><small>SELECTION TRANSLATOR</small></span>
+    </a>
+    <div class="run-state" aria-label="当前运行模式">
+      <span class="signal-dot" aria-hidden="true"></span>
+      <span><b>本地校样模式</b><small>无需密钥 · 不发送选区</small></span>
+    </div>
+    <a class="tracker-link" href="../../">挑战追踪器 <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main class="workspace">
+    <aside class="control-rail" aria-labelledby="control-title">
+      <div class="rail-heading">
+        <p class="kicker">PROOF SETTINGS</p>
+        <h1 id="control-title">把译文留在<br>阅读的边上。</h1>
+        <p>选择正文中的一句话，批注签会出现在选区旁。公开演示只使用可审计的本地短语库。</p>
+      </div>
+
+      <form class="language-form" id="languageForm">
+        <div class="field-pair">
+          <label>
+            <span>源语言</span>
+            <select id="sourceLanguage" name="sourceLanguage">
+              <option value="auto">自动识别</option>
+              <option value="en">English</option>
+              <option value="zh-CN">简体中文</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+            </select>
+          </label>
+          <span class="pair-arrow" aria-hidden="true">→</span>
+          <label>
+            <span>目标语言</span>
+            <select id="targetLanguage" name="targetLanguage">
+              <option value="zh-CN">简体中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+            </select>
+          </label>
+        </div>
+        <label class="switch-row" for="autoTranslate">
+          <span><b>选完立即翻译</b><small>关闭时由批注签触发</small></span>
+          <input id="autoTranslate" type="checkbox">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+      </form>
+
+      <section class="ledger" aria-labelledby="ledger-title">
+        <div class="section-head">
+          <div><span class="section-index">RECENT</span><h2 id="ledger-title">最近批注</h2></div>
+          <button class="text-button" id="clearHistory" type="button">清空</button>
+        </div>
+        <ol id="historyList" class="history-list">
+          <li class="empty-history">还没有批注。<br>从右侧选择一整句开始。</li>
+        </ol>
+      </section>
+
+      <section class="privacy-slip" aria-labelledby="privacy-title">
+        <span class="staple" aria-hidden="true"></span>
+        <p class="kicker">PRIVACY LEDGER</p>
+        <h2 id="privacy-title">只处理你明确选择的文字</h2>
+        <ul>
+          <li>页面内容不会被整页读取</li>
+          <li>演示版不会发送网络请求</li>
+          <li>安装版历史仅保存在浏览器本地</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="reader" id="reader" aria-labelledby="reader-title">
+      <header class="reader-header">
+        <div>
+          <p class="kicker">READER PROOF · ISSUE 04</p>
+          <h2 id="reader-title">语境如何穿过一条细线</h2>
+        </div>
+        <div class="folio"><span>84</span><small>APP / L4</small></div>
+      </header>
+
+      <div class="proof-stage">
+        <article class="reading-copy" id="readingCopy">
+          <p class="deck">这是一张可操作的译者校样纸。拖动选择下列蓝线标记的整句，或使用句尾的“整句”按钮。</p>
+
+          <section class="passage" data-passage="01">
+            <div class="passage-meta"><span>EN / SOURCE</span><span>32 WORDS</span></div>
+            <p>Translation begins before the first word is replaced. The reader notices rhythm, audience and intent, then decides which details must cross the line intact.</p>
+            <div class="demo-line">
+              <span class="selectable-sentence">Measure twice, translate once.</span>
+              <button class="select-sentence" type="button" data-source="en" data-text="Measure twice, translate once.">整句</button>
+            </div>
+          </section>
+
+          <section class="passage" data-passage="02">
+            <div class="passage-meta"><span>EN / SOURCE</span><span>CONTEXT NOTE</span></div>
+            <p>A narrow tool can still be honest about its boundary. It should say when a phrase comes from a local sample and when a remote service supplied the answer.</p>
+            <div class="demo-line">
+              <span class="selectable-sentence">A good translation carries context, not just words.</span>
+              <button class="select-sentence" type="button" data-source="en" data-text="A good translation carries context, not just words.">整句</button>
+            </div>
+          </section>
+
+          <section class="passage passage-cn" data-passage="03">
+            <div class="passage-meta"><span>ZH-CN / SOURCE</span><span>反向校样</span></div>
+            <p>翻译界面也需要解释自己的证据：选区是否离开设备、结果来自缓存还是在线服务、失败之后用户还能做什么。</p>
+            <div class="demo-line">
+              <span class="selectable-sentence">语言不是替换词语，而是转移语境。</span>
+              <button class="select-sentence" type="button" data-source="zh-CN" data-target="en" data-text="语言不是替换词语，而是转移语境。">整句</button>
+            </div>
+          </section>
+        </article>
+
+        <aside class="translation-proof" id="translationProof" aria-labelledby="proof-title">
+          <div class="proof-tab"><span id="proofProvider">READY</span><small id="proofTiming">0 ms</small></div>
+          <div class="proof-number" aria-hidden="true">⌜ 84</div>
+          <p class="proof-label" id="proof-title">CURRENT MARGIN NOTE</p>
+          <div class="proof-empty" id="proofEmpty">
+            <span class="selection-glyph" aria-hidden="true">Aa</span>
+            <h3>先选择一整句</h3>
+            <p>译文会保留在这条校对线右侧；原文、语言方向与来源始终可见。</p>
+          </div>
+          <div class="proof-result" id="proofResult" hidden>
+            <div class="language-stamp"><span id="sourceStamp">EN</span><i aria-hidden="true"></i><span id="targetStamp">ZH-CN</span></div>
+            <blockquote id="sourceOutput"></blockquote>
+            <div class="proof-rule" aria-hidden="true"><span></span></div>
+            <p class="translation-output" id="translationOutput"></p>
+            <p class="result-note" id="resultNote"></p>
+            <div class="result-actions">
+              <button id="copyTranslation" type="button"><span aria-hidden="true">⌘</span> 复制译文</button>
+              <button id="speakTranslation" type="button"><span aria-hidden="true">◖</span> 朗读</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="reader-footer">
+        <p><b>演示边界：</b>仅内置 8 组短语，用于验证选区、语言、历史和无障碍流程。</p>
+        <p>安装扩展后由后台服务调用在线翻译；失败时不会伪造结果。</p>
+      </footer>
+    </section>
+  </main>
+
+  <button class="selection-action" id="selectionAction" type="button" hidden>
+    <span aria-hidden="true">译</span><b>翻译选区</b><small id="selectionBytes">0 B</small>
+  </button>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="translator-core.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>

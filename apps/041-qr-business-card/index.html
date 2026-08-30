@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#ffded5">
+  <meta name="description" content="STAMP/41 二维码名片：在浏览器本地生成 vCard 联系人二维码、VCF 文件与 PNG 图片。">
+  <title>STAMP/41 二维码名片 · 通讯录制版室</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" onerror="window.__qrLoadFailed=true"></script>
+  <style>
+    :root{
+      --paper:#ffded5;
+      --ink:#173f38;
+      --blue:#3157e6;
+      --red:#ef563f;
+      --yellow:#ffd45c;
+      --white:#fffaf4;
+      --muted:#5c6d68;
+      --line:2px solid var(--ink);
+      --shadow:8px 8px 0 var(--ink);
+    }
+    *{box-sizing:border-box}
+    html{color-scheme:light;scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-width:320px;
+      color:var(--ink);
+      background-color:var(--paper);
+      background-image:
+        radial-gradient(circle at 1px 1px,rgba(23,63,56,.13) 1px,transparent 1.2px),
+        linear-gradient(90deg,transparent 49.8%,rgba(49,87,230,.05) 50%,transparent 50.2%);
+      background-size:15px 15px,100% 100%;
+      font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+      line-height:1.5;
+    }
+    button,input,textarea{font:inherit}
+    button{color:inherit}
+    a{color:inherit}
+    button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
+      outline:4px solid var(--yellow);
+      outline-offset:3px;
+    }
+    .shell{width:min(1440px,calc(100% - 36px));margin:18px auto 46px}
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      min-height:62px;
+      padding:11px 16px;
+      border:var(--line);
+      background:var(--white);
+      box-shadow:5px 5px 0 var(--blue);
+    }
+    .brand{
+      display:flex;
+      align-items:baseline;
+      gap:12px;
+      font-family:"Arial Black","Microsoft YaHei",sans-serif;
+      letter-spacing:-.04em;
+    }
+    .brand-mark{padding:4px 9px;background:var(--ink);color:var(--white);letter-spacing:.05em}
+    .brand-name{font-size:clamp(18px,2vw,26px)}
+    .privacy{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;letter-spacing:.04em}
+    .privacy-dot{width:13px;height:13px;border:2px solid var(--ink);border-radius:50%;background:#65d2a8;box-shadow:3px 0 0 var(--yellow)}
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr);
+      gap:28px;
+      align-items:end;
+      padding:56px 8px 42px;
+    }
+    .eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 12px;font:800 12px/1.2 "Cascadia Mono",Consolas,monospace;letter-spacing:.14em;text-transform:uppercase}
+    .eyebrow::before{content:"";width:42px;height:8px;background:var(--red);border:2px solid var(--ink)}
+    h1{
+      max-width:900px;
+      margin:0;
+      font:900 clamp(45px,7vw,104px)/.92 "Arial Black","Microsoft YaHei",sans-serif;
+      letter-spacing:-.075em;
+    }
+    h1 .offset{position:relative;display:inline-block;color:var(--white);-webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--blue),-3px -2px 0 var(--red)}
+    .thesis{max-width:680px;margin:26px 0 0;font-size:clamp(17px,2vw,23px);font-weight:750}
+    .hero-note{
+      position:relative;
+      padding:24px 25px 22px;
+      border:var(--line);
+      background:var(--yellow);
+      box-shadow:var(--shadow);
+      transform:rotate(1.2deg);
+    }
+    .hero-note::before,.hero-note::after{content:"";position:absolute;width:22px;height:22px;border-color:var(--ink)}
+    .hero-note::before{left:8px;top:8px;border-left:2px solid;border-top:2px solid}
+    .hero-note::after{right:8px;bottom:8px;border-right:2px solid;border-bottom:2px solid}
+    .hero-note strong{display:block;margin-bottom:5px;font:900 22px/1.2 "Arial Black","Microsoft YaHei",sans-serif}
+    .hero-note p{margin:0;font-size:14px;font-weight:650}
+    .workspace{display:grid;grid-template-columns:minmax(360px,.86fr) minmax(520px,1.14fr);border:var(--line);background:var(--white);box-shadow:10px 10px 0 var(--ink)}
+    .editor{padding:28px;border-right:var(--line);background:rgba(255,250,244,.95)}
+    .preview-zone{padding:28px;background:linear-gradient(145deg,rgba(49,87,230,.09),transparent 46%),var(--paper)}
+    .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:23px}
+    .section-kicker{margin:0 0 4px;font:800 11px/1.2 "Cascadia Mono",Consolas,monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--blue)}
+    h2{margin:0;font:900 clamp(24px,3vw,38px)/1.05 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-.04em}
+    .head-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .mini-btn,.action-btn{
+      border:var(--line);
+      background:var(--white);
+      cursor:pointer;
+      font-weight:850;
+      transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+    }
+    .mini-btn{padding:8px 11px;font-size:12px;box-shadow:3px 3px 0 var(--ink)}
+    .mini-btn:hover,.action-btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+    .mini-btn.danger.is-armed{background:var(--red);color:var(--white)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .field.wide{grid-column:1/-1}
+    .label-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+    label{font-size:13px;font-weight:850}
+    .req{color:var(--red)}
+    .hint{font:700 10px/1.2 "Cascadia Mono",Consolas,monospace;color:var(--muted)}
+    input,textarea{
+      width:100%;
+      border:2px solid var(--ink);
+      border-radius:0;
+      padding:11px 12px;
+      background:#fff;
+      color:var(--ink);
+      transition:box-shadow .16s ease,background .16s ease;
+    }
+    input:hover,textarea:hover{background:#fffdf9}
+    input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--red);box-shadow:3px 3px 0 var(--red)}
+    textarea{min-height:82px;resize:vertical}
+    .error{min-height:16px;margin:0;color:#b22f22;font-size:11px;font-weight:800}
+    .contact-rule{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:-1px 0 0;padding:9px 11px;border:1px dashed var(--ink);background:#fff8d9;font-size:11px;font-weight:750}
+    .contact-rule::before{content:"*";display:grid;place-items:center;width:19px;height:19px;flex:0 0 auto;background:var(--yellow);border:1px solid var(--ink);font-weight:900}
+    .save-note{display:flex;align-items:center;gap:9px;margin:18px 0 0;padding-top:15px;border-top:1px dashed rgba(23,63,56,.45);color:var(--muted);font-size:11px;font-weight:700}
+    .save-note b{color:var(--ink)}
+    .preview-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:23px}
+    .status-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border:2px solid var(--ink);background:var(--yellow);font:800 10px/1.2 "Cascadia Mono",Consolas,monospace;text-transform:uppercase;box-shadow:3px 3px 0 var(--ink)}
+    .status-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ink)}
+    .status-chip.bad{background:var(--red);color:white}
+    .status-chip.bad::before{background:white}
+    .print-stage{position:relative;padding:20px 22px 24px}
+    .registration{position:absolute;width:30px;height:30px;border:2px solid var(--ink);border-radius:50%;background:conic-gradient(var(--red) 0 25%,var(--yellow) 0 50%,var(--blue) 0 75%,var(--white) 0)}
+    .registration::after{content:"";position:absolute;inset:7px;border:2px solid var(--ink);border-radius:50%;background:var(--paper)}
+    .registration.one{top:-2px;left:0}.registration.two{right:0;bottom:0;transform:scale(.72)}
+    .business-card{
+      position:relative;
+      min-height:348px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 214px;
+      gap:22px;
+      align-items:stretch;
+      padding:31px;
+      border:3px solid var(--ink);
+      background:var(--white);
+      box-shadow:9px 9px 0 var(--blue),-7px -7px 0 rgba(239,86,63,.85);
+      overflow:hidden;
+    }
+    .business-card::before{content:"STAMP/41";position:absolute;right:-14px;top:37px;padding:3px 24px;background:var(--yellow);border:2px solid var(--ink);font:900 10px/1 "Cascadia Mono",Consolas,monospace;transform:rotate(90deg)}
+    .card-copy{display:flex;flex-direction:column;min-width:0}
+    .card-no{margin:0 0 auto;font:800 11px/1.2 "Cascadia Mono",Consolas,monospace;letter-spacing:.14em;color:var(--blue)}
+    .card-name{
+      margin:28px 0 9px;
+      overflow-wrap:anywhere;
+      font:900 clamp(31px,4.3vw,63px)/.94 "Arial Black","Microsoft YaHei",sans-serif;
+      letter-spacing:-.07em;
+      text-shadow:3px 2px 0 rgba(49,87,230,.28),-2px -1px 0 rgba(239,86,63,.25);
+    }
+    .card-role{margin:0;font-weight:850;color:var(--blue)}
+    .card-company{margin:2px 0 24px;font-size:13px;font-weight:700}
+    .card-lines{display:grid;gap:7px;margin-top:auto;font:700 12px/1.35 "Cascadia Mono",Consolas,monospace}
+    .card-line{display:grid;grid-template-columns:18px 1fr;gap:7px;min-width:0}
+    .card-line span:last-child{overflow-wrap:anywhere}
+    .card-line.is-empty{display:none}
+    .qr-panel{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;padding:13px 4px 4px;border-left:2px dashed rgba(23,63,56,.45)}
+    .qr-wrap{position:relative;width:min(100%,190px);aspect-ratio:1;background:white;border:2px solid var(--ink);padding:8px}
+    #qrCanvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+    .qr-placeholder{position:absolute;inset:8px;display:grid;place-items:center;padding:18px;text-align:center;background:repeating-linear-gradient(45deg,#fff,#fff 8px,#f6e9e3 8px,#f6e9e3 16px);font-size:12px;font-weight:850}
+    .qr-placeholder[hidden]{display:none}
+    .seal{
+      margin-top:12px;
+      padding:5px 9px;
+      border:2px solid var(--red);
+      color:var(--red);
+      font:900 10px/1.1 "Cascadia Mono",Consolas,monospace;
+      letter-spacing:.08em;
+      text-align:center;
+      transform:rotate(-2.5deg);
+      opacity:.42;
+    }
+    .seal.is-ready{opacity:1;animation:stamp-in .38s cubic-bezier(.2,.8,.2,1)}
+    @keyframes stamp-in{0%{transform:scale(1.7) rotate(-6deg);opacity:0}100%{transform:scale(1) rotate(-2.5deg);opacity:1}}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);margin:18px 0 0;border:var(--line);background:var(--white)}
+    .metric{padding:10px 12px;min-width:0;border-right:2px solid var(--ink)}
+    .metric:last-child{border-right:0}
+    .metric span{display:block;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase}
+    .metric strong{display:block;margin-top:2px;font:850 13px/1.25 "Cascadia Mono",Consolas,monospace;overflow-wrap:anywhere}
+    .plate-message{min-height:23px;margin:12px 0 0;font-size:12px;font-weight:800;color:var(--muted)}
+    .plate-message.error{color:#b22f22}
+    .export-rail{display:grid;grid-template-columns:1.15fr 1fr .85fr;gap:11px;margin-top:15px}
+    .action-btn{min-height:54px;padding:12px 14px;background:var(--white);box-shadow:4px 4px 0 var(--ink);text-align:left}
+    .action-btn.primary{background:var(--ink);color:var(--white);box-shadow:4px 4px 0 var(--red)}
+    .action-btn.secondary{background:var(--blue);color:var(--white);box-shadow:4px 4px 0 var(--yellow)}
+    .action-btn small{display:block;margin-top:2px;font:700 10px/1.2 "Cascadia Mono",Consolas,monospace;opacity:.75}
+    .action-btn:disabled{cursor:not-allowed;opacity:.42;box-shadow:none}
+    .vcard-panel{margin-top:22px;border:var(--line);background:var(--ink);color:#dff7ee}
+    .vcard-panel summary{padding:12px 15px;cursor:pointer;font-weight:850;list-style:none}
+    .vcard-panel summary::-webkit-details-marker{display:none}
+    .vcard-panel summary::after{content:"＋";float:right;color:var(--yellow)}
+    .vcard-panel[open] summary::after{content:"－"}
+    #vcardText{margin:0;padding:0 15px 15px;white-space:pre-wrap;overflow-wrap:anywhere;font:600 11px/1.55 "Cascadia Mono",Consolas,monospace;color:#dff7ee}
+    .footer{display:flex;justify-content:space-between;gap:20px;margin-top:28px;padding:18px 2px 0;border-top:2px solid var(--ink);font-size:11px;font-weight:750}
+    .footer a{text-underline-offset:3px}
+    .toast{position:fixed;z-index:20;right:24px;bottom:24px;max-width:min(380px,calc(100vw - 40px));padding:13px 16px;border:2px solid var(--ink);background:var(--yellow);box-shadow:5px 5px 0 var(--ink);font-weight:850;transform:translateY(120px);opacity:0;transition:.22s ease;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media (max-width:1050px){
+      .hero{grid-template-columns:1fr}.hero-note{max-width:560px}
+      .workspace{grid-template-columns:1fr}.editor{border-right:0;border-bottom:var(--line)}
+      .business-card{grid-template-columns:minmax(0,1fr) 230px}
+    }
+    @media (max-width:700px){
+      .shell{width:min(100% - 20px,1440px);margin-top:10px}
+      .topbar{align-items:flex-start}.brand-name{display:none}.privacy{max-width:180px;text-align:right}
+      .hero{padding:44px 2px 32px}.hero-note{margin-right:8px}
+      .editor,.preview-zone{padding:20px 15px}
+      .section-head,.preview-head{flex-direction:column}.head-tools{justify-content:flex-start}
+      .form-grid{grid-template-columns:1fr}.field.wide,.contact-rule{grid-column:auto}
+      .print-stage{padding:17px 10px 19px}
+      .business-card{grid-template-columns:1fr;padding:25px 23px;gap:22px}
+      .card-no{margin-bottom:10px}.card-name{margin-top:16px}.card-company{margin-bottom:17px}
+      .qr-panel{border-left:0;border-top:2px dashed rgba(23,63,56,.45);padding-top:20px}
+      .qr-wrap{width:190px}
+      .metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:2px solid var(--ink)}
+      .export-rail{grid-template-columns:1fr}.action-btn{text-align:center}
+      .footer{flex-direction:column}
+    }
+    @media (max-width:390px){
+      .privacy{font-size:10px}.hero h1{font-size:42px}.hero-note{padding:20px}
+      .editor,.preview-zone{padding-left:11px;padding-right:11px}.print-stage{padding-left:8px;padding-right:8px}
+      .business-card{padding:23px 18px}.card-name{font-size:36px}.metrics{font-size:11px}
+    }
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">STAMP/41</span><span class="brand-name">通讯录制版室</span></div>
+      <div class="privacy"><span class="privacy-dot" aria-hidden="true"></span>联系人仅在当前浏览器处理</div>
+    </header>
+
+    <section class="hero" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">vCard identity printing office</p>
+        <h1 id="pageTitle">把一次认识，压成一个<span class="offset">可以保存</span>的瞬间。</h1>
+        <p class="thesis">填写联系方式，现场制成一枚可扫描的通讯录印章。对方扫码后，不必手抄，也不必注册。</p>
+      </div>
+      <aside class="hero-note" aria-label="隐私说明">
+        <strong>不经过服务器。</strong>
+        <p>vCard、二维码、VCF 和 PNG 都由你的浏览器现场生成；只有本机草稿会被保存。</p>
+      </aside>
+    </section>
+
+    <section class="workspace" aria-label="二维码名片制作工作台">
+      <div class="editor">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Plate 01 · contact data</p>
+            <h2>装入身份资料</h2>
+          </div>
+          <div class="head-tools">
+            <button class="mini-btn" id="sampleBtn" type="button">装入测试资料</button>
+            <button class="mini-btn danger" id="clearBtn" type="button">清空草稿</button>
+          </div>
+        </div>
+
+        <form id="cardForm" novalidate>
+          <div class="form-grid">
+            <div class="field wide">
+              <div class="label-row"><label for="fullName">姓名 <span class="req">*</span></label><span class="hint">NAME / 40</span></div>
+              <input id="fullName" name="fullName" type="text" maxlength="40" autocomplete="name" placeholder="例如：林小星" aria-describedby="fullNameError">
+              <p class="error" id="fullNameError"></p>
+            </div>
+
+            <div class="field">
+              <div class="label-row"><label for="role">职位</label><span class="hint">TITLE / 40</span></div>
+              <input id="role" name="role" type="text" maxlength="40" autocomplete="organization-title" placeholder="例如：产品构建者">
+              <p class="error" aria-hidden="true"></p>
+            </div>
+
+            <div class="field">
+              <div class="label-row"><label for="company">公司 / 团队</label><span class="hint">ORG / 50</span></div>
+              <input id="company" name="company" type="text" maxlength="50" autocomplete="organization" placeholder="例如：像素工作室">
+              <p class="error" aria-hidden="true"></p>
+            </div>
+
+            <div class="contact-rule" id="contactRule">电话和邮箱至少填写一项，才能让扫码者真正保存并联系你。</div>
+
+            <div class="field">
+              <div class="label-row"><label for="phone">电话 <span class="req">*</span></label><span class="hint">TEL / 24</span></div>
+              <input id="phone" name="phone" type="tel" maxlength="24" autocomplete="tel" placeholder="+86 138 0000 0041" aria-describedby="phoneError contactRule">
+              <p class="error" id="phoneError"></p>
+            </div>
+
+            <div class="field">
+              <div class="label-row"><label for="email">邮箱 <span class="req">*</span></label><span class="hint">EMAIL / 80</span></div>
+              <input id="email" name="email" type="email" maxlength="80" autocomplete="email" placeholder="hello@example.com" aria-describedby="emailError contactRule">
+              <p class="error" id="emailError"></p>
+            </div>
+
+            <div class="field wide">
+              <div class="label-row"><label for="website">网站</label><span class="hint">URL / 120</span></div>
+              <input id="website" name="website" type="url" maxlength="120" autocomplete="url" placeholder="example.com（会自动补全 https://）" aria-describedby="websiteError">
+              <p class="error" id="websiteError"></p>
+            </div>
+
+            <div class="field wide">
+              <div class="label-row"><label for="address">地址</label><span class="hint">ADR / 100</span></div>
+              <input id="address" name="address" type="text" maxlength="100" autocomplete="street-address" placeholder="例如：上海市创意路 41 号">
+              <p class="error" aria-hidden="true"></p>
+            </div>
+
+            <div class="field wide">
+              <div class="label-row"><label for="note">备注</label><span class="hint" id="noteCount">NOTE / 0·160</span></div>
+              <textarea id="note" name="note" maxlength="160" placeholder="例如：正在完成 100 个应用挑战，很高兴认识你。"></textarea>
+              <p class="error" aria-hidden="true"></p>
+            </div>
+          </div>
+        </form>
+        <p class="save-note"><span aria-hidden="true">●</span><span><b id="draftState">尚未保存草稿</b> · 数据只写入此浏览器的 localStorage</span></p>
+      </div>
+
+      <div class="preview-zone">
+        <div class="preview-head">
+          <div>
+            <p class="section-kicker">Plate 02 · registration proof</p>
+            <h2>校准名片印版</h2>
+          </div>
+          <span class="status-chip bad" id="statusChip">等待资料</span>
+        </div>
+
+        <div class="print-stage">
+          <span class="registration one" aria-hidden="true"></span>
+          <article class="business-card" aria-label="电子名片实时预览">
+            <div class="card-copy">
+              <p class="card-no">CONTACT PROOF · NO.041</p>
+              <h3 class="card-name" id="previewName">你的姓名</h3>
+              <p class="card-role" id="previewRole">你的职位</p>
+              <p class="card-company" id="previewCompany">公司 / 团队</p>
+              <div class="card-lines">
+                <div class="card-line is-empty" id="phoneLine"><span aria-hidden="true">T</span><span id="previewPhone"></span></div>
+                <div class="card-line is-empty" id="emailLine"><span aria-hidden="true">E</span><span id="previewEmail"></span></div>
+                <div class="card-line is-empty" id="webLine"><span aria-hidden="true">W</span><span id="previewWebsite"></span></div>
+              </div>
+            </div>
+            <div class="qr-panel">
+              <div class="qr-wrap">
+                <canvas id="qrCanvas" width="210" height="210" aria-label="联系人二维码"></canvas>
+                <div class="qr-placeholder" id="qrPlaceholder">资料通过校验后<br>开始制版</div>
+              </div>
+              <div class="seal" id="readySeal">可保存联系人 · VCARD</div>
+            </div>
+          </article>
+          <span class="registration two" aria-hidden="true"></span>
+        </div>
+
+        <div class="metrics" aria-label="二维码制版指标">
+          <div class="metric"><span>UTF-8 数据</span><strong id="byteMetric">0 B</strong></div>
+          <div class="metric"><span>QR 版本</span><strong id="versionMetric">—</strong></div>
+          <div class="metric"><span>模块矩阵</span><strong id="moduleMetric">—</strong></div>
+          <div class="metric"><span>容错级别</span><strong>M / 15%</strong></div>
+        </div>
+        <p class="plate-message error" id="plateMessage" role="status" aria-live="polite">填写姓名，以及电话或邮箱，即可生成联系人二维码。</p>
+
+        <div class="export-rail">
+          <button class="action-btn primary" id="downloadVcfBtn" type="button" disabled>下载联系人 .vcf<small>手机通讯录可直接导入</small></button>
+          <button class="action-btn secondary" id="downloadPngBtn" type="button" disabled>下载二维码 PNG<small>适合海报与名片印刷</small></button>
+          <button class="action-btn" id="copyVcardBtn" type="button" disabled>复制 vCard<small>查看并复用原始文本</small></button>
+        </div>
+
+        <details class="vcard-panel">
+          <summary>查看当前 vCard 原始文本</summary>
+          <pre id="vcardText">BEGIN:VCARD
+VERSION:3.0
+END:VCARD</pre>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>100 Apps Challenge · App #041 · STAMP/41</span>
+      <span>二维码算法：<a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noreferrer">qrcode-generator 1.4.4</a> · MIT License</span>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (()=>{
+      "use strict";
+      const STORAGE_KEY="stamp41-draft-v2";
+      const FIELD_IDS=["fullName","role","company","phone","email","website","address","note"];
+      const $=id=>document.getElementById(id);
+      const fields=Object.fromEntries(FIELD_IDS.map(id=>[id,$(id)]));
+      const exportButtons=[$("downloadVcfBtn"),$("downloadPngBtn"),$("copyVcardBtn")];
+      const encoder=new TextEncoder();
+      let currentVCard="";
+      let currentQR=null;
+      let clearArmed=false;
+      let clearTimer=0;
+      let saveTimer=0;
+      let stampWasReady=false;
+      let toastTimer=0;
+
+      const sample={
+        fullName:"林小星",
+        role:"产品构建者",
+        company:"像素工作室",
+        phone:"+86 138 0000 0041",
+        email:"hello@example.com",
+        website:"https://example.com",
+        address:"上海市创意路 41 号",
+        note:"正在完成 100 个应用挑战，很高兴认识你。"
+      };
+
+      function getDraft(){
+        return Object.fromEntries(FIELD_IDS.map(id=>[id,fields[id].value.trim()]));
+      }
+
+      function setDraft(draft){
+        FIELD_IDS.forEach(id=>{fields[id].value=typeof draft[id]==="string"?draft[id]:""});
+        update(false);
+      }
+
+      function escapeVCard(value){
+        return String(value||"")
+          .replace(/\\/g,"\\\\")
+          .replace(/\r?\n/g,"\\n")
+          .replace(/;/g,"\\;")
+          .replace(/,/g,"\\,");
+      }
+
+      function normalizeUrl(value){
+        if(!value) return "";
+        const candidate=/^[a-z][a-z0-9+.-]*:\/\//i.test(value)?value:`https://${value}`;
+        const url=new URL(candidate);
+        if(!["http:","https:"].includes(url.protocol)) throw new Error("protocol");
+        return url.href.replace(/\/$/,"");
+      }
+
+      function normalizePhone(value){
+        return value.replace(/[^+\d]/g,"");
+      }
+
+      function validate(draft){
+        const errors={};
+        if(!draft.fullName) errors.fullName="请填写姓名，通讯录需要一个联系人名称。";
+        if(!draft.phone&&!draft.email){
+          errors.phone="电话和邮箱至少填写一项。";
+          errors.email="电话和邮箱至少填写一项。";
+        }
+        if(draft.phone&&!/^[+()\d\s.\-]{6,24}$/.test(draft.phone)) errors.phone="电话号码包含不支持的字符，或长度不足。";
+        if(draft.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) errors.email="请输入完整邮箱，例如 hello@example.com。";
+        if(draft.website){
+          try{normalizeUrl(draft.website)}catch(error){errors.website="请输入可访问的 http 或 https 网站地址。"}
+        }
+        return errors;
+      }
+
+      function buildVCard(draft){
+        const lines=["BEGIN:VCARD","VERSION:3.0",`N:${escapeVCard(draft.fullName)};;;;`,`FN:${escapeVCard(draft.fullName)}`];
+        if(draft.company) lines.push(`ORG:${escapeVCard(draft.company)}`);
+        if(draft.role) lines.push(`TITLE:${escapeVCard(draft.role)}`);
+        if(draft.phone) lines.push(`TEL;TYPE=CELL:${normalizePhone(draft.phone)}`);
+        if(draft.email) lines.push(`EMAIL;TYPE=INTERNET:${escapeVCard(draft.email)}`);
+        if(draft.website) lines.push(`URL:${escapeVCard(normalizeUrl(draft.website))}`);
+        if(draft.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(draft.address)};;;;`);
+        if(draft.note) lines.push(`NOTE:${escapeVCard(draft.note)}`);
+        lines.push("END:VCARD");
+        return lines.join("\r\n");
+      }
+
+      function configureQR(){
+        if(typeof window.qrcode!=="function") return false;
+        if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"]){
+          qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
+        }else{
+          qrcode.stringToBytes=text=>Array.from(encoder.encode(text));
+        }
+        return true;
+      }
+
+      function drawQR(text){
+        if(!configureQR()) throw new Error("dependency");
+        const qr=qrcode(0,"M");
+        qr.addData(text);
+        qr.make();
+        const count=qr.getModuleCount();
+        const margin=4;
+        const target=760;
+        const cell=Math.max(4,Math.floor(target/(count+margin*2)));
+        const dimension=cell*(count+margin*2);
+        const canvas=$("qrCanvas");
+        const context=canvas.getContext("2d");
+        canvas.width=dimension;
+        canvas.height=dimension;
+        context.imageSmoothingEnabled=false;
+        context.fillStyle="#fffaf4";
+        context.fillRect(0,0,dimension,dimension);
+        context.fillStyle="#173f38";
+        for(let row=0;row<count;row++){
+          for(let column=0;column<count;column++){
+            if(qr.isDark(row,column)) context.fillRect((column+margin)*cell,(row+margin)*cell,cell,cell);
+          }
+        }
+        return {qr,count,version:(count-17)/4,dimension};
+      }
+
+      function renderErrors(errors){
+        ["fullName","phone","email","website"].forEach(id=>{
+          const message=errors[id]||"";
+          $(id+"Error").textContent=message;
+          fields[id].setAttribute("aria-invalid",message?"true":"false");
+        });
+      }
+
+      function renderPreview(draft){
+        $("previewName").textContent=draft.fullName||"你的姓名";
+        $("previewRole").textContent=draft.role||"你的职位";
+        $("previewCompany").textContent=draft.company||"公司 / 团队";
+        const normalizedWebsite=draft.website?(()=>{try{return normalizeUrl(draft.website)}catch(error){return draft.website}})():"";
+        [["phone",draft.phone],["email",draft.email],["web",normalizedWebsite]].forEach(([prefix,value])=>{
+          $(prefix+"Line").classList.toggle("is-empty",!value);
+          $("preview"+(prefix==="web"?"Website":prefix[0].toUpperCase()+prefix.slice(1))).textContent=value;
+        });
+        $("noteCount").textContent=`NOTE / ${fields.note.value.length}·160`;
+      }
+
+      function setReady(ready,message){
+        exportButtons.forEach(button=>button.disabled=!ready);
+        $("statusChip").textContent=ready?"印版已校准":"等待资料";
+        $("statusChip").classList.toggle("bad",!ready);
+        $("qrPlaceholder").hidden=ready;
+        $("readySeal").classList.toggle("is-ready",ready);
+        $("plateMessage").textContent=message;
+        $("plateMessage").classList.toggle("error",!ready);
+        if(ready&&!stampWasReady){
+          $("readySeal").classList.remove("is-ready");
+          requestAnimationFrame(()=>requestAnimationFrame(()=>$("readySeal").classList.add("is-ready")));
+        }
+        stampWasReady=ready;
+      }
+
+      function saveDraft(draft){
+        clearTimeout(saveTimer);
+        $("draftState").textContent="正在保存…";
+        saveTimer=setTimeout(()=>{
+          try{
+            localStorage.setItem(STORAGE_KEY,JSON.stringify(draft));
+            $("draftState").textContent="草稿已保存在本机";
+          }catch(error){
+            $("draftState").textContent="浏览器阻止了草稿保存";
+          }
+        },180);
+      }
+
+      function update(shouldSave=true){
+        const draft=getDraft();
+        const errors=validate(draft);
+        renderErrors(errors);
+        renderPreview(draft);
+        if(shouldSave) saveDraft(draft);
+        currentQR=null;
+        currentVCard="";
+        $("versionMetric").textContent="—";
+        $("moduleMetric").textContent="—";
+
+        if(Object.keys(errors).length){
+          const partial=["BEGIN:VCARD","VERSION:3.0",draft.fullName?`FN:${escapeVCard(draft.fullName)}`:"", "END:VCARD"].filter(Boolean).join("\r\n");
+          $("vcardText").textContent=partial;
+          $("byteMetric").textContent=`${encoder.encode(partial).length} B`;
+          setReady(false,errors.fullName||errors.phone||errors.email||errors.website);
+          return;
+        }
+
+        try{
+          currentVCard=buildVCard(draft);
+          $("vcardText").textContent=currentVCard;
+          $("byteMetric").textContent=`${encoder.encode(currentVCard).length} B`;
+          currentQR=drawQR(currentVCard);
+          $("versionMetric").textContent=`V${currentQR.version}`;
+          $("moduleMetric").textContent=`${currentQR.count} × ${currentQR.count}`;
+          setReady(true,"印版校准完成：扫码可保存联系人，也可以下载 VCF 或二维码图片。");
+        }catch(error){
+          const dependency=error&&error.message==="dependency";
+          setReady(false,dependency?"二维码组件加载失败，请检查网络后刷新页面。":"资料超过二维码容量，请精简地址、备注或其他字段。");
+        }
+      }
+
+      function safeFileName(name){
+        return (name||"contact").replace(/[\\/:*?\"<>|\s]+/g,"-").replace(/^-+|-+$/g,"").slice(0,42)||"contact";
+      }
+
+      function clickDownload(href,fileName,revoke=false){
+        const anchor=document.createElement("a");
+        anchor.href=href;
+        anchor.download=fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        if(revoke) setTimeout(()=>URL.revokeObjectURL(href),500);
+      }
+
+      function downloadVCF(){
+        if(!currentVCard) return;
+        const blob=new Blob(["\uFEFF",currentVCard],{type:"text/vcard;charset=utf-8"});
+        const url=URL.createObjectURL(blob);
+        clickDownload(url,`${safeFileName(fields.fullName.value)}-contact.vcf`,true);
+        toast("联系人 VCF 已开始下载");
+      }
+
+      function downloadPNG(){
+        if(!currentQR) return;
+        const fileName=`${safeFileName(fields.fullName.value)}-qr-card.png`;
+        const canvas=$("qrCanvas");
+        if(canvas.toBlob){
+          canvas.toBlob(blob=>{
+            if(!blob) return;
+            const url=URL.createObjectURL(blob);
+            clickDownload(url,fileName,true);
+          },"image/png");
+        }else{
+          clickDownload(canvas.toDataURL("image/png"),fileName);
+        }
+        toast("二维码 PNG 已开始下载");
+      }
+
+      async function copyVCard(){
+        if(!currentVCard) return;
+        try{
+          await navigator.clipboard.writeText(currentVCard);
+          toast("vCard 原始文本已复制");
+        }catch(error){
+          const range=document.createRange();
+          range.selectNodeContents($("vcardText"));
+          const selection=window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          toast("浏览器未开放剪贴板，已为你选中文本");
+        }
+      }
+
+      function armClear(){
+        if(!clearArmed){
+          clearArmed=true;
+          $("clearBtn").classList.add("is-armed");
+          $("clearBtn").textContent="再按一次确认";
+          toast("再按一次，清空所有联系人草稿");
+          clearTimer=setTimeout(disarmClear,4000);
+          return;
+        }
+        clearTimeout(clearTimer);
+        localStorage.removeItem(STORAGE_KEY);
+        setDraft({});
+        $("draftState").textContent="本机草稿已清空";
+        disarmClear();
+        fields.fullName.focus();
+        toast("联系人草稿已清空");
+      }
+
+      function disarmClear(){
+        clearArmed=false;
+        $("clearBtn").classList.remove("is-armed");
+        $("clearBtn").textContent="清空草稿";
+      }
+
+      function toast(message){
+        const element=$("toast");
+        element.textContent=message;
+        element.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer=setTimeout(()=>element.classList.remove("show"),2400);
+      }
+
+      FIELD_IDS.forEach(id=>fields[id].addEventListener("input",()=>update(true)));
+      $("sampleBtn").addEventListener("click",()=>{
+        setDraft(sample);
+        saveDraft(getDraft());
+        toast("已装入虚构测试资料，可安全体验完整流程");
+      });
+      $("clearBtn").addEventListener("click",armClear);
+      $("downloadVcfBtn").addEventListener("click",downloadVCF);
+      $("downloadPngBtn").addEventListener("click",downloadPNG);
+      $("copyVcardBtn").addEventListener("click",copyVCard);
+
+      function restore(){
+        try{
+          const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+          if(saved&&typeof saved==="object"){
+            setDraft(saved);
+            $("draftState").textContent="已恢复本机草稿";
+            return;
+          }
+        }catch(error){
+          localStorage.removeItem(STORAGE_KEY);
+        }
+        update(false);
+      }
+
+      window.stamp41={
+        getDraft,
+        setDraft,
+        validate,
+        buildVCard,
+        escapeVCard,
+        normalizeUrl,
+        getVCard:()=>currentVCard,
+        getQR:()=>currentQR,
+        sample:{...sample},
+        storageKey:STORAGE_KEY
+      };
+      restore();
+    })();
+  </script>
+</body>
+</html>

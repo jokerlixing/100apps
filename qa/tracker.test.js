@@ -141,3 +141,39 @@ test('app 067 is published and included in the official completion state', () =>
   assert.equal(app67[3], 'https://jokerlixing.github.io/100apps/apps/067-ai-recipe/');
   assert.equal(doneIds.has(67), true, 'INIT_DONE must mark app 067 as done');
 });
+
+test('app 068 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app68 = ideas[67];
+
+  assert.equal(app68[0], '智能客服机器人');
+  assert.match(app68[1], /^RELAY\/68/);
+  assert.match(app68[1], /意图路由/);
+  assert.equal(app68[3], 'https://jokerlixing.github.io/100apps/apps/068-customer-support/');
+  assert.equal(doneIds.has(68), true, 'INIT_DONE must mark app 068 as done');
+});
+
+test('official completion state migrates a stale app 068 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:68,name:"智能客服机器人",desc:"旧说明",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^RELAY\/68/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/068-customer-support/');
+  assert.equal(context.result.didSave, true);
+});

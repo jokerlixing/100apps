@@ -100,7 +100,7 @@
     {
       id: 'product-stock', intent: 'product', question: '怎么查看商品尺码和库存？',
       answer: '在商品详情页选择颜色和尺码后，会显示当前是否可购买。库存随订单变化，加入购物车不代表已经锁定库存。',
-      keywords: ['尺码', '尺寸', '库存', '颜色'], aliases: ['还有货吗', '有没有我的码'],
+      keywords: ['尺码', '尺寸', '库存', '商品颜色'], aliases: ['还有货吗', '有没有我的码'],
       suggestedReplies: ['尺码不合可以换货吗？', '商品什么时候补货？'], enabled: true,
     },
     {
@@ -341,7 +341,7 @@
     elements['route-state'].textContent = '等待来电';
     elements['confidence-value'].textContent = '—';
     elements['confidence-meter'].setAttribute('aria-valuenow', '0');
-    elements['confidence-meter'].querySelector('span').style.width = '0%';
+    elements['confidence-meter'].dataset.level = '0';
     elements['route-reason'].textContent = '发送问题后显示路由依据';
     elements['source-card'].classList.add('is-empty');
     elements['source-card-title'].textContent = '回答依据';
@@ -367,7 +367,7 @@
     elements['route-state'].textContent = route.needsHandoff ? '需要人工' : route.source === 'ai' ? 'AI 已增强' : '本地已接通';
     elements['confidence-value'].textContent = `${percent}%`;
     elements['confidence-meter'].setAttribute('aria-valuenow', String(percent));
-    elements['confidence-meter'].querySelector('span').style.width = `${percent}%`;
+    elements['confidence-meter'].dataset.level = String(Math.min(10, Math.max(0, Math.ceil(percent / 10))));
     elements['route-reason'].textContent = route.routingReason;
     elements['source-card'].classList.toggle('is-empty', !faq);
     elements['source-card-title'].textContent = faq ? '已引用知识卡' : '没有可靠引用';
@@ -486,9 +486,8 @@
     elements['knowledge-preview'].replaceChildren();
     if (!visible.length) {
       const empty = document.createElement('p');
+      empty.className = 'knowledge-empty';
       empty.textContent = '没有匹配的启用知识卡。';
-      empty.style.fontSize = '11px';
-      empty.style.color = 'rgba(243,233,210,.55)';
       elements['knowledge-preview'].append(empty);
       return;
     }

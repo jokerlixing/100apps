@@ -118,6 +118,19 @@ test('uses an explicit handoff for unsupported or empty questions', () => {
   assert.match(empty.answer, /具体问题/);
 });
 
+test('does not route a broad word to an unrelated product FAQ', () => {
+  const result = Core.routeQuestion('你们办公室的窗帘是什么颜色？', [
+    {
+      id: 'product-stock', intent: 'product', question: '怎么查看商品尺码和库存？',
+      answer: '在商品详情页选择商品颜色和尺码后查看库存。',
+      keywords: ['尺码', '库存', '商品颜色'], enabled: true,
+    },
+  ]);
+  assert.equal(result.needsHandoff, true);
+  assert.equal(result.intent, 'unknown');
+  assert.deepEqual(result.faqIds, []);
+});
+
 test('sanitizes AI replies and requires verifiable enabled citations', () => {
   const reply = Core.sanitizeAIReply({
     answer: '<b>请在订单详情查看物流。</b><script>bad()</script>',

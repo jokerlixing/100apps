@@ -33,7 +33,7 @@
     payment: Object.freeze(['支付', '付款', '扣款', '信用卡', '支付宝', '微信支付', 'payment', 'charged']),
     invoice: Object.freeze(['发票', '抬头', '税号', '开票', 'invoice', 'receipt']),
     account: Object.freeze(['登录', '账号', '账户', '密码', '验证码', '注册', 'account', 'password', 'login']),
-    product: Object.freeze(['商品', '尺寸', '尺码', '材质', '库存', '保质期', '颜色', 'product', 'size', 'stock']),
+    product: Object.freeze(['商品', '尺寸', '尺码', '材质', '库存', '保质期', '商品颜色', 'product', 'size', 'stock']),
     coupon: Object.freeze(['优惠券', '折扣', '活动', '满减', '促销', 'coupon', 'discount', 'promotion']),
     contact: Object.freeze(['人工', '客服', '联系', '电话', '投诉', '建议', 'human', 'agent', 'support']),
   });
@@ -261,7 +261,7 @@
     const classification = classifyIntent(normalizedQuestion);
     const ranked = rankFaqs(normalizedQuestion, knowledgeBase);
     const best = ranked[0];
-    if (!best || best.score < 4) return fallbackReply(false);
+    if (!best || best.score < 4.5) return fallbackReply(false);
     const confidence = Math.min(0.98, 0.42 + Math.min(0.4, best.score / 38) + (classification.confidence * 0.18));
     const matchedLabel = best.matches[0] || INTENT_LABELS[best.faq.intent];
     return Object.freeze({

@@ -407,3 +407,38 @@ test('official completion state migrates a stale app 077 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/077-short-link-hub/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 083 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app83 = ideas[82];
+
+  assert.equal(app83[0], '桌面便签应用');
+  assert.equal(app83[1], 'TACK/83：本地便签匣+搜索归档+Electron窗口置顶与紧凑模式');
+  assert.equal(app83[3], 'https://jokerlixing.github.io/100apps/apps/083-desktop-notes/');
+  assert.equal(doneIds.has(83), true, 'INIT_DONE must mark app 083 as done');
+});
+
+test('official completion state migrates a stale app 083 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:83,name:"桌面便签应用",desc:"Electron桌面端+置顶便签",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^TACK\/83/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/083-desktop-notes/');
+  assert.equal(context.result.didSave, true);
+});

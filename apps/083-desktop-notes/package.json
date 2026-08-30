@@ -1,0 +1,17 @@
+{
+  "name": "tack-83-desktop-notes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-first Electron desktop notes with always-on-top and compact window modes.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke-test",
+    "check": "node --check note-core.js && node --check app.js && node --check window-state.js && node --check preload.js && node --check main.js",
+    "test": "node --test *.test.js",
+    "test:all": "npm run check && npm test"
+  },
+  "devDependencies": {
+    "electron": "44.0.0"
+  }
+}

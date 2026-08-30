@@ -186,6 +186,41 @@ test('official completion state migrates a stale app 068 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 073 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app73 = ideas[72];
+
+  assert.equal(app73[0], '论坛社区');
+  assert.match(app73[1], /^THREADLINE\/73/);
+  assert.equal(app73[3], 'https://jokerlixing.github.io/100apps/apps/073-forum-community/');
+  assert.equal(doneIds.has(73), true, 'INIT_DONE must mark app 073 as done');
+});
+
+test('official completion state migrates a stale app 073 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:73,name:"论坛社区",desc:"旧说明",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^THREADLINE\/73/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/073-forum-community/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 076 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -371,7 +406,7 @@ test('app 082 is published and included in the official completion state', () =>
   assert.match(app82[1], /^YUNXIU\/82/);
   assert.equal(app82[3], 'https://jokerlixing.github.io/100apps/apps/082-mini-program-shop/');
   assert.equal(doneIds.has(82), true, 'INIT_DONE must mark app 082 as done');
-  for (const pendingId of [73, 74, 75, 81]) {
+  for (const pendingId of [74, 75, 81]) {
     assert.equal(doneIds.has(pendingId), false, `INIT_DONE must preserve pending app ${pendingId}`);
   }
 });

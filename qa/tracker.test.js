@@ -327,6 +327,42 @@ test('official completion state migrates a stale app 080 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 098 blockchain explorer is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app98 = ideas[97];
+
+  assert.equal(app98[0], 'Trace/98 区块链浏览器');
+  assert.equal(app98[1], 'TRACE/98：地址、交易、区块三类证据查询+关联钻取');
+  assert.equal(app98[3], 'https://jokerlixing.github.io/100apps/apps/098-blockchain-explorer/');
+  assert.equal(doneIds.has(98), true, 'INIT_DONE must mark app 098 as done');
+});
+
+test('official completion state migrates a stale app 098 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:98,name:"区块链浏览器",desc:"旧说明",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, 'Trace/98 区块链浏览器');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^TRACE\/98/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/098-blockchain-explorer/');
+  assert.equal(context.result.didSave, true);
+});
+
 test('app 075 project board is published and officially complete', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

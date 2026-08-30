@@ -670,3 +670,40 @@ test('official completion state migrates a stale app 099 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/099-mica-ui/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 089 is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app89 = ideas[88];
+
+  assert.equal(app89[0], '个人知识库 Wiki');
+  assert.equal(app89[1], 'LOOM/89：本地双链笔记+全文搜索+反向链接与可点击关系星图');
+  assert.equal(app89[2], '5');
+  assert.equal(app89[3], 'https://jokerlixing.github.io/100apps/apps/089-knowledge-wiki/');
+  assert.equal(doneIds.has(89), true, 'INIT_DONE must mark app 089 as done');
+});
+
+test('official completion state migrates a stale app 089 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:89,name:"个人知识库Wiki",desc:"双链笔记+全文搜索+关系图",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].name, '个人知识库 Wiki');
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^LOOM\/89/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/089-knowledge-wiki/');
+  assert.equal(context.result.didSave, true);
+});

@@ -43,7 +43,7 @@
     checkoutDialog: $('checkoutDialog'), checkoutForm: $('checkoutForm'), dialogClose: $('dialogClose'),
     checkoutItems: $('checkoutItems'), checkoutTotal: $('checkoutTotal'), submitOrderButton: $('submitOrderButton'), submitError: $('submitError'),
     nicknameInput: $('nicknameInput'), phoneSuffixInput: $('phoneSuffixInput'), pickupSlotInput: $('pickupSlotInput'),
-    ordersList: $('ordersList'), orderCountBadge: $('orderCountBadge'), refreshOrdersButton: $('refreshOrdersButton'),
+    ordersList: $('ordersList'), orderCountBadge: $('orderCountBadge'), refreshOrdersButton: $('refreshOrdersButton'), clearCompletedButton: $('clearCompletedButton'),
     modeChip: $('modeChip'), toast: $('toast')
   };
 
@@ -180,6 +180,7 @@
   function renderOrders() {
     const orders = allVisibleOrders();
     elements.orderCountBadge.textContent = String(orders.length);
+    syncClearCompletedButton(orders);
     if (!orders.length) {
       elements.ordersList.innerHTML = '<div class="empty-orders"><b>订单台正在等第一张票</b><p>选好商品并生成取货码，履约进度会出现在这里。</p></div>';
       return;
@@ -374,6 +375,65 @@
     }
   }
 
+  let clearCompletedArmed = false;
+  let clearCompletedTimer;
+
+  function syncClearCompletedButton(orders) {
+    const completed = (orders || allVisibleOrders()).filter((order) => order.status === 'completed').length;
+    elements.clearCompletedButton.disabled = completed === 0;
+    if (clearCompletedArmed && completed > 0) {
+      elements.clearCompletedButton.textContent = `再次点击确认清空 ${completed} 条`;
+      elements.clearCompletedButton.classList.add('armed');
+      return;
+    }
+    clearCompletedArmed = false;
+    elements.clearCompletedButton.classList.remove('armed');
+    elements.clearCompletedButton.textContent = completed > 0 ? `清空已完成 (${completed})` : '清空已完成';
+  }
+
+  function resetClearCompletedButton() {
+    clearTimeout(clearCompletedTimer);
+    clearCompletedArmed = false;
+    syncClearCompletedButton();
+  }
+
+  async function clearCompletedOrders() {
+    const visibleCompleted = allVisibleOrders().filter((order) => order.status === 'completed');
+    if (!visibleCompleted.length) return;
+    if (!clearCompletedArmed) {
+      clearCompletedArmed = true;
+      syncClearCompletedButton();
+      clearCompletedTimer = setTimeout(resetClearCompletedButton, 4500);
+      return;
+    }
+
+    clearTimeout(clearCompletedTimer);
+    elements.clearCompletedButton.disabled = true;
+    try {
+      let removed = 0;
+      const serverCompleted = state.serverOrders.filter((order) => order.status === 'completed').length;
+      if (state.mode === 'server' && serverCompleted > 0) {
+        const result = await fetchJson('/api/orders/completed', {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopKey: state.shopKey })
+        }, 4000);
+        removed += Number(result.removed) || 0;
+        state.serverOrders = state.serverOrders.filter((order) => order.status !== 'completed');
+      }
+
+      const localBefore = state.localOrders.length;
+      state.localOrders = state.localOrders.filter((order) => order.shopKey !== state.shopKey || order.status !== 'completed');
+      removed += localBefore - state.localOrders.length;
+      saveLocalOrders();
+      state.highlightOrderId = '';
+      renderOrders();
+      showToast(`已清空 ${removed} 条已完成订单`);
+    } catch (_) {
+      showToast('清空结果未确认，请刷新订单后再试');
+    } finally {
+      resetClearCompletedButton();
+    }
+  }
+
   async function updateOrder(orderId, nextStatus) {
     const order = allVisibleOrders().find((item) => item.id === orderId);
     if (!order) return;
@@ -433,6 +493,7 @@
   elements.dialogClose.addEventListener('click', () => elements.checkoutDialog.close());
   elements.checkoutForm.addEventListener('submit', submitOrder);
   elements.refreshOrdersButton.addEventListener('click', () => refreshOrders(true).catch(() => {}));
+  elements.clearCompletedButton.addEventListener('click', clearCompletedOrders);
   elements.ordersList.addEventListener('click', (event) => {
     const button = event.target.closest('[data-order-id][data-next-status]');
     if (button) updateOrder(button.dataset.orderId, button.dataset.nextStatus);

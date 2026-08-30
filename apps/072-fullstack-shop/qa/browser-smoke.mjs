@@ -177,6 +177,15 @@ async function run() {
     assert.notEqual(desktop.focusOutline, '0px');
     await screenshot(client, 'screenshot-desktop.png');
 
+    await evaluate(client, `document.querySelector('#orders').scrollIntoView({block:'start',behavior:'instant'}); document.querySelector('#clearCompletedButton').click()`);
+    await waitForExpression(client, `document.querySelector('#clearCompletedButton').classList.contains('armed')`);
+    assert.equal(await evaluate(client, `document.querySelectorAll('.order-card').length`), 1);
+    assert.match(await evaluate(client, `document.querySelector('#clearCompletedButton').textContent`), /再次点击确认清空 1 条/);
+    await sleep(350);
+    await screenshot(client, 'screenshot-clear-completed.png');
+    await evaluate(client, `document.querySelector('#clearCompletedButton').click()`);
+    await waitForExpression(client, `document.querySelectorAll('.order-card').length === 0 && document.querySelector('#clearCompletedButton').disabled`);
+
     await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });
     await navigate(client, `${baseUrl}?offline=1`);
     await evaluate(client, `localStorage.clear(); location.reload()`);
@@ -196,8 +205,16 @@ async function run() {
 
     await evaluate(client, `document.querySelector('#ticketClose').click(); document.querySelector('#checkoutButton').click(); document.querySelector('#nicknameInput').value='木木'; document.querySelector('#phoneSuffixInput').value='6628'; document.querySelector('#pickupSlotInput').value='sun-pm'; document.querySelector('#checkoutForm').requestSubmit();`);
     await waitForExpression(client, `document.querySelector('.order-card')?.textContent.includes('本地订单')`);
+    await evaluate(client, `document.querySelector('[data-next-status="ready"]').click()`);
+    await waitForExpression(client, `document.querySelector('.status-tag').textContent.includes('可取货')`);
+    await evaluate(client, `document.querySelector('[data-next-status="completed"]').click()`);
+    await waitForExpression(client, `document.querySelector('.status-tag').textContent.includes('已完成')`);
+    const clearButtonSize = await evaluate(client, `(() => { const box=document.querySelector('#clearCompletedButton').getBoundingClientRect(); return {width:box.width,height:box.height}; })()`);
+    assert.ok(clearButtonSize.width >= 44 && clearButtonSize.height >= 44);
+    await evaluate(client, `document.querySelector('#clearCompletedButton').click(); document.querySelector('#clearCompletedButton').click()`);
+    await waitForExpression(client, `document.querySelectorAll('.order-card').length === 0 && document.querySelector('#clearCompletedButton').disabled`);
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ desktop, mobile: { ...mobile, controls: `${mobile.controls.length} checked` }, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ desktop: { ...desktop, completedOrderCleared: true }, mobile: { ...mobile, controls: `${mobile.controls.length} checked`, localCompletedOrderCleared: true }, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

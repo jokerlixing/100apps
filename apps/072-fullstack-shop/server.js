@@ -97,6 +97,18 @@ function createOrderRepository(storePath, options = {}) {
         await persist(orders);
         return core.publicOrder(updated);
       });
+    },
+    async removeCompleted(shopKey) {
+      return mutate(async () => {
+        const orders = await load();
+        const kept = orders.filter((order) => order.shopKey !== shopKey || order.status !== 'completed');
+        const removed = orders.length - kept.length;
+        if (removed > 0) {
+          orders.splice(0, orders.length, ...kept);
+          await persist(orders);
+        }
+        return removed;
+      });
     }
   };
 }
@@ -178,6 +190,13 @@ function createShopServer(options = {}) {
         const payload = await readJsonBody(request);
         const result = await repository.create(payload);
         sendJson(response, result.created ? 201 : 200, result);
+        return;
+      }
+
+      if (request.method === 'DELETE' && url.pathname === '/api/orders/completed') {
+        const payload = await readJsonBody(request);
+        if (!validKey(payload.shopKey, 'shop')) throw serviceError('INVALID_SHOP_KEY', '店铺键无效', 400);
+        sendJson(response, 200, { removed: await repository.removeCompleted(payload.shopKey) });
         return;
       }
 

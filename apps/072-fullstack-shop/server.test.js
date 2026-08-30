@@ -150,6 +150,36 @@ test('supports cancellation only before an order is ready', async () => withTemp
   } finally { await app.close(); }
 }));
 
+test('clears only completed orders for the requesting shop key', async () => withTempStore(async ({ storePath }) => {
+  const app = await startServer({ repository: createOrderRepository(storePath) });
+  try {
+    const completedA = await postJson(app.baseUrl, '/api/orders', orderPayload({ idempotencyKey: 'idem_clearcompleted01' })).then((response) => response.json());
+    await postJson(app.baseUrl, `/api/orders/${completedA.order.id}`, { shopKey: SHOP_A, status: 'ready' }, { method: 'PATCH' });
+    await postJson(app.baseUrl, `/api/orders/${completedA.order.id}`, { shopKey: SHOP_A, status: 'completed' }, { method: 'PATCH' });
+
+    await postJson(app.baseUrl, '/api/orders', orderPayload({ idempotencyKey: 'idem_keep_preparing01' }));
+    const completedB = await postJson(app.baseUrl, '/api/orders', orderPayload({ shopKey: SHOP_B, idempotencyKey: 'idem_othercompleted12' })).then((response) => response.json());
+    await postJson(app.baseUrl, `/api/orders/${completedB.order.id}`, { shopKey: SHOP_B, status: 'ready' }, { method: 'PATCH' });
+    await postJson(app.baseUrl, `/api/orders/${completedB.order.id}`, { shopKey: SHOP_B, status: 'completed' }, { method: 'PATCH' });
+
+    const cleared = await postJson(app.baseUrl, '/api/orders/completed', { shopKey: SHOP_A }, { method: 'DELETE' });
+    assert.equal(cleared.status, 200);
+    assert.deepEqual(await cleared.json(), { removed: 1 });
+
+    const shopA = await fetch(`${app.baseUrl}/api/orders?shopKey=${SHOP_A}`).then((response) => response.json());
+    assert.equal(shopA.orders.length, 1);
+    assert.equal(shopA.orders[0].status, 'preparing');
+
+    const shopB = await fetch(`${app.baseUrl}/api/orders?shopKey=${SHOP_B}`).then((response) => response.json());
+    assert.equal(shopB.orders.length, 1);
+    assert.equal(shopB.orders[0].status, 'completed');
+
+    const repeated = await postJson(app.baseUrl, '/api/orders/completed', { shopKey: SHOP_A }, { method: 'DELETE' });
+    assert.equal(repeated.status, 200);
+    assert.deepEqual(await repeated.json(), { removed: 0 });
+  } finally { await app.close(); }
+}));
+
 test('restores persisted orders and hides malformed store details behind a stable error', async () => withTempStore(async ({ storePath }) => {
   const first = await startServer({ repository: createOrderRepository(storePath) });
   await postJson(first.baseUrl, '/api/orders', orderPayload());

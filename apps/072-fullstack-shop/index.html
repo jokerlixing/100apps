@@ -85,7 +85,10 @@
     <section class="orders-section" id="orders" aria-labelledby="ordersTitle">
       <div class="orders-heading">
         <div><p class="kicker">FULFILLMENT BOARD / 订单台</p><h2 id="ordersTitle">从备货到交付，一眼看清</h2></div>
-        <button class="text-button" id="refreshOrdersButton" type="button">刷新订单</button>
+        <div class="orders-tools">
+          <button class="text-button danger-button" id="clearCompletedButton" type="button" disabled>清空已完成</button>
+          <button class="text-button" id="refreshOrdersButton" type="button">刷新订单</button>
+        </div>
       </div>
       <div class="order-legend" aria-hidden="true"><span>待备货</span><i></i><span>可取货</span><i></i><span>已完成</span></div>
       <div class="orders-list" id="ordersList"></div>

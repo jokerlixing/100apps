@@ -156,3 +156,17 @@ test('generates self-contained escaped HTML with validation hooks', () => {
   assert.doesNotMatch(html, /<img src=x/);
   assert.match(html, /&lt;b&gt;姓名&lt;\/b&gt;/);
 });
+
+test('standalone HTML treats required checkbox options as one valid group', () => {
+  const html = Model.generateStandaloneHtml({
+    title: '多选验收',
+    fields: [
+      { id: 'topics', type: 'checkbox', label: '关注主题', options: ['设计', '开发'], required: true },
+    ],
+  });
+
+  assert.match(html, /<fieldset[^>]*class="field/);
+  assert.match(html, /data-required-group="topics"/);
+  assert.match(html, /querySelectorAll\('\[data-required-group\]'\)/);
+  assert.doesNotMatch(html, /type="checkbox"[^>]*required/);
+});

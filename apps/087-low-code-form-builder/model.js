@@ -301,13 +301,16 @@
     const label = `<span class="label">${escapeHtml(field.label)}${field.required ? ' <b aria-hidden="true">*</b>' : ''}</span>`;
     const help = field.help ? `<small>${escapeHtml(field.help)}</small>` : '';
     if (field.type === 'heading') return `<section class="section"><h2>${escapeHtml(field.label)}</h2>${help}</section>`;
+    if (field.type === 'radio' || field.type === 'checkbox') {
+      const groupRequirement = field.type === 'checkbox' && field.required ? ` data-required-group="${escapeHtml(field.id)}"` : '';
+      const choices = field.options.map((option, index) => `<label><input id="${escapeHtml(field.id)}-${index}" type="${field.type}" name="${escapeHtml(field.id)}" value="${escapeHtml(option)}"${field.type === 'radio' && field.required && index === 0 ? ' required' : ''}> <span>${escapeHtml(option)}</span></label>`).join('');
+      return `<fieldset class="field ${field.width === 'half' ? 'half' : ''}"><legend class="label">${escapeHtml(field.label)}${field.required ? ' <b aria-hidden="true">*</b>' : ''}</legend><span class="choices"${groupRequirement}>${choices}</span>${help}<span class="error" data-error="${escapeHtml(field.id)}"></span></fieldset>`;
+    }
     let control = '';
     if (field.type === 'textarea') {
       control = `<textarea ${attributes(field)} rows="5"></textarea>`;
     } else if (field.type === 'select') {
       control = `<select ${attributes(field)}><option value="">请选择</option>${field.options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join('')}</select>`;
-    } else if (field.type === 'radio' || field.type === 'checkbox') {
-      control = `<span class="choices">${field.options.map((option, index) => `<label><input type="${field.type}" name="${escapeHtml(field.id)}" value="${escapeHtml(option)}"${field.required && index === 0 ? ' required' : ''}> <span>${escapeHtml(option)}</span></label>`).join('')}</span>`;
     } else {
       control = `<input type="${field.type}" ${attributes(field)}>`;
     }
@@ -327,7 +330,7 @@
     :root{font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#17202a;background:#d7dee2;color-scheme:light}
     *{box-sizing:border-box}body{margin:0;padding:clamp(20px,5vw,72px);background:linear-gradient(90deg,transparent 23px,rgba(23,50,77,.08) 24px),#d7dee2;background-size:24px 24px}
     main{max-width:780px;margin:auto;background:#f5f7f6;border:2px solid #17324d;box-shadow:12px 12px 0 #17324d;padding:clamp(24px,6vw,64px)}
-    .mark{font:700 12px Consolas,monospace;letter-spacing:.15em;color:#b63d20;text-transform:uppercase}h1{font:800 clamp(34px,8vw,64px)/.95 "Arial Narrow",sans-serif;margin:12px 0 14px;letter-spacing:-.03em}p{line-height:1.6;color:#46545f}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 18px;margin-top:34px}.field{display:grid;gap:8px}.field:not(.half),.section{grid-column:1/-1}.label,h2{font-weight:750}.label b{color:#b63d20}input,textarea,select{width:100%;font:inherit;border:1.5px solid #6b7880;background:white;padding:12px;min-height:46px;border-radius:2px}textarea{resize:vertical}.choices{display:grid;gap:8px}.choices label{display:flex;align-items:center;gap:9px}.choices input{width:20px;min-height:20px}.section{border-bottom:3px solid #f2c94c;padding:18px 0 8px}.section h2{margin:0;font-size:22px}small{color:#5d6972}.error{color:#b42c16;min-height:1.2em;font-size:13px}button{margin-top:28px;background:#f05a32;color:#fff;border:2px solid #923119;padding:13px 22px;min-height:48px;font:800 15px inherit;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:4px solid #f2c94c;outline-offset:2px}.receipt{display:none;margin-top:28px;border-left:6px solid #1d7a62;background:#e6f4ef;padding:18px;white-space:pre-wrap}.receipt.show{display:block}@media(max-width:600px){body{padding:18px}main{padding:24px;box-shadow:7px 7px 0 #17324d}.grid{grid-template-columns:1fr}.field.half{grid-column:1/-1}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+    .mark{font:700 12px Consolas,monospace;letter-spacing:.15em;color:#b63d20;text-transform:uppercase}h1{font:800 clamp(34px,8vw,64px)/.95 "Arial Narrow",sans-serif;margin:12px 0 14px;letter-spacing:-.03em}p{line-height:1.6;color:#46545f}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 18px;margin-top:34px}.field{display:grid;gap:8px}.field:not(.half),.section{grid-column:1/-1}fieldset.field{min-width:0;margin:0;padding:0;border:0}legend.label{padding:0}.label,h2{font-weight:750}.label b{color:#b63d20}input,textarea,select{width:100%;font:inherit;border:1.5px solid #6b7880;background:white;padding:12px;min-height:46px;border-radius:2px}textarea{resize:vertical}.choices{display:grid;gap:8px}.choices label{display:flex;align-items:center;gap:9px}.choices input{width:20px;min-height:20px}.section{border-bottom:3px solid #f2c94c;padding:18px 0 8px}.section h2{margin:0;font-size:22px}small{color:#5d6972}.error{color:#b42c16;min-height:1.2em;font-size:13px}button{margin-top:28px;background:#f05a32;color:#fff;border:2px solid #923119;padding:13px 22px;min-height:48px;font:800 15px inherit;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:4px solid #f2c94c;outline-offset:2px}.receipt{display:none;margin-top:28px;border-left:6px solid #1d7a62;background:#e6f4ef;padding:18px;white-space:pre-wrap}.receipt.show{display:block}@media(max-width:600px){body{padding:18px}main{padding:24px;box-shadow:7px 7px 0 #17324d}.grid{grid-template-columns:1fr}.field.half{grid-column:1/-1}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
   </style>
 </head>
 <body>
@@ -349,7 +352,14 @@
     form.addEventListener('submit',(event)=>{
       event.preventDefault();
       document.querySelectorAll('.error').forEach((node)=>node.textContent='');
-      if(!form.reportValidity())return;
+      let groupsValid=true;
+      document.querySelectorAll('[data-required-group]').forEach((group)=>{
+        const checked=group.querySelector('input:checked');
+        if(checked)return;
+        group.closest('.field').querySelector('.error').textContent='请至少选择一项';
+        groupsValid=false;
+      });
+      if(!groupsValid||!form.reportValidity())return;
       const values={};
       new FormData(form).forEach((value,key)=>{values[key]=key in values?[].concat(values[key],value):value});
       receipt.textContent='提交成功（本地演示，不会发送到服务器）\\n\\n'+JSON.stringify(values,null,2);

@@ -16,7 +16,7 @@ test('parseLRC reads metadata, offsets, multiple stamps and stable order', () =>
 [ar:REEL/79]
 [offset:500]
 [00:02.00][00:04.250]同一句
-[00:01.50] 第一行 
+[00:01.50] 第一行
 broken
 [99:99.00]无效
   `);

@@ -442,3 +442,38 @@ test('official completion state migrates a stale app 083 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/083-desktop-notes/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 092 resume application assistant is published and officially complete', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app92 = ideas[91];
+
+  assert.equal(app92[0], '简历投递助手');
+  assert.equal(app92[1], 'FITROOM/92：母版资料+岗位关键词合身尺+多版本快照与打印');
+  assert.equal(app92[3], 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
+  assert.equal(doneIds.has(92), true, 'INIT_DONE must mark app 092 as done');
+});
+
+test('official completion state migrates a stale app 092 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:92,name:"简历投递助手",desc:"一份数据生成多版本简历",lv:5,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^FITROOM\/92/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/092-resume-application-assistant/');
+  assert.equal(context.result.didSave, true);
+});

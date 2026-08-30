@@ -24,6 +24,7 @@ html { min-width: 320px; background: var(--aluminium); }
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: clip;
   background:
     linear-gradient(rgba(255, 255, 255, .52) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, .52) 1px, transparent 1px),
@@ -142,6 +143,7 @@ main { width: min(1450px, 100%); margin: 0 auto; padding: 54px 42px 58px; }
   align-items: end;
   margin-bottom: 40px;
 }
+.hero > * { min-width: 0; }
 .eyebrow { margin: 0 0 11px; color: var(--blue); font-size: 11px; font-weight: 800; }
 .hero h1 {
   margin: 0;
@@ -152,6 +154,7 @@ main { width: min(1450px, 100%); margin: 0 auto; padding: 54px 42px 58px; }
 }
 .hero h1 em { color: var(--blue); font-style: normal; }
 .hero-note {
+  width: 100%;
   max-width: 480px;
   margin: 0;
   padding: 20px 0 4px 25px;

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TALKBACK/70 是一个无需密钥也能使用、支持浏览器语音和可选 AI 增强的英语口语陪练。">
+  <meta name="theme-color" content="#18243f">
+  <title>TALKBACK/70 · AI 口语陪练</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#practice-station">跳到口语练习台</a>
+
+  <header class="lab-header">
+    <div class="brand-lockup">
+      <span class="brand-plate" aria-hidden="true">TB / 70</span>
+      <div>
+        <p class="eyebrow">LANGUAGE LAB · LOCAL FIRST</p>
+        <h1>TALKBACK <span>把英语说出声</span></h1>
+      </div>
+    </div>
+    <div class="header-status" aria-label="功能状态">
+      <p><span class="status-lamp" id="speech-lamp" aria-hidden="true"></span><span id="speech-support-status">正在检查语音能力</span></p>
+      <p><span class="status-lamp is-local" aria-hidden="true"></span><span id="coach-mode-status">本地教练已就绪</span></p>
+    </div>
+    <button class="panel-button" id="open-ai-settings" type="button" aria-haspopup="dialog">
+      <span aria-hidden="true">⌁</span> 可选 AI 连接
+    </button>
+  </header>
+
+  <main class="lab-layout" id="practice-station">
+    <aside class="scenario-rack" aria-labelledby="scenario-heading">
+      <div class="panel-heading">
+        <p class="panel-code">LESSON CARTRIDGES</p>
+        <h2 id="scenario-heading">选择练习场景</h2>
+      </div>
+      <fieldset class="scenario-fieldset">
+        <legend class="sr-only">六个英语口语练习场景</legend>
+        <div class="scenario-list" id="scenario-list"></div>
+      </fieldset>
+
+      <div class="rack-controls">
+        <label for="practice-level">反馈难度</label>
+        <select id="practice-level">
+          <option value="A2">A2 · 生活基础</option>
+          <option value="B1" selected>B1 · 独立表达</option>
+          <option value="B2">B2 · 展开观点</option>
+        </select>
+
+        <label class="switch-row" for="auto-speak">
+          <input id="auto-speak" type="checkbox" checked>
+          <span>自动朗读教练问题</span>
+        </label>
+
+        <button class="secondary-button full-width" id="new-session" type="button">开始一轮新练习</button>
+      </div>
+
+      <div class="privacy-card">
+        <strong>隐私带</strong>
+        <p>本地模式不上传回答。语音识别是否联网由浏览器决定；临时 AI 密钥刷新即清除。</p>
+      </div>
+    </aside>
+
+    <section class="coach-booth" aria-labelledby="booth-heading">
+      <header class="booth-console">
+        <div>
+          <p class="panel-code">ACTIVE LESSON</p>
+          <h2 id="booth-heading"><span id="current-scenario-title">咖啡店点单</span> <small id="current-scenario-english">At the coffee shop</small></h2>
+          <p id="current-scenario-goal">清楚说明饮品、规格、冷热和额外需求</p>
+        </div>
+        <div class="lesson-counter" aria-label="练习进度">
+          <span id="step-readout">STEP 1 / 5</span>
+          <progress id="lesson-progress" max="5" value="1">1/5</progress>
+        </div>
+      </header>
+
+      <div class="booth-window">
+        <div class="window-label" aria-hidden="true">INSTRUCTOR CHANNEL</div>
+        <div class="current-prompt">
+          <span class="speaker-tab">COACH</span>
+          <p id="coach-prompt">Hi there! What can I get for you today?</p>
+          <div class="prompt-actions">
+            <button class="text-button" id="speak-prompt" type="button">▶ 朗读问题</button>
+            <button class="text-button" id="stop-speaking" type="button" disabled>■ 停止朗读</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="conversation-section" aria-labelledby="conversation-heading">
+        <div class="section-line">
+          <h3 id="conversation-heading">会话导轨</h3>
+          <span id="turn-count">0 个回答</span>
+        </div>
+        <ol class="conversation-rail" id="conversation-rail">
+          <li class="empty-turn" id="conversation-empty">完成第一轮后，练习卡会沿导轨归档在这里。</li>
+        </ol>
+      </section>
+
+      <section class="answer-console" aria-labelledby="answer-heading">
+        <div class="answer-status-row">
+          <div>
+            <p class="panel-code" id="answer-heading">YOUR CHANNEL</p>
+            <p class="recognition-status" id="recognition-status" role="status">准备好后，点“开始说话”或直接键入回答。</p>
+          </div>
+          <span class="timer-display" id="speech-timer" aria-label="本次说话计时">00:00</span>
+        </div>
+
+        <p class="interim-text" id="interim-text" aria-live="polite"></p>
+
+        <label for="answer-input">你的英文回答</label>
+        <textarea id="answer-input" rows="4" maxlength="2000" placeholder="Speak or type in English…" autocomplete="off" spellcheck="true"></textarea>
+
+        <div class="answer-actions">
+          <button class="record-button" id="toggle-listening" type="button">
+            <span class="record-dot" aria-hidden="true"></span>
+            <span id="listen-button-label">开始说话</span>
+          </button>
+          <button class="secondary-button" id="load-demo-answer" type="button">载入演示回答</button>
+          <button class="primary-button" id="submit-answer" type="button">提交回答 →</button>
+        </div>
+        <p class="input-note">键入与演示回答不会显示 WPM；只有真实语音计时才用于语速反馈。</p>
+      </section>
+    </section>
+
+    <aside class="feedback-board" aria-labelledby="feedback-heading">
+      <div class="panel-heading feedback-title">
+        <p class="panel-code">COACH NOTES</p>
+        <h2 id="feedback-heading">本轮批注</h2>
+        <span class="source-stamp" id="feedback-source">等待回答</span>
+      </div>
+
+      <div class="metric-grid" aria-label="回答指标">
+        <div class="metric-cell">
+          <span>综合</span>
+          <strong id="metric-score">—</strong>
+          <small>/ 100</small>
+        </div>
+        <div class="metric-cell">
+          <span>语速</span>
+          <strong id="metric-wpm">—</strong>
+          <small>WPM</small>
+        </div>
+        <div class="metric-cell">
+          <span>停顿词</span>
+          <strong id="metric-fillers">—</strong>
+          <small>个</small>
+        </div>
+        <div class="metric-cell">
+          <span>词汇变化</span>
+          <strong id="metric-variety">—</strong>
+          <small>%</small>
+        </div>
+      </div>
+
+      <section class="note-block">
+        <h3>做得好的地方</h3>
+        <p id="feedback-strength">完成一轮后，这里会指出一个有证据的优点。</p>
+      </section>
+
+      <section class="note-block">
+        <h3>下一步怎么练</h3>
+        <ul id="feedback-suggestions">
+          <li>先直接回答问题，再补充一个具体细节。</li>
+        </ul>
+      </section>
+
+      <section class="target-block">
+        <div class="section-line">
+          <h3>本轮目标表达</h3>
+          <span id="target-count">0 / 2</span>
+        </div>
+        <div class="target-phrases" id="target-phrases"></div>
+      </section>
+
+      <section class="rewrite-block" id="rewrite-block" hidden>
+        <h3>AI 表达改写</h3>
+        <p id="ai-rewrite"></p>
+      </section>
+
+      <button class="report-button" id="open-report" type="button" disabled>查看本轮训练报告</button>
+      <p class="confidence-note" id="confidence-note">浏览器转写置信度仅作清晰度参考，不是发音分数。</p>
+    </aside>
+  </main>
+
+  <footer class="lab-footer">
+    <p>TALKBACK/70 · 静态本地练习始终可用</p>
+    <p>评分来自文本、时间与目标表达，不提供音素级发音诊断。</p>
+  </footer>
+
+  <dialog class="lab-dialog" id="ai-settings-dialog" aria-labelledby="ai-dialog-title">
+    <form method="dialog" id="ai-settings-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="panel-code">OPTIONAL CONNECTION</p>
+          <h2 id="ai-dialog-title">连接临时 AI 教练</h2>
+        </div>
+        <button class="icon-button" id="close-ai-settings" type="button" aria-label="关闭 AI 设置">×</button>
+      </div>
+      <p>本地教练无需密钥。连接后，AI 只增强教练回应、表达改写和建议，本地指标保持不变。</p>
+      <label for="ai-endpoint">兼容接口基址</label>
+      <input id="ai-endpoint" type="url" inputmode="url" placeholder="https://api.example.com/v1" autocomplete="url">
+      <label for="ai-model">模型名称</label>
+      <input id="ai-model" type="text" maxlength="120" placeholder="your-model-name" autocomplete="off">
+      <label for="ai-key">临时 API 密钥</label>
+      <input id="ai-key" type="password" maxlength="500" placeholder="只保存在当前页面内存" autocomplete="off">
+      <div class="risk-note">
+        <strong>浏览器直连风险</strong>
+        <p>密钥仍可被当前设备和浏览器调试工具看到。只使用低额度、可撤销的测试密钥；公开产品应改用服务端代理。</p>
+      </div>
+      <p class="form-error" id="ai-form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" id="disconnect-ai" type="button">断开并清除密钥</button>
+        <button class="primary-button" value="default">保存到本次页面</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="lab-dialog report-dialog" id="report-dialog" aria-labelledby="report-title">
+    <div class="dialog-heading">
+      <div>
+        <p class="panel-code">SESSION REPORT</p>
+        <h2 id="report-title">训练报告</h2>
+      </div>
+      <button class="icon-button" id="close-report" type="button" aria-label="关闭训练报告">×</button>
+    </div>
+    <div id="report-content"></div>
+    <div class="dialog-actions">
+      <button class="secondary-button" id="copy-report" type="button">复制报告</button>
+      <button class="secondary-button" id="download-report" type="button">下载 TXT</button>
+      <button class="primary-button" id="practice-again" type="button">再练一个场景</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sr-only" id="live-region" aria-live="polite"></div>
+
+  <script src="coach-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

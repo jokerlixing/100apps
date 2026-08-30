@@ -72,8 +72,9 @@ test('analyzeTurn does not invent a pronunciation score', () => {
 });
 
 test('analyzeTurn leaves speaking pace unmeasured for typed fallback answers', () => {
-  const analysis = Core.analyzeTurn({ text: 'I have a reservation under the name Li.' });
+  const analysis = Core.analyzeTurn({ text: 'I have a reservation under the name Li.', confidence: null });
   assert.equal(analysis.wpm, null);
+  assert.equal(analysis.transcriptConfidence, null);
   assert.ok(analysis.score > 0);
   assert.equal(analysis.suggestions.some((tip) => tip.includes('WPM')), false);
 });
@@ -154,9 +155,24 @@ test('sanitizeSession removes invalid turns, reports and secrets', () => {
 
   assert.equal(session.stepIndex, 4);
   assert.equal(session.turns.length, 1);
+  assert.equal(session.turns[0].analysis.transcriptConfidence, null);
+  assert.equal(session.turns[0].analysis.wpm, 100);
   assert.equal(session.settings.apiKey, undefined);
   assert.equal(JSON.stringify(session).includes('secret'), false);
   assert.equal(session.reports.length, 1);
+});
+
+test('sanitizeSession preserves unavailable pace and confidence as null', () => {
+  const session = Core.sanitizeSession({
+    scenarioId: 'coffee',
+    turns: [{
+      coach: 'What can I get for you?',
+      user: 'A tea, please.',
+      analysis: { score: 65, wpm: null, transcriptConfidence: null }
+    }]
+  });
+  assert.equal(session.turns[0].analysis.wpm, null);
+  assert.equal(session.turns[0].analysis.transcriptConfidence, null);
 });
 
 test('summarizeSession aggregates user turns and chooses next goals', () => {

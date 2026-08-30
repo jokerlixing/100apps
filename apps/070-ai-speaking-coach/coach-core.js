@@ -201,7 +201,7 @@
     const lexicalDiversity = calculateLexicalDiversity(text);
     const phraseCoverage = calculatePhraseCoverage(text, source.targetPhrases);
     const conceptCoverage = calculateConceptCoverage(text, source.expectedKeywords);
-    const rawConfidence = Number(source.confidence);
+    const rawConfidence = source.confidence === null || source.confidence === undefined ? NaN : Number(source.confidence);
     const transcriptConfidence = Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1
       ? Math.round(rawConfidence * 100)
       : null;
@@ -344,7 +344,11 @@
       fillerCount: Math.max(0, Math.min(99, Math.round(Number(source.fillerCount) || 0))),
       wordCount: Math.max(0, Math.min(1000, Math.round(Number(source.wordCount) || 0))),
       lexicalDiversity: Math.max(0, Math.min(1, Number(source.lexicalDiversity) || 0)),
-      transcriptConfidence: Number.isFinite(Number(source.transcriptConfidence)) ? Math.max(0, Math.min(100, Math.round(Number(source.transcriptConfidence)))) : null,
+      transcriptConfidence: source.transcriptConfidence === null || source.transcriptConfidence === undefined
+        ? null
+        : Number.isFinite(Number(source.transcriptConfidence))
+          ? Math.max(0, Math.min(100, Math.round(Number(source.transcriptConfidence))))
+          : null,
       phraseCoverage: {
         matched: Math.max(0, Math.min(10, Math.round(Number(source.phraseCoverage && source.phraseCoverage.matched) || 0))),
         total: Math.max(0, Math.min(10, Math.round(Number(source.phraseCoverage && source.phraseCoverage.total) || 0)))
@@ -385,7 +389,9 @@
         scenarioTitle: cleanText(report && report.scenarioTitle, 100),
         completedAt: cleanText(report && report.completedAt, 50),
         score: Math.max(0, Math.min(100, Math.round(Number(report && report.score) || 0))),
-        averageWpm: Math.max(0, Math.min(400, Math.round(Number(report && report.averageWpm) || 0)))
+        averageWpm: report && report.averageWpm !== null && report.averageWpm !== undefined
+          ? Math.max(0, Math.min(400, Math.round(Number(report.averageWpm) || 0)))
+          : null
       })).filter((report) => report.scenarioTitle && report.completedAt)
       : [];
 

@@ -44,7 +44,8 @@
 
   function titleFromCopyright(copyright) {
     const prefix = cleanText(copyright).split(/\s*\(©/u)[0].trim();
-    return prefix || '今日未命名风景';
+    const subject = prefix.split(/[，,]/u)[0].trim();
+    return subject || prefix || '今日未命名风景';
   }
 
   function normalizeWallpaper(record) {

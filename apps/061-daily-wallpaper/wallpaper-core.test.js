@@ -17,7 +17,7 @@ test('normalizeWallpaper maps the API shape to a stable safe record', () => {
   const result = Core.normalizeWallpaper(raw());
 
   assert.equal(result.date, '2026-08-30');
-  assert.equal(result.title, '海边的白色灯塔，中国');
+  assert.equal(result.title, '海边的白色灯塔');
   assert.equal(result.url, raw().url);
   assert.equal(result.copyrightLink, raw().copyright_link);
   assert.equal(result.source, 'bing');

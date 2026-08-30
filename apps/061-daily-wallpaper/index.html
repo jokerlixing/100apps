@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10110f">
+  <meta name="description" content="LUMEN/61 每日壁纸：浏览最近八天的 Bing 每日图片，收藏风景并固定为你的浏览器首页背景。">
+  <title>LUMEN/61 · 每日壁纸</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#wallpaper-title">跳到今日壁纸</a>
+
+  <main class="lightbox" id="main-content">
+    <div class="image-stage" aria-hidden="true">
+      <img id="hero-image" alt="" decoding="async">
+      <div class="grain"></div>
+    </div>
+
+    <header class="masthead">
+      <a class="brand" href="../../" aria-label="返回 100 Apps Challenge">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span><strong>LUMEN</strong><small>DAILY EXPOSURE / 061</small></span>
+      </a>
+
+      <div class="header-tools">
+        <button class="status-pill" id="refresh-button" type="button" aria-describedby="source-note">
+          <span class="status-light" aria-hidden="true"></span>
+          <span id="source-state">正在显影</span>
+          <span aria-hidden="true">↻</span>
+        </button>
+        <button class="collection-button" id="open-favorites" type="button" aria-haspopup="dialog">
+          收藏夹 <span id="favorite-count">0</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="exposure" aria-labelledby="wallpaper-title">
+      <p class="exposure-index" id="exposure-index">NEGATIVE — / 08</p>
+      <p class="exposure-date" id="wallpaper-date">读取日期…</p>
+      <h1 id="wallpaper-title">今日的光<br>正在抵达</h1>
+      <p class="copyright-line" id="copyright-line">正在连接每日图片源。</p>
+      <a class="copyright-link" id="copyright-link" href="https://www.bing.com" target="_blank" rel="noreferrer">查看图片来源 ↗</a>
+    </section>
+
+    <nav class="action-rail" aria-label="壁纸操作">
+      <button class="action-button" id="favorite-button" type="button" aria-pressed="false">
+        <span class="action-icon" aria-hidden="true">☆</span>
+        <span class="action-copy"><b>收藏</b><small>FAVORITE</small></span>
+      </button>
+      <button class="action-button" id="download-button" type="button">
+        <span class="action-icon" aria-hidden="true">↓</span>
+        <span class="action-copy"><b>下载原图</b><small>DOWNLOAD</small></span>
+      </button>
+      <button class="action-button" id="homepage-button" type="button" aria-pressed="false">
+        <span class="action-icon" aria-hidden="true">⌂</span>
+        <span class="action-copy"><b>固定为首页</b><small>PIN HOME</small></span>
+      </button>
+    </nav>
+
+    <section class="film-dock" aria-label="最近八日壁纸">
+      <div class="film-heading">
+        <span>RECENT EXPOSURES</span>
+        <span>← → 切换 · F 收藏</span>
+      </div>
+      <div class="filmstrip-wrap">
+        <button class="film-arrow prev" id="previous-button" type="button" aria-label="上一张壁纸">←</button>
+        <div class="filmstrip" id="filmstrip" role="list"></div>
+        <button class="film-arrow next" id="next-button" type="button" aria-label="下一张壁纸">→</button>
+      </div>
+    </section>
+
+    <div class="loading-curtain" id="loading-curtain" role="status">
+      <span class="loader-aperture" aria-hidden="true"></span>
+      <p>暗房显影中 <b id="loading-count">00</b></p>
+    </div>
+  </main>
+
+  <dialog class="favorites-drawer" id="favorites-dialog" aria-labelledby="favorites-title">
+    <div class="drawer-head">
+      <div>
+        <p>PERSONAL CONTACT SHEET</p>
+        <h2 id="favorites-title">收藏底片</h2>
+      </div>
+      <button class="icon-close" data-close-dialog type="button" aria-label="关闭收藏夹">×</button>
+    </div>
+    <div class="favorite-grid" id="favorite-grid"></div>
+    <div class="empty-favorites" id="empty-favorites">
+      <span aria-hidden="true">☆</span>
+      <h3>还没有留下底片</h3>
+      <p>看到喜欢的画面时，按 F 或点击“收藏”。</p>
+    </div>
+  </dialog>
+
+  <dialog class="homepage-dialog" id="homepage-dialog" aria-labelledby="homepage-title">
+    <button class="icon-close dialog-close" data-close-dialog type="button" aria-label="关闭说明">×</button>
+    <p class="dialog-kicker">MAKE IT YOUR STARTING FRAME</p>
+    <h2 id="homepage-title">这张画面已固定</h2>
+    <p>以后打开 LUMEN 会先显示它。浏览器不会允许网页直接修改首页，你可以复制下面的地址，再到浏览器设置中粘贴。</p>
+    <label for="homepage-url">LUMEN 首页地址</label>
+    <div class="copy-field">
+      <input id="homepage-url" type="text" readonly>
+      <button id="copy-homepage" type="button">复制地址</button>
+    </div>
+    <p class="dialog-note">如果想换回每日最新图片，再点一次“取消固定”。</p>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <p class="sr-only" id="source-note">点击可重新获取最近八天壁纸</p>
+  <p class="sr-only" id="live-region" aria-live="polite"></p>
+
+  <script src="wallpaper-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

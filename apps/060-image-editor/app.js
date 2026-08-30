@@ -1,0 +1,3 @@
+(function initializePrismWorkspace() {
+  "use strict";
+})();

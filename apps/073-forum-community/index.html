@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#1848cf">
+  <meta name="description" content="THREADLINE/73 是一个面向独立创作者的作品评审论坛，支持主题、引用回复、点赞、收藏与本地或服务端身份。">
+  <title>THREADLINE/73 · 创作者评审社区</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#threadList">跳到主题列表</a>
+
+  <div class="studio-ticker" aria-hidden="true">
+    <span>带着半成品来</span><i></i><span>把问题问具体</span><i></i><span>回应作品而不是作者</span><i></i><span>说清你看见了什么</span>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="THREADLINE 首页">
+      <span class="brand-pin">73</span>
+      <span><b>THREADLINE</b><small>创作者评审线 / 073</small></span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#feedHeading">主题线</a>
+      <a href="#communityNote">社区约定</a>
+    </nav>
+    <button class="identity-button" id="identityButton" type="button" aria-haspopup="dialog">
+      <span class="avatar-dot" id="headerAvatar">访</span>
+      <span><small id="headerMode">正在连接</small><b id="headerName">选择身份</b></span>
+    </button>
+  </header>
+
+  <main id="top" class="workspace">
+    <aside class="filter-clip" aria-labelledby="filterHeading">
+      <div class="clip-tab" aria-hidden="true"></div>
+      <div class="mode-row">
+        <span class="mode-light" id="modeLight"></span>
+        <div><small>工作模式</small><b id="modeLabel">正在检查服务</b></div>
+      </div>
+      <p class="mode-copy" id="modeCopy">正在确认是否有共享社区服务。</p>
+
+      <h2 id="filterHeading">找到一条评审线</h2>
+      <label class="search-field" for="searchInput">
+        <span>搜索主题 / 焦点 / 作者</span>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="例如：章节转场">
+      </label>
+
+      <fieldset class="sort-fieldset">
+        <legend>排列方式</legend>
+        <div class="segmented" id="sortControls">
+          <button type="button" data-sort="newest" aria-pressed="true">最新</button>
+          <button type="button" data-sort="hot" aria-pressed="false">有回应</button>
+          <button type="button" data-sort="unanswered" aria-pressed="false">待回应</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="tag-fieldset">
+        <legend>作品类型</legend>
+        <div class="tag-filter" id="tagFilters"></div>
+      </fieldset>
+
+      <button class="clear-filter" id="clearFiltersButton" type="button">清除筛选</button>
+      <div class="clip-number" aria-hidden="true">FILTER / 73</div>
+    </aside>
+
+    <section class="feed" aria-labelledby="feedHeading">
+      <header class="feed-hero">
+        <div>
+          <p class="eyebrow">OPEN CRITIQUE DESK · 本周开放</p>
+          <h1 id="feedHeading">让半成品<br><em>沿线生长</em></h1>
+          <p>把阶段、疑问和上下文写清楚。这里不需要完美作品，只需要一个别人能真正回答的问题。</p>
+        </div>
+        <button class="publish-button" id="publishButton" type="button">
+          <span>＋</span><b>发布评审主题</b><small>带着具体问题来</small>
+        </button>
+      </header>
+
+      <div class="feed-meta">
+        <p><strong id="resultCount">0</strong> 条主题在线</p>
+        <p id="activeFilter">全部作品 · 最新优先</p>
+      </div>
+
+      <div class="thread-list" id="threadList" aria-live="polite"></div>
+    </section>
+
+    <aside class="profile-rail" aria-label="个人与社区信息">
+      <section class="profile-ticket" id="profileTicket">
+        <div class="ticket-tear" aria-hidden="true"></div>
+        <p class="ticket-label">MY CRITIQUE PASS</p>
+        <div class="profile-heading">
+          <span class="profile-avatar" id="profileAvatar">访</span>
+          <div><strong id="profileName">尚未选择身份</strong><small id="profileHandle">本地演示可立即开始</small></div>
+        </div>
+        <p class="profile-bio" id="profileBio">选择或创建一个身份后，可以发布、回复、点赞和收藏。</p>
+        <dl class="profile-stats">
+          <div><dt>主题</dt><dd id="profilePosts">—</dd></div>
+          <div><dt>回复</dt><dd id="profileReplies">—</dd></div>
+          <div><dt>收藏</dt><dd id="profileBookmarks">—</dd></div>
+        </dl>
+        <button id="profileActionButton" type="button">选择身份</button>
+        <span class="ticket-code">TL-073 / OPEN DESK</span>
+      </section>
+
+      <section class="community-note" id="communityNote">
+        <span class="note-pin" aria-hidden="true"></span>
+        <p class="note-kicker">回应之前</p>
+        <h2>先写观察，<br>再给建议。</h2>
+        <ol>
+          <li><b>具体</b><span>指出你看到或听到的细节。</span></li>
+          <li><b>有边界</b><span>回应对方提出的焦点。</span></li>
+          <li><b>可行动</b><span>给出下一次可验证的修改。</span></li>
+        </ol>
+      </section>
+
+      <section class="community-pulse">
+        <p>工作台状态</p>
+        <dl>
+          <div><dt>创作者</dt><dd id="communityUsers">0</dd></div>
+          <div><dt>公开回复</dt><dd id="communityReplies">0</dd></div>
+          <div><dt>待回应</dt><dd id="communityOpen">0</dd></div>
+        </dl>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    <div><b>THREADLINE/73</b><span>一个诚实标注本地与服务端边界的论坛社区 Demo。</span></div>
+    <p>作品不会因为被看见而变小。</p>
+  </footer>
+
+  <dialog class="thread-dialog" id="threadDialog" aria-labelledby="threadDialogTitle">
+    <div class="dialog-shell thread-shell">
+      <header class="dialog-bar">
+        <div><small>THREAD DETAIL / 评审现场</small><b id="threadDialogTitle">主题详情</b></div>
+        <button class="icon-button" id="threadCloseButton" type="button" aria-label="关闭主题详情">×</button>
+      </header>
+      <div id="threadDetail"></div>
+      <form class="reply-composer" id="replyForm">
+        <div class="quote-preview" id="quotePreview" hidden>
+          <span>正在引用</span><p id="quotePreviewText"></p><button id="clearQuoteButton" type="button">取消引用</button>
+        </div>
+        <label for="replyBody">补上一条具体回应</label>
+        <textarea id="replyBody" name="body" rows="4" maxlength="800" placeholder="先写你观察到的细节，再给一个可以尝试的下一步。" required></textarea>
+        <div class="composer-foot">
+          <p class="form-message" id="replyMessage" role="alert"></p>
+          <button id="replySubmitButton" type="submit">发布回应 <span>↗</span></button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog class="form-dialog" id="publishDialog" aria-labelledby="publishDialogTitle">
+    <form class="dialog-shell" id="publishForm">
+      <header class="dialog-bar">
+        <div><small>NEW CRITIQUE / 不是作品发布页</small><b id="publishDialogTitle">把问题钉上工作台</b></div>
+        <button class="icon-button" id="publishCloseButton" type="button" aria-label="关闭发布表单">×</button>
+      </header>
+      <div class="form-intro">写清作品在哪个阶段、希望大家重点看什么。一个窄问题比“大家觉得怎么样”更容易得到好回应。</div>
+      <div class="form-grid">
+        <label class="full-field">主题标题
+          <input id="postTitle" name="title" minlength="6" maxlength="80" placeholder="例如：玩家会意识到这是不可逆选择吗？" required>
+          <small data-error-for="title"></small>
+        </label>
+        <label>作品阶段
+          <select id="postStage" name="stage" required>
+            <option value="idea">想法</option><option value="draft">草稿</option><option value="prototype">原型</option><option value="polish">收尾</option>
+          </select>
+          <small data-error-for="stage"></small>
+        </label>
+        <label>希望聚焦
+          <input id="postFocus" name="focus" minlength="4" maxlength="60" placeholder="例如：第一次选择的代价提示" required>
+          <small data-error-for="focus"></small>
+        </label>
+        <fieldset class="full-field tag-picker">
+          <legend>选择 1–3 个作品标签</legend>
+          <div id="postTagPicker"></div>
+          <small data-error-for="tags"></small>
+        </fieldset>
+        <label class="full-field">作品上下文
+          <textarea id="postBody" name="body" rows="7" minlength="24" maxlength="1600" placeholder="说明你已经尝试了什么、现在卡在哪里，以及别人需要知道的上下文。" required></textarea>
+          <small data-error-for="body"></small>
+        </label>
+      </div>
+      <div class="form-actions">
+        <p class="form-message" id="publishMessage" role="alert"></p>
+        <button class="primary-action" id="publishSubmitButton" type="submit">发布评审主题 <span>↗</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="form-dialog auth-dialog" id="authDialog" aria-labelledby="authDialogTitle">
+    <form class="dialog-shell" id="authForm">
+      <header class="dialog-bar">
+        <div><small id="authKicker">IDENTITY / 本地演示</small><b id="authDialogTitle">选择你的工作台身份</b></div>
+        <button class="icon-button" id="authCloseButton" type="button" aria-label="关闭身份面板">×</button>
+      </header>
+      <div class="local-identities" id="localIdentitySection">
+        <p>现有演示身份</p><div id="identityList"></div>
+        <hr>
+      </div>
+      <div class="auth-tabs" id="authTabs" hidden>
+        <button type="button" data-auth-mode="login" aria-pressed="true">登录</button>
+        <button type="button" data-auth-mode="register" aria-pressed="false">创建账号</button>
+      </div>
+      <p class="auth-explainer" id="authExplainer">本地身份只保存在这个浏览器，不需要真实邮箱或密码。</p>
+      <div class="form-grid auth-fields">
+        <label>用户名
+          <input id="authUsername" name="username" autocomplete="username" minlength="3" maxlength="20" pattern="[a-z0-9_]+" placeholder="paper_river" required>
+          <small data-error-for="username"></small>
+        </label>
+        <label class="register-only">显示名
+          <input id="authDisplayName" name="displayName" autocomplete="nickname" minlength="2" maxlength="24" placeholder="纸河" required>
+          <small data-error-for="displayName"></small>
+        </label>
+        <label class="register-only full-field">个人简介（可选）
+          <textarea id="authBio" name="bio" rows="3" maxlength="160" placeholder="说说你在做什么，以及希望交换哪类反馈。"></textarea>
+          <small data-error-for="bio"></small>
+        </label>
+        <label class="server-only full-field" hidden>密码
+          <input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="72" placeholder="至少 8 位，包含字母和数字">
+          <small data-error-for="password"></small>
+        </label>
+      </div>
+      <div class="form-actions">
+        <p class="form-message" id="authMessage" role="alert"></p>
+        <button class="primary-action" id="authSubmitButton" type="submit">创建本地身份 <span>↗</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="forum-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CHANNEL/80 放映局：带定时弹幕、播放列表、进度恢复与本地选片的视频网站 Demo。">
+  <meta name="theme-color" content="#101727">
+  <title>CHANNEL/80 · 放映局</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#playerStage">跳到播放器</a>
+
+  <div class="broadcast-strip" aria-hidden="true">
+    <span>CHANNEL / 80</span>
+    <span>社区短片放映中</span>
+    <span>CURATED SHORT FILMS</span>
+    <span>弹幕随时间抵达</span>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="CHANNEL 80 放映局首页">
+      <span class="brand-mark">C<span>/</span>80</span>
+      <span class="brand-copy"><b>放映局</b><small>NEIGHBORHOOD SCREENING ROOM</small></span>
+    </a>
+    <div class="screening-status" id="screeningStatus" role="status">
+      <i aria-hidden="true"></i>
+      <span>今晚节目已就绪</span>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">APP #080 · VIDEO / DANMAKU / PLAYLIST</p>
+        <h1 id="pageTitle">留在这一幕，<br><em>把话发到画面上。</em></h1>
+      </div>
+      <p class="intro-note">三部短片，一张顺序节目单。播放进度留在你的浏览器；也可以选择本地视频，临时借用这间放映室。</p>
+    </section>
+
+    <section class="theater-layout" aria-label="视频放映与节目单">
+      <div class="stage-column">
+        <div class="player-stage" id="playerStage">
+          <aside class="signal-rail" aria-label="放映信号轨">
+            <div class="signal-heading"><span>LIVE</span><small>信号轨</small></div>
+            <div class="rail-track" id="signalTrack" aria-hidden="true">
+              <span class="rail-fill" id="signalFill"></span>
+              <span class="rail-needle" id="signalNeedle"></span>
+              <i style="--at:0%"></i><i style="--at:25%"></i><i style="--at:50%"></i><i style="--at:75%"></i><i style="--at:100%"></i>
+            </div>
+            <output id="signalPercent">00%</output>
+            <small id="signalBulletCount">0 条弹幕</small>
+          </aside>
+
+          <div class="screen-frame" id="screenFrame">
+            <video id="video" preload="metadata" playsinline aria-label="当前短片"></video>
+            <div class="screen-vignette" aria-hidden="true"></div>
+            <div class="danmaku-layer" id="danmakuLayer" aria-hidden="true"></div>
+
+            <div class="source-chip" id="sourceChip">片单 / 01</div>
+            <button class="center-play" id="centerPlayButton" type="button" aria-label="播放当前视频">
+              <span aria-hidden="true">▶</span><small>开始放映</small>
+            </button>
+
+            <div class="load-panel" id="loadPanel" hidden>
+              <b>这部片暂时无法载入</b>
+              <p>可以换一部片，或选择电脑里的视频继续验收。</p>
+              <button type="button" id="loadLocalFromError">选择本地视频</button>
+            </div>
+
+            <div class="screen-caption">
+              <span id="nowPlayingTitle">花园一刻</span>
+              <small id="nowPlayingMeta">CC0 SAMPLE · 远程片源</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-deck" aria-label="播放控制">
+          <div class="timeline-row">
+            <span id="currentTime">00:00</span>
+            <label class="sr-only" for="seekInput">播放进度</label>
+            <input id="seekInput" class="range timeline" type="range" min="0" max="1000" value="0" aria-valuetext="00:00 / 00:00">
+            <span id="durationTime">00:00</span>
+          </div>
+
+          <div class="transport-row">
+            <div class="transport-main">
+              <button class="round-control primary-control" id="playButton" type="button" aria-label="播放"><span aria-hidden="true">▶</span></button>
+              <button class="round-control" id="muteButton" type="button" aria-label="静音"><span aria-hidden="true">◖</span></button>
+              <label class="volume-control"><span class="sr-only">音量</span><input id="volumeInput" class="range" type="range" min="0" max="1" step="0.01" value="0.82"></label>
+              <label class="rate-control"><span>速度</span><select id="rateSelect" aria-label="播放速度"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+            </div>
+            <div class="transport-tools">
+              <button class="tool-control" id="bulletToggle" type="button" aria-pressed="true"><span aria-hidden="true">弹</span><b>弹幕开</b></button>
+              <button class="tool-control" id="autoNextToggle" type="button" aria-pressed="true"><span aria-hidden="true">↻</span><b>连播开</b></button>
+              <button class="tool-control icon-only" id="fullscreenButton" type="button" aria-label="进入全屏"><span aria-hidden="true">⛶</span></button>
+            </div>
+          </div>
+        </div>
+
+        <section class="bullet-console" aria-labelledby="bulletTitle">
+          <div class="console-heading">
+            <div><p class="eyebrow">TIMED COMMENTS</p><h2 id="bulletTitle">把这一刻发上银幕</h2></div>
+            <button class="quiet-button" id="clearBulletsButton" type="button">清除本片我的弹幕</button>
+          </div>
+          <form id="bulletForm" novalidate>
+            <label class="bullet-input-wrap" for="bulletInput">
+              <span class="sr-only">弹幕内容</span>
+              <input id="bulletInput" type="text" maxlength="60" autocomplete="off" placeholder="例如：这个转场像一口深呼吸" required>
+              <output id="bulletCount">0 / 60</output>
+            </label>
+            <fieldset class="color-picker" id="colorPicker">
+              <legend>弹幕颜色</legend>
+              <label><input type="radio" name="bulletColor" value="#FFFFFF" checked><span style="--swatch:#FFFFFF">白</span></label>
+              <label><input type="radio" name="bulletColor" value="#F2E7D2"><span style="--swatch:#F2E7D2">米</span></label>
+              <label><input type="radio" name="bulletColor" value="#E9A45B"><span style="--swatch:#E9A45B">橙</span></label>
+              <label><input type="radio" name="bulletColor" value="#8EC7D3"><span style="--swatch:#8EC7D3">蓝</span></label>
+              <label><input type="radio" name="bulletColor" value="#D96C6C"><span style="--swatch:#D96C6C">红</span></label>
+            </fieldset>
+            <button class="send-button" type="submit">发送到 <span id="sendTime">00:00</span> <b>→</b></button>
+          </form>
+          <p class="privacy-line" id="bulletHint">弹幕和远程片源进度只保存在当前浏览器。</p>
+        </section>
+      </div>
+
+      <aside class="program-panel" aria-labelledby="programTitle">
+        <div class="ticket-top">
+          <span>ADMIT ONE</span><span>NO.080</span>
+        </div>
+        <div class="program-heading">
+          <p class="eyebrow">TONIGHT'S PROGRAM</p>
+          <h2 id="programTitle">今晚节目单</h2>
+          <p>选择一部片。切换前会记住当前进度，回来从离开的地方继续。</p>
+        </div>
+
+        <div class="playlist" id="playlist" role="list"></div>
+
+        <div class="local-screening">
+          <div><p class="eyebrow">YOUR OWN REEL</p><h3>带一部自己的片</h3></div>
+          <p>视频只在这个标签页里播放，不上传，也不会在刷新后保留。</p>
+          <label class="file-button" for="localVideoInput">选择本地视频 <span>＋</span></label>
+          <input id="localVideoInput" type="file" accept="video/*" hidden>
+          <small id="fileStatus">支持浏览器可播放的 video/* 文件</small>
+        </div>
+
+        <dl class="shortcut-card">
+          <div><dt>Space</dt><dd>播放 / 暂停</dd></div>
+          <div><dt>← / →</dt><dd>后退 / 前进 5 秒</dd></div>
+          <div><dt>M</dt><dd>静音</dd></div>
+          <div><dt>D</dt><dd>显示 / 隐藏弹幕</dd></div>
+        </dl>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <div><b>CHANNEL/80</b><span>100 Apps Challenge · App #080</span></div>
+    <p>片单 / 本地选片 / 定时弹幕 / 播放进度</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="video-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

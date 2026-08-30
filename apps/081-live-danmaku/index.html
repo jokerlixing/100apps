@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="WAVE/81 是一个可在本地运行的模拟直播弹幕系统，支持多轨弹幕、实时聊天、快捷反应和跨标签页同步。">
+  <meta name="theme-color" content="#111817">
+  <title>WAVE/81 · 直播弹幕系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#messageInput">跳到弹幕输入</a>
+
+  <header class="masthead">
+    <a class="brand" href="../../index.html" aria-label="返回 100 Apps Challenge">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>
+        <strong>WAVE/81</strong>
+        <small>LIVE MESSAGE CONTROL</small>
+      </span>
+    </a>
+    <div class="masthead-copy">
+      <p>100 APPS · SIGNAL 081</p>
+      <h1>把每一句现场感，送上画面。</h1>
+    </div>
+    <div class="system-readout" aria-label="系统状态">
+      <span class="status-lamp" aria-hidden="true"></span>
+      <span><b id="connectionState">正在建立本地信号</b><small>SIMULATED ROOM · NO SIGN-IN</small></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="broadcast-shell" id="broadcastShell">
+      <section class="stage-panel" aria-labelledby="programTitle">
+        <header class="panel-header stage-header">
+          <div>
+            <span class="channel-tag">CH · 081</span>
+            <h2 id="programTitle">天台声场：晚风航线</h2>
+          </div>
+          <div class="live-meta">
+            <span class="live-pill" id="liveStatus"><i aria-hidden="true"></i> ON AIR</span>
+            <span class="viewer-readout"><span aria-hidden="true">●</span> <b id="audienceCount">1.3万</b> 人在看</span>
+          </div>
+        </header>
+
+        <div class="live-stage" id="liveStage" tabindex="0" aria-label="模拟天台音乐直播画面">
+          <div class="stage-art" aria-hidden="true">
+            <svg class="rooftop-art" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice" role="img">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#17302d"/>
+                  <stop offset="0.58" stop-color="#36544b"/>
+                  <stop offset="1" stop-color="#101817"/>
+                </linearGradient>
+                <radialGradient id="sun" cx="50%" cy="48%" r="50%">
+                  <stop offset="0" stop-color="#ffd98a"/>
+                  <stop offset="0.68" stop-color="#f1ad3d"/>
+                  <stop offset="1" stop-color="#d54832"/>
+                </radialGradient>
+                <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#f1ad3d" stop-opacity=".33"/>
+                  <stop offset="1" stop-color="#f1ad3d" stop-opacity="0"/>
+                </linearGradient>
+                <filter id="softGlow"><feGaussianBlur stdDeviation="12"/></filter>
+              </defs>
+              <rect width="1200" height="675" fill="url(#sky)"/>
+              <circle class="sun-halo" cx="825" cy="258" r="176" fill="#f1ad3d" opacity=".15" filter="url(#softGlow)"/>
+              <circle cx="825" cy="258" r="128" fill="url(#sun)" opacity=".94"/>
+              <g class="signal-rings" fill="none" stroke="#f3f0e7" opacity=".19">
+                <circle cx="825" cy="258" r="155"/>
+                <circle cx="825" cy="258" r="182"/>
+                <circle cx="825" cy="258" r="215"/>
+              </g>
+              <path d="M0 365 L145 315 262 350 392 285 520 347 650 303 790 357 930 294 1060 342 1200 310V675H0Z" fill="#1b2c29" opacity=".82"/>
+              <path d="M0 430 L170 390 330 435 515 382 700 433 870 374 1045 425 1200 384V675H0Z" fill="#14211f"/>
+              <polygon points="262,0 468,0 700,675 550,675" fill="url(#beam)" opacity=".66"/>
+              <polygon points="990,0 1104,0 790,675 670,675" fill="url(#beam)" opacity=".42"/>
+              <g class="roofline" fill="#0a0f0f">
+                <rect x="0" y="500" width="1200" height="175"/>
+                <rect x="45" y="462" width="170" height="45"/>
+                <rect x="1010" y="452" width="145" height="55"/>
+                <rect x="95" y="416" width="8" height="48"/>
+                <rect x="1082" y="406" width="7" height="49"/>
+                <path d="M92 416h14l-3-27h-8zM1079 406h13l-4-25h-6z"/>
+              </g>
+              <g class="performer" fill="#070b0b" stroke="#070b0b" stroke-linecap="round">
+                <circle cx="558" cy="356" r="25"/>
+                <path d="M537 383 Q558 365 579 384 L601 494 H521Z"/>
+                <path d="M537 411 L453 447" stroke-width="18"/>
+                <path d="M577 408 L650 462" stroke-width="17"/>
+                <ellipse cx="638" cy="451" rx="57" ry="40" transform="rotate(20 638 451)"/>
+                <rect x="661" y="412" width="113" height="12" rx="5" transform="rotate(-9 661 412)"/>
+                <path d="M541 487 L524 584M580 487 L604 584" fill="none" stroke-width="22"/>
+                <path d="M477 329 L477 510" fill="none" stroke-width="6"/>
+                <path d="M477 329 L523 364" fill="none" stroke-width="5"/>
+                <ellipse cx="529" cy="367" rx="12" ry="7" transform="rotate(24 529 367)"/>
+              </g>
+              <g fill="#f1ad3d" opacity=".8">
+                <rect x="154" y="555" width="10" height="42" rx="5"/>
+                <rect x="177" y="538" width="10" height="59" rx="5"/>
+                <rect x="200" y="566" width="10" height="31" rx="5"/>
+                <rect x="945" y="551" width="10" height="46" rx="5"/>
+                <rect x="968" y="526" width="10" height="71" rx="5"/>
+                <rect x="991" y="562" width="10" height="35" rx="5"/>
+              </g>
+            </svg>
+            <div class="grain"></div>
+            <div class="signal-scan"></div>
+          </div>
+
+          <div class="stage-topline">
+            <span>CAM A · ROOFTOP EAST</span>
+            <time id="timecode">00:00:00</time>
+          </div>
+
+          <div class="danmaku-layer" id="danmakuLayer" aria-live="off" aria-label="画面弹幕"></div>
+          <div class="reaction-layer" id="reactionLayer" aria-hidden="true"></div>
+
+          <div class="now-playing">
+            <span class="eyebrow">NOW PLAYING / 03</span>
+            <strong>《晚风航线》</strong>
+            <span>云际线乐队 · ROOFTOP TAKE</span>
+          </div>
+
+          <div class="player-controls" aria-label="直播画面控制">
+            <button class="icon-control" id="playToggle" type="button" aria-label="暂停信号" aria-pressed="false">
+              <span class="play-icon" aria-hidden="true"></span><span class="control-label">暂停</span>
+            </button>
+            <button class="icon-control" id="muteToggle" type="button" aria-label="静音" aria-pressed="false">
+              <span aria-hidden="true">◖))</span><span class="control-label">声音</span>
+            </button>
+            <label class="volume-control" for="volumeRange"><span class="sr-only">音量</span><input id="volumeRange" type="range" min="0" max="1" value="0.55" step="0.05"></label>
+            <div class="audio-meter" id="audioMeter" aria-label="模拟音量电平">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <span class="control-spacer"></span>
+            <button class="text-control is-on" id="danmakuToggle" type="button" aria-label="隐藏弹幕" aria-pressed="true">弹幕 <b>ON</b></button>
+            <button class="text-control" id="theaterToggle" type="button" aria-label="开启影院模式" aria-pressed="false">影院模式</button>
+          </div>
+        </div>
+
+        <footer class="stage-footer">
+          <p><span class="status-dot"></span> 本地模拟信号稳定</p>
+          <p>延迟 <b id="latencyReadout">32 ms</b> · <span id="qualityReadout">1080P / AUTO</span></p>
+        </footer>
+      </section>
+
+      <aside class="chat-panel" aria-labelledby="chatTitle">
+        <header class="panel-header chat-header">
+          <div>
+            <span class="channel-tag">ROOM FEED</span>
+            <h2 id="chatTitle">现场聊天</h2>
+          </div>
+          <span class="message-total"><b id="messageCount">0</b> MSG</span>
+        </header>
+
+        <div class="chat-feed" id="chatFeed" role="log" aria-live="polite" aria-relevant="additions" aria-label="实时聊天消息"></div>
+
+        <div class="reaction-strip" aria-label="快捷反应">
+          <span>送出反应</span>
+          <button type="button" data-reaction="👏" aria-label="送出掌声">👏</button>
+          <button type="button" data-reaction="❤️" aria-label="送出爱心">❤️</button>
+          <button type="button" data-reaction="🔥" aria-label="送出火焰">🔥</button>
+          <span class="like-readout"><b id="likeCount">4,821</b> 次共振</span>
+        </div>
+
+        <form class="message-form" id="messageForm" novalidate>
+          <div class="message-row">
+            <label class="sr-only" for="messageInput">输入弹幕</label>
+            <input id="messageInput" name="message" type="text" maxlength="48" autocomplete="off" placeholder="说点与现场有关的话…" aria-describedby="messageHint messageError">
+            <span class="char-count" id="charCount">0/48</span>
+          </div>
+          <p class="message-hint" id="messageHint">Enter 发送 · 发送内容会同步到本机其他标签页</p>
+          <p class="message-error" id="messageError" role="status" aria-live="polite"></p>
+
+          <div class="composer-tools">
+            <div class="segmented" aria-label="弹幕位置">
+              <button class="is-active" type="button" data-mode="scroll" aria-pressed="true">滚动</button>
+              <button type="button" data-mode="top" aria-pressed="false">顶部</button>
+              <button type="button" data-mode="bottom" aria-pressed="false">底部</button>
+            </div>
+            <div class="color-picker" aria-label="弹幕颜色">
+              <button class="is-active" type="button" data-color="#f3f0e7" aria-label="纸白色" aria-pressed="true"></button>
+              <button type="button" data-color="#f1ad3d" aria-label="电平琥珀色" aria-pressed="false"></button>
+              <button type="button" data-color="#55b8aa" aria-label="信号青色" aria-pressed="false"></button>
+              <button type="button" data-color="#ff8b73" aria-label="暖红色" aria-pressed="false"></button>
+              <button type="button" data-color="#b7c9ff" aria-label="雾蓝色" aria-pressed="false"></button>
+            </div>
+            <button class="send-button" type="submit">发送弹幕 <span aria-hidden="true">↗</span></button>
+          </div>
+        </form>
+      </aside>
+    </div>
+
+    <section class="signal-desk" aria-labelledby="deskTitle">
+      <header>
+        <span class="channel-tag">SIGNAL DESK</span>
+        <h2 id="deskTitle">弹幕控制台</h2>
+        <p>这些设置只保存在当前浏览器。</p>
+      </header>
+      <div class="desk-controls">
+        <label class="desk-control" for="densitySelect">
+          <span><b>密度</b><small>控制模拟消息间隔</small></span>
+          <select id="densitySelect">
+            <option value="low">清爽</option>
+            <option value="balanced" selected>平衡</option>
+            <option value="high">热烈</option>
+          </select>
+        </label>
+        <label class="desk-control" for="opacityRange">
+          <span><b>透明度</b><small id="opacityValue">88%</small></span>
+          <input id="opacityRange" type="range" min="0.35" max="1" value="0.88" step="0.01">
+        </label>
+        <label class="desk-control" for="speedRange">
+          <span><b>滚动速度</b><small id="speedValue">1.0×</small></span>
+          <input id="speedRange" type="range" min="0.7" max="1.5" value="1" step="0.1">
+        </label>
+      </div>
+    </section>
+
+    <section class="program-notes" aria-label="场次与系统信息">
+      <article class="rundown-card">
+        <span class="card-index">RUN OF SHOW</span>
+        <h2>今夜节目单</h2>
+        <ol>
+          <li><time>20:10</time><span><b>霓虹以后</b><small>OPENING TAKE</small></span><em>已播</em></li>
+          <li><time>20:18</time><span><b>玻璃海</b><small>ACOUSTIC TAKE</small></span><em>已播</em></li>
+          <li class="is-current"><time>20:27</time><span><b>晚风航线</b><small>ROOFTOP TAKE</small></span><em>直播中</em></li>
+          <li><time>20:34</time><span><b>返场问答</b><small>ROOM Q&amp;A</small></span><em>待播</em></li>
+        </ol>
+      </article>
+      <article class="about-card">
+        <span class="card-index">ABOUT THE SIGNAL</span>
+        <h2>这是一个诚实的模拟直播间。</h2>
+        <p>画面、观众数与环境消息由浏览器本地生成，不会上传你的输入。打开第二个标签页，就能体验同一台设备上的实时弹幕同步。</p>
+        <dl>
+          <div><dt>D</dt><dd>显示 / 隐藏弹幕</dd></div>
+          <div><dt>T</dt><dd>切换影院模式</dd></div>
+          <div><dt>M</dt><dd>静音 / 恢复声音</dd></div>
+        </dl>
+      </article>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p>WAVE/81 · A LOCAL LIVE-ROOM STUDY</p>
+    <a href="../../index.html">返回 100 Apps Challenge ↗</a>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="danmaku-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BENCH/94 浏览器代码实验台：编辑并运行 Web、JavaScript 与 Python。">
+  <meta name="theme-color" content="#c9dde3">
+  <title>BENCH/94 · 浏览器代码实验台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#codeEditor">跳到代码编辑器</a>
+
+  <header class="masthead">
+    <div class="brand-block" aria-label="项目名称">
+      <span class="brand-plate">BENCH<span>/94</span></span>
+      <div>
+        <p class="brand-kicker">BROWSER CODE LAB</p>
+        <h1>浏览器代码实验台</h1>
+      </div>
+    </div>
+
+    <nav class="mode-switcher" aria-label="运行语言">
+      <button class="mode-button active" type="button" data-mode="web" aria-pressed="true">
+        <span>WEB</span><small>预览</small>
+      </button>
+      <button class="mode-button" type="button" data-mode="javascript" aria-pressed="false">
+        <span>JS</span><small>Worker</small>
+      </button>
+      <button class="mode-button" type="button" data-mode="python" aria-pressed="false">
+        <span>PY</span><small>Pyodide</small>
+      </button>
+    </nav>
+
+    <div class="run-actions">
+      <button class="run-button" id="runButton" type="button">
+        <span class="run-icon" aria-hidden="true">▶</span>
+        <span>运行实验<kbd>⌘↵</kbd></span>
+      </button>
+      <button class="stop-button" id="stopButton" type="button" disabled>
+        <span aria-hidden="true">■</span> 停止
+      </button>
+    </div>
+  </header>
+
+  <section class="tape-shell" aria-label="运行阶段">
+    <div class="tape-label">COMPILE TAPE</div>
+    <ol class="stage-tape" id="stageTape">
+      <li class="current" data-stage="edit"><span>01</span> EDIT</li>
+      <li data-stage="check"><span>02</span> CHECK</li>
+      <li data-stage="run"><span>03</span> RUN</li>
+      <li data-stage="result"><span>04</span> RESULT</li>
+    </ol>
+    <div class="result-stamp idle" id="resultStamp">READY</div>
+  </section>
+
+  <main class="workbench" id="main">
+    <aside class="file-rail" aria-labelledby="filesHeading">
+      <div class="rail-heading">
+        <span>DRAWER A</span>
+        <h2 id="filesHeading">实验文件</h2>
+      </div>
+      <div class="file-list" id="fileList"></div>
+      <div class="mode-card">
+        <span id="modeShortLabel">WEB / 3 FILES</span>
+        <p id="modeDescription">HTML、CSS 与 JavaScript 组合预览</p>
+      </div>
+      <div class="local-note">
+        <span aria-hidden="true">●</span>
+        <p><strong>仅保存在本机</strong>代码草稿不上传服务器。</p>
+      </div>
+    </aside>
+
+    <section class="editor-panel" aria-labelledby="editorHeading">
+      <header class="panel-head editor-head">
+        <div>
+          <p class="panel-index">CODE SHEET / <span id="fileOrdinal">01</span></p>
+          <h2 id="editorHeading">index.html</h2>
+        </div>
+        <div class="editor-meta" aria-label="代码统计">
+          <span id="saveState">已保存</span>
+          <span><b id="lineCount">1</b> 行</span>
+          <span><b id="characterCount">0</b> 字符</span>
+        </div>
+      </header>
+
+      <div class="editor-sheet">
+        <pre class="line-numbers" id="lineNumbers" aria-hidden="true">1</pre>
+        <textarea id="codeEditor" aria-label="代码编辑器" autocomplete="off" autocapitalize="off" spellcheck="false" wrap="off"></textarea>
+      </div>
+
+      <footer class="editor-footer">
+        <p><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> 运行 · <kbd>Esc</kbd> 停止</p>
+        <div>
+          <button class="text-button" id="downloadButton" type="button">下载当前文件</button>
+          <button class="text-button danger" id="resetButton" type="button">重置当前模式</button>
+        </div>
+      </footer>
+    </section>
+
+    <aside class="output-panel" aria-labelledby="outputHeading">
+      <header class="panel-head output-head">
+        <div>
+          <p class="panel-index">RESULT WINDOW</p>
+          <h2 id="outputHeading">实验结果</h2>
+        </div>
+        <div class="engine-status" id="engineStatus"><i></i><span>预览待命</span></div>
+      </header>
+
+      <div class="output-tabs" role="tablist" aria-label="结果视图">
+        <button id="previewTab" type="button" role="tab" aria-selected="true" aria-controls="previewPanel">预览</button>
+        <button id="consoleTab" type="button" role="tab" aria-selected="false" aria-controls="consolePanel">控制台 <span id="logCount">0</span></button>
+      </div>
+
+      <section class="output-view preview-view" id="previewPanel" role="tabpanel" aria-labelledby="previewTab">
+        <div class="preview-empty" id="previewEmpty">
+          <span class="empty-glyph" aria-hidden="true">▶</span>
+          <strong>准备第一次实验</strong>
+          <p>运行 Web 代码后，页面会出现在这块隔离玻璃后面。</p>
+        </div>
+        <iframe id="previewFrame" title="Web 代码运行预览" sandbox="allow-scripts"></iframe>
+      </section>
+
+      <section class="output-view console-view" id="consolePanel" role="tabpanel" aria-labelledby="consoleTab" hidden>
+        <div class="console-toolbar">
+          <span>STDOUT / STDERR</span>
+          <button id="clearConsoleButton" type="button">清空</button>
+        </div>
+        <div class="console-log" id="consoleLog" tabindex="0" aria-label="运行日志">
+          <div class="log-line system"><span>SYS</span><pre>选择一种语言，然后运行代码。</pre></div>
+        </div>
+      </section>
+
+      <footer class="run-readout">
+        <div><span>LAST RUN</span><b id="lastRunTime">—</b></div>
+        <div><span>DURATION</span><b id="durationValue">—</b></div>
+        <div><span>ENGINE</span><b id="engineValue">IFRAME</b></div>
+      </footer>
+    </aside>
+  </main>
+
+  <section class="history-strip" aria-labelledby="historyHeading">
+    <div class="history-title">
+      <span>RUN LEDGER</span>
+      <h2 id="historyHeading">最近实验</h2>
+    </div>
+    <ol class="history-list" id="historyList">
+      <li class="history-empty">还没有运行记录。第一次结果会盖在这里。</li>
+    </ol>
+  </section>
+
+  <footer class="site-footer">
+    <p><strong>BENCH/94</strong> Web 与 JavaScript 在浏览器沙箱内运行；Python 首次运行需联网加载 Pyodide。</p>
+    <p>草稿只写入当前浏览器的 localStorage。</p>
+  </footer>
+
+  <dialog class="reset-dialog" id="resetDialog" aria-labelledby="resetTitle">
+    <form method="dialog">
+      <span class="dialog-index">RESET CURRENT MODE</span>
+      <h2 id="resetTitle">恢复官方模板？</h2>
+      <p>当前模式的全部文件会被替换，其他语言的草稿和运行记录不受影响。</p>
+      <div class="dialog-actions">
+        <button value="cancel" type="submit">保留草稿</button>
+        <button class="confirm-reset" id="confirmResetButton" value="confirm" type="submit">恢复模板</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <p class="sr-only" id="liveStatus" role="status" aria-live="polite">实验台已就绪</p>
+
+  <script src="ide-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

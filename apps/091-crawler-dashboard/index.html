@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PULSEWATCH/91：在浏览器中轮询公开 JSON 与文本源，用内容指纹记录变化并发出本地通知。">
+  <title>PULSEWATCH/91 · 变化监测台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace">跳到观测台</a>
+
+  <div class="limit-strip" role="note">
+    <span>STATIC WATCH STATION · LOCAL ONLY</span>
+    <p>页面打开时才会定时检查；真实地址需允许浏览器跨域访问。</p>
+  </div>
+
+  <header class="site-header" id="top">
+    <a class="brand" href="#top" aria-label="PULSEWATCH 91 首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span><b>PULSEWATCH</b><small>变化监测台 / APP 091</small></span>
+    </a>
+    <div class="header-state" id="runnerState" role="status" aria-live="polite">
+      <span class="live-dot"></span>
+      <div><b>观测台待命</b><small id="nextRunLabel">正在计算下次检查</small></div>
+    </div>
+    <div class="header-actions">
+      <button class="button secondary" id="addSourceButton" type="button"><span aria-hidden="true">＋</span> 添加来源</button>
+      <button class="button primary" id="runAllButton" type="button"><span class="run-icon" aria-hidden="true">↻</span> 检查全部</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">NO.091 / CHANGE INTELLIGENCE</p>
+        <h1 id="heroTitle">别刷新页面，<br><em>刷新事实。</em></h1>
+        <p class="hero-lede">给公告、价格、岗位和状态接口各接一根探针。内容一变，字段差异、时间与指纹都留在本机。</p>
+      </div>
+      <div class="hero-gauge" aria-label="当前观测统计">
+        <div class="gauge-dial" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <b id="gaugeNumber">00</b>
+          <small>ACTIVE PROBES</small>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>刚有变化</dt><dd id="changedCount">0</dd></div>
+          <div><dt>需要处理</dt><dd id="errorCount">0</dd></div>
+          <div><dt>采集记录</dt><dd id="sampleCount">0</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace" aria-label="变化观测工作区">
+      <aside class="sources-panel panel" aria-labelledby="sourcesTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">SOURCE RAIL</p><h2 id="sourcesTitle">来源轨道</h2></div>
+          <span id="sourceCount">0 路</span>
+        </div>
+        <div class="filter-row" id="sourceFilters" aria-label="来源筛选">
+          <button class="filter-button active" type="button" data-filter="all">全部</button>
+          <button class="filter-button" type="button" data-filter="changed">变化</button>
+          <button class="filter-button" type="button" data-filter="errors">失败</button>
+          <button class="filter-button" type="button" data-filter="paused">暂停</button>
+        </div>
+        <div class="source-list" id="sourceList"></div>
+      </aside>
+
+      <section class="observation-panel panel" aria-labelledby="observationTitle">
+        <div class="panel-heading observation-heading">
+          <div>
+            <p class="eyebrow">SIGNAL / LAST 24 RUNS</p>
+            <h2 id="observationTitle">变化波形带</h2>
+          </div>
+          <div class="legend" aria-label="波形图例"><span class="stable">稳定</span><span class="changed">变化</span><span class="error">失败</span></div>
+        </div>
+        <div class="signal-wave" id="signalWave" role="img" aria-label="最近采集状态波形"></div>
+
+        <article class="source-detail" id="sourceDetail">
+          <div class="source-detail-head">
+            <div class="source-identity">
+              <span class="status-seal" id="selectedStatus">待命</span>
+              <h3 id="selectedName">选择一个来源</h3>
+              <p id="selectedUrl">来源详情会显示在这里</p>
+            </div>
+            <div class="detail-actions">
+              <button class="icon-button" id="editSourceButton" type="button" aria-label="编辑当前来源">编辑</button>
+              <button class="icon-button" id="pauseSourceButton" type="button">暂停</button>
+              <button class="button primary compact" id="runSourceButton" type="button">检查这一路</button>
+            </div>
+          </div>
+
+          <div class="reading-grid">
+            <div><span>最近检查</span><b id="lastRunValue">—</b></div>
+            <div><span>下次检查</span><b id="nextRunValue">—</b></div>
+            <div><span>内容指纹</span><b id="fingerprintValue">—</b></div>
+          </div>
+
+          <div class="change-summary" id="changeSummary" role="status">
+            <span class="summary-mark" aria-hidden="true">∿</span>
+            <div><b>尚无观测结果</b><p>检查来源后，这里会说明变化规模。</p></div>
+            <button class="text-button" id="copySummaryButton" type="button">复制摘要</button>
+          </div>
+
+          <div class="detail-tabs" role="tablist" aria-label="来源详情">
+            <button class="detail-tab active" id="diffTab" type="button" role="tab" aria-selected="true" data-tab="diff">字段变化</button>
+            <button class="detail-tab" id="snapshotTab" type="button" role="tab" aria-selected="false" data-tab="snapshot">当前快照</button>
+          </div>
+          <div class="tab-panel" id="diffPanel" role="tabpanel" aria-labelledby="diffTab">
+            <div class="diff-list" id="diffList"></div>
+          </div>
+          <div class="tab-panel" id="snapshotPanel" role="tabpanel" aria-labelledby="snapshotTab" hidden>
+            <pre id="snapshotContent">等待第一次检查…</pre>
+          </div>
+        </article>
+      </section>
+
+      <aside class="events-panel panel" aria-labelledby="eventsTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">TELEGRAPH</p><h2 id="eventsTitle">事件电报码</h2></div>
+          <button class="text-button" id="clearEventsButton" type="button">清空</button>
+        </div>
+        <div class="event-list" id="eventList" aria-live="polite"></div>
+      </aside>
+    </section>
+
+    <section class="boundary-note" aria-labelledby="boundaryTitle">
+      <div class="boundary-index">91 / BOUNDARY</div>
+      <div><p class="eyebrow">HONEST RUNTIME</p><h2 id="boundaryTitle">这是本地观测台，不是后台爬虫。</h2></div>
+      <p>关闭标签页后定时器会停止。登录站点、验证码与禁止跨域的页面需要你自己的合规服务端采集器；这里不会代理请求，也不会上传快照。</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-brand"><b>PULSEWATCH/91</b><span>100 Apps Challenge · 数据仅保存在当前浏览器</span></div>
+    <div class="footer-actions">
+      <button class="text-button" id="notificationButton" type="button">启用本地通知</button>
+      <button class="text-button" id="exportButton" type="button">导出数据</button>
+      <label class="text-button file-button">导入数据<input id="importInput" type="file" accept="application/json,.json"></label>
+      <button class="text-button danger" id="resetButton" type="button">恢复演示数据</button>
+    </div>
+  </footer>
+
+  <dialog class="source-dialog" id="sourceDialog" aria-labelledby="sourceDialogTitle">
+    <form id="sourceForm" method="dialog" novalidate>
+      <div class="dialog-heading">
+        <div><p class="eyebrow">PROBE CONFIG</p><h2 id="sourceDialogTitle">添加观测来源</h2></div>
+        <button class="dialog-close" id="sourceDialogClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <p class="dialog-intro">填写允许浏览器访问的公开 JSON 或文本地址。密钥不要放进 URL。</p>
+      <div class="form-grid">
+        <label class="full"><span>来源名称</span><input id="sourceNameInput" name="name" maxlength="48" autocomplete="off" placeholder="例如：产品价格接口" required></label>
+        <label class="full"><span>公开 URL</span><input id="sourceUrlInput" name="url" type="url" maxlength="2048" autocomplete="url" placeholder="https://example.com/status.json" required></label>
+        <label><span>内容类型</span><select id="sourceFormatInput" name="format"><option value="json">JSON</option><option value="text">纯文本</option></select></label>
+        <label><span>检查间隔</span><select id="sourceIntervalInput" name="interval"><option value="1">每 1 分钟</option><option value="5">每 5 分钟</option><option value="15" selected>每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每 1 小时</option><option value="360">每 6 小时</option><option value="1440">每天</option></select></label>
+        <label class="full" id="pathField"><span>JSON 点路径 <small>可选</small></span><input id="sourcePathInput" name="path" maxlength="120" autocomplete="off" placeholder="例如：data.items.0.price"><em>留空时监测完整响应。</em></label>
+        <label class="check-field full"><input id="sourceNotifyInput" name="notify" type="checkbox"><span>发生变化时发送浏览器通知</span></label>
+      </div>
+      <p class="form-error" id="sourceFormError" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="text-button danger delete-source" id="deleteSourceButton" type="button">删除来源</button>
+        <span></span>
+        <button class="button secondary" id="cancelSourceButton" type="button">取消</button>
+        <button class="button primary" type="submit">保存并检查</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+    <div class="confirm-mark" aria-hidden="true">!</div>
+    <h2 id="confirmTitle">确认操作</h2>
+    <p id="confirmMessage">这项操作无法撤销。</p>
+    <div class="dialog-actions">
+      <button class="button secondary" id="confirmCancelButton" type="button">取消</button>
+      <button class="button danger-fill" id="confirmActionButton" type="button">确认</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="monitor-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -200,7 +200,7 @@ async function run() {
     ];
     for (const [mode, text] of messages) {
       await evaluate(client, `(() => {
-        document.querySelector('[data-mode="${mode}"]').click();
+        document.querySelector('button[data-mode="${mode}"]').click();
         document.querySelector('#messageInput').value = ${JSON.stringify(text)};
         document.querySelector('#messageForm').requestSubmit();
       })()`);
@@ -252,7 +252,7 @@ async function run() {
     await sleep(950);
     const crossTabText = '跨标签同步验收：另一端已收到';
     await evaluate(client, `(() => {
-      document.querySelector('[data-mode="scroll"]').click();
+      document.querySelector('button[data-mode="scroll"]').click();
       document.querySelector('#messageInput').value = ${JSON.stringify(crossTabText)};
       document.querySelector('#messageForm').requestSubmit();
     })()`);

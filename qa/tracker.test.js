@@ -444,6 +444,19 @@ test('official completion state migrates a stale app 077 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 085 Tabloom is published and included in the official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app85 = ideas[84];
+  const appEntry = path.join(__dirname, '..', 'apps', '085-tab-manager', 'index.html');
+
+  assert.equal(app85[0], '标签页管理插件');
+  assert.match(app85[1], /^TABLOOM\/85/);
+  assert.equal(app85[3], 'https://jokerlixing.github.io/100apps/apps/085-tab-manager/');
+  assert.equal(doneIds.has(85), true, 'INIT_DONE must mark app 085 as done');
+  assert.equal(fs.existsSync(appEntry), true, 'app 085 tracker link must resolve to an index page');
+});
+
 test('app 083 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();
@@ -880,6 +893,30 @@ test('official completion state migrates a stale app 084 cache entry', () => {
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^MARGIN\/84/);
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/084-selection-translator/');
+  assert.equal(context.result.didSave, true);
+});
+
+test('official completion state migrates a stale app 085 cache entry', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:85,name:"标签页管理插件",desc:"一键整理浏览器标签组",lv:4,st:"todo",custom:false,link:""}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.match(context.result.apps[0].desc, /^TABLOOM\/85/);
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/085-tab-manager/');
   assert.equal(context.result.didSave, true);
 });
 

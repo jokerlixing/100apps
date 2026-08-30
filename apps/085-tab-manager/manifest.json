@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Tabloom · 标签页调度台",
+  "version": "1.0.0",
+  "description": "一键按站点整理当前窗口的标签页，搜索、清理重复页、释放后台页并保存工作现场。",
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "storage"
+  ],
+  "action": {
+    "default_title": "打开 Tabloom",
+    "default_popup": "popup.html"
+  }
+}

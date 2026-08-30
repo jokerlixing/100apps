@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Tabloom · 标签页调度台</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app" aria-labelledby="app-title">
+    <header class="masthead">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <div>
+          <p class="eyebrow">Browser dispatch</p>
+          <h1 id="app-title">Tabloom</h1>
+        </div>
+      </div>
+      <div class="open-counter" aria-label="当前窗口标签页数量">
+        <strong id="tabCount">0</strong>
+        <span>open</span>
+      </div>
+    </header>
+
+    <label class="search-box" for="tabSearch">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <span class="sr-only">搜索当前窗口标签页</span>
+      <input id="tabSearch" type="search" placeholder="按标题或网站搜索" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+    </label>
+
+    <button class="dispatch-action" id="organizeBtn" type="button">
+      <span class="route-visual" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </span>
+      <span class="dispatch-copy">
+        <small>Smart route</small>
+        <strong>整理本窗口</strong>
+        <em id="organizeHint">相同网站自动成组</em>
+      </span>
+      <span class="dispatch-arrow" aria-hidden="true">→</span>
+    </button>
+
+    <section class="metrics" aria-label="窗口摘要">
+      <div>
+        <strong id="groupCount">0</strong>
+        <span>已成组</span>
+      </div>
+      <div>
+        <strong id="duplicateCount">0</strong>
+        <span>重复页</span>
+      </div>
+      <div>
+        <strong id="restCount">0</strong>
+        <span>可释放</span>
+      </div>
+    </section>
+
+    <section class="manifest" aria-labelledby="manifest-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Window manifest</p>
+          <h2 id="manifest-title">当前标签页</h2>
+        </div>
+        <span class="demo-badge" id="demoBadge" hidden>演示数据</span>
+      </div>
+      <ul class="tab-list" id="tabList" aria-live="polite"></ul>
+    </section>
+
+    <section class="session-strip" aria-labelledby="session-title">
+      <span class="session-pulse" aria-hidden="true"></span>
+      <div>
+        <h2 id="session-title">工作现场</h2>
+        <p id="sessionSummary">还没有保存过窗口</p>
+      </div>
+      <button id="restoreBtn" class="text-action" type="button" disabled>恢复</button>
+    </section>
+
+    <section class="tool-grid" aria-label="标签页工具">
+      <button id="duplicateBtn" type="button">
+        <span aria-hidden="true">≋</span>
+        <strong>清理重复页</strong>
+        <small>保留正在看的页面</small>
+      </button>
+      <button id="discardBtn" type="button">
+        <span aria-hidden="true">◌</span>
+        <strong>释放后台页</strong>
+        <small>需要时自动重载</small>
+      </button>
+      <button id="saveBtn" type="button">
+        <span aria-hidden="true">⌁</span>
+        <strong>保存现场</strong>
+        <small>仅保存在本机</small>
+      </button>
+      <button id="ungroupBtn" type="button">
+        <span aria-hidden="true">↯</span>
+        <strong>取消分组</strong>
+        <small>恢复平铺标签页</small>
+      </button>
+    </section>
+
+    <p class="status-line" id="statusLine" role="status" aria-live="polite">准备就绪</p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

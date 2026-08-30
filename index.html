@@ -232,7 +232,7 @@ const IDEAS=[
 ["股票自选行情","TICK/51：免密行情刷新+本地自选+交互 K 线与离线降级","3","https://jokerlixing.github.io/100apps/apps/051-stock-watchlist/"],
 ["在线脑图编辑器","LINE/52：本地脑图编辑+分支折叠+撤销重做与 PNG 导出","3","https://jokerlixing.github.io/100apps/apps/052-mind-map-editor/"],
 ["本地密码管理器","LOCKBOX/53：主密码加密+本地账号库+安全生成与密文备份","3","https://jokerlixing.github.io/100apps/apps/053-password-vault/"],
-["API测试工具","简化版Postman，发请求看响应","3"],
+["API测试工具","PORT/54：请求编排+响应检查+CORS诊断与本地安全历史","3","https://jokerlixing.github.io/100apps/apps/054-api-tester/"],
 ["JSON格式化工具","SPEC/55：格式压缩+精确错误定位+可搜索折叠树","3","https://jokerlixing.github.io/100apps/apps/055-json-formatter/"],
 ["正则表达式测试器","PATTERN/56：实时匹配高亮+捕获组检验+替换预览","3","https://jokerlixing.github.io/100apps/apps/056-regex-tester/"],
 ["本地 CORS 代理","RELAY/57：白名单转发+私网拦截+请求响应调试台","3","https://jokerlixing.github.io/100apps/apps/057-cors-proxy/"],
@@ -283,7 +283,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",55:"done",56:"done",57:"done",58:"done",60:"done"}; // 挑战官方进度
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",60:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

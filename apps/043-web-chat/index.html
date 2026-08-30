@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#dff6ef">
+  <meta name="description" content="PATCH/43 网页聊天室：WebSocket 房间群聊、在线成员、历史消息、回复与输入状态。">
+  <title>PATCH/43 网页聊天室 · 话路交换局</title>
+  <style>
+    :root{
+      --mint:#dff6ef;
+      --plum:#421832;
+      --coral:#ff6e4a;
+      --blue:#3454e8;
+      --yellow:#f6dd57;
+      --cream:#fff9e8;
+      --white:#fffefb;
+      --muted:#6c716f;
+      --line:2px solid var(--plum);
+      --shadow:6px 6px 0 var(--plum);
+    }
+    *{box-sizing:border-box}
+    html{color-scheme:light}
+    body{
+      margin:0;
+      min-width:320px;
+      min-height:100vh;
+      color:var(--plum);
+      background-color:var(--mint);
+      background-image:radial-gradient(circle at 1px 1px,rgba(66,24,50,.1) 1px,transparent 1.2px);
+      background-size:16px 16px;
+      font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+      line-height:1.45;
+    }
+    button,input,textarea{font:inherit;color:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.42}
+    button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:4px solid var(--yellow);outline-offset:3px}
+    .app-shell{width:min(1460px,calc(100% - 28px));margin:14px auto 36px}
+    .masthead{
+      display:grid;
+      grid-template-columns:auto minmax(320px,1fr) auto;
+      align-items:center;
+      gap:22px;
+      min-height:66px;
+      padding:10px 14px;
+      border:var(--line);
+      background:var(--cream);
+      box-shadow:5px 5px 0 var(--blue);
+    }
+    .brand{display:flex;align-items:center;gap:11px;white-space:nowrap}
+    .brand-code{padding:7px 10px;background:var(--plum);color:var(--cream);font:900 14px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.09em}
+    .brand-name{font:900 20px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-.04em}
+    .room-form{display:grid;grid-template-columns:auto minmax(110px,190px) auto auto;align-items:center;gap:8px;justify-content:center}
+    .room-form label{font:850 9px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.13em;color:var(--blue)}
+    .room-form input,.name-input{height:36px;border:2px solid var(--plum);border-radius:0;background:var(--white);padding:6px 9px;font:750 12px/1 "Cascadia Mono",Consolas,monospace}
+    .room-form input{text-transform:uppercase;min-width:0}
+    .compact-btn{min-height:36px;padding:6px 10px;border:2px solid var(--plum);background:var(--yellow);font-size:10px;font-weight:900;box-shadow:3px 3px 0 var(--plum)}
+    .compact-btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--plum)}
+    .transport{display:flex;align-items:center;gap:9px;justify-content:flex-end;white-space:nowrap}
+    .transport-light{position:relative;width:14px;height:14px;border:2px solid var(--plum);border-radius:50%;background:var(--coral)}
+    .transport.ws .transport-light{background:#31ca8a;box-shadow:3px 0 0 var(--yellow)}
+    .transport.local .transport-light{background:var(--yellow);box-shadow:3px 0 0 var(--blue)}
+    .transport-copy strong{display:block;font:850 10px/1.2 "Cascadia Mono",Consolas,monospace}.transport-copy span{display:block;margin-top:2px;color:var(--muted);font-size:8px;font-weight:750}
+    .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,390px);gap:28px;align-items:end;padding:42px 5px 31px}
+    .eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 10px;font:850 10px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.15em;text-transform:uppercase}
+    .eyebrow::before{content:"";width:42px;height:8px;border:2px solid var(--plum);background:var(--coral)}
+    h1{max-width:920px;margin:0;font:900 clamp(42px,6vw,86px)/.91 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-.075em}
+    h1 em{font-style:normal;color:var(--white);-webkit-text-stroke:2px var(--plum);text-shadow:4px 3px 0 var(--blue),-3px -2px 0 var(--coral)}
+    .hero-note{padding:19px 21px;border:var(--line);background:var(--white);box-shadow:var(--shadow);transform:rotate(.8deg)}
+    .hero-note strong{display:block;font:900 18px/1.15 "Arial Black","Microsoft YaHei",sans-serif}.hero-note p{margin:7px 0 0;font-size:12px;font-weight:700}
+    .signal-line{position:relative;height:12px;margin:0 0 -2px;border-left:var(--line);border-right:var(--line);background:var(--plum);overflow:hidden}
+    .signal-line::after{content:"";position:absolute;left:-24%;top:2px;width:24%;height:8px;background:linear-gradient(90deg,transparent,var(--yellow),var(--coral));opacity:.3}
+    .signal-line.pulse::after{animation:signal-run .62s ease-out}
+    @keyframes signal-run{0%{left:-24%;opacity:1}100%{left:105%;opacity:1}}
+    .chat-console{display:grid;grid-template-columns:minmax(0,1fr) 238px;min-height:690px;border:var(--line);background:var(--white);box-shadow:9px 9px 0 var(--plum)}
+    .chat-main{min-width:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;background:#f1fbf7}
+    .chat-head{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 16px;border-bottom:var(--line);background:var(--yellow)}
+    .chat-head strong{font:900 11px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.07em}.chat-head span{font-size:9px;font-weight:800;color:#5e5341}
+    .message-stage{position:relative;min-height:470px;overflow:hidden;background-color:var(--cream);background-image:linear-gradient(rgba(66,24,50,.045) 1px,transparent 1px);background-size:100% 30px}
+    .message-stream{height:100%;max-height:550px;overflow-y:auto;overscroll-behavior:contain;padding:24px 32px 40px 38px;scrollbar-color:var(--coral) transparent}
+    .empty-state{position:absolute;left:50%;top:50%;width:min(400px,72%);transform:translate(-50%,-50%);text-align:center;color:var(--muted);pointer-events:none}
+    .empty-state[hidden]{display:none}.empty-state b{display:block;color:var(--plum);font:900 clamp(22px,3vw,38px)/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-.05em}.empty-state span{display:block;margin-top:8px;font-size:11px;font-weight:750}
+    .message-list{display:grid;gap:15px;margin:0;padding:0;list-style:none}
+    .message-item{position:relative;max-width:min(680px,88%);padding:12px 14px 11px 23px;border:2px solid var(--plum);background:var(--white);box-shadow:4px 4px 0 rgba(66,24,50,.22)}
+    .message-item.own{margin-left:auto;background:#edf1ff;border-color:var(--blue);box-shadow:4px 4px 0 rgba(52,84,232,.24)}
+    .message-item::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:8px;background:radial-gradient(circle,var(--sender) 2px,transparent 2.7px) center top/8px 13px repeat-y}
+    .message-meta{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}.message-meta strong{font-size:11px}.message-meta time{font:700 8px/1 "Cascadia Mono",Consolas,monospace;color:var(--muted)}
+    .message-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;font-weight:650;line-height:1.55;color:#2f2a2d}
+    .reply-preview{display:grid;gap:2px;margin:0 0 7px;padding:7px 9px;border-left:4px solid var(--blue);background:rgba(246,221,87,.28);font-size:10px}.reply-preview strong{font-size:9px}.reply-preview span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+    .message-foot{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:7px}.delivery{font:700 8px/1 "Cascadia Mono",Consolas,monospace;color:var(--muted)}.delivery.failed{color:#b3372f}.reply-btn{border:0;background:transparent;padding:2px 4px;color:var(--blue);font-size:9px;font-weight:900;text-decoration:underline;text-underline-offset:2px}
+    .new-message-btn{position:absolute;right:18px;bottom:15px;z-index:3;padding:7px 10px;border:2px solid var(--plum);background:var(--yellow);box-shadow:3px 3px 0 var(--plum);font-size:9px;font-weight:900}.new-message-btn[hidden]{display:none}
+    .typing-row{min-height:32px;padding:7px 16px;border-top:1px dashed rgba(66,24,50,.4);background:var(--white);font-size:10px;font-weight:750;color:var(--muted)}
+    .typing-dots{display:inline-flex;gap:3px;margin-right:6px;vertical-align:middle}.typing-dots i{width:5px;height:5px;border-radius:50%;background:var(--coral);animation:typing 1s infinite ease-in-out}.typing-dots i:nth-child(2){animation-delay:.14s}.typing-dots i:nth-child(3){animation-delay:.28s}
+    @keyframes typing{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-3px);opacity:1}}
+    .reply-bar{display:flex;align-items:center;gap:10px;min-height:0;padding:0 16px;background:#e7eaff;border-top:0 solid var(--blue);overflow:hidden;max-height:0;transition:.16s ease}.reply-bar.show{max-height:56px;padding-top:8px;padding-bottom:8px;border-top-width:2px}.reply-copy{min-width:0;flex:1}.reply-copy strong{display:block;font-size:9px;color:var(--blue)}.reply-copy span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.cancel-reply{border:2px solid var(--plum);background:var(--white);width:28px;height:28px;font-weight:900}
+    .composer{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:end;gap:10px;padding:13px 15px;border-top:var(--line);background:var(--white)}
+    .emoji-tools{display:grid;grid-template-columns:repeat(2,32px);gap:5px}.emoji-btn{width:32px;height:32px;border:2px solid var(--plum);background:var(--cream);font-size:15px}
+    .input-wrap{position:relative}.input-wrap textarea{display:block;width:100%;min-height:74px;max-height:150px;resize:vertical;border:2px solid var(--plum);border-radius:0;background:var(--cream);padding:10px 54px 10px 11px;font-size:13px;line-height:1.45}.char-count{position:absolute;right:9px;bottom:8px;font:750 8px/1 "Cascadia Mono",Consolas,monospace;color:var(--muted)}
+    .send-btn{min-width:88px;min-height:74px;border:2px solid var(--plum);background:var(--coral);color:var(--plum);box-shadow:4px 4px 0 var(--plum);font:900 17px/1 "Arial Black","Microsoft YaHei",sans-serif}.send-btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--plum)}.send-btn small{display:block;margin-top:5px;font:750 8px/1.2 "Cascadia Mono",Consolas,monospace}
+    .member-panel{display:flex;flex-direction:column;min-width:0;padding:18px 15px;border-left:var(--line);background:#f1edff}
+    .panel-label{margin:0;color:var(--blue);font:850 9px/1 "Cascadia Mono",Consolas,monospace;letter-spacing:.13em;text-transform:uppercase}.member-title{margin:7px 0 15px;font:900 25px/1 "Arial Black","Microsoft YaHei",sans-serif;letter-spacing:-.04em}
+    .name-wrap{display:grid;gap:5px;margin-bottom:15px;padding-bottom:14px;border-bottom:1px dashed rgba(66,24,50,.4)}.name-wrap label{font-size:9px;font-weight:850}.name-input{width:100%;text-transform:none}
+    .member-list{display:grid;gap:9px;margin:0;padding:0;list-style:none}.member{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;padding:8px;border:2px solid var(--plum);background:var(--white);box-shadow:3px 3px 0 rgba(66,24,50,.22)}
+    .jack{position:relative;width:23px;height:23px;border:3px solid var(--plum);border-radius:50%;background:var(--member)}.jack::after{content:"";position:absolute;left:8px;top:19px;width:3px;height:16px;background:var(--member);border-left:1px solid var(--plum);border-right:1px solid var(--plum)}
+    .member-copy{min-width:0}.member-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.member-copy span{display:block;margin-top:2px;color:var(--muted);font:700 8px/1 "Cascadia Mono",Consolas,monospace}.member.is-typing .jack{box-shadow:0 0 0 4px var(--yellow)}
+    .room-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:17px 0}.stat-card{padding:9px 7px;border:2px solid var(--plum);background:var(--cream);text-align:center}.stat-card strong{display:block;font:900 18px/1 "Cascadia Mono",Consolas,monospace}.stat-card span{font-size:8px;font-weight:800;color:var(--muted)}
+    .scope-note{margin:auto 0 0;padding-top:14px;border-top:1px dashed rgba(66,24,50,.4);font-size:9px;font-weight:700;color:var(--muted)}
+    .toast{position:fixed;z-index:50;right:22px;bottom:22px;max-width:min(380px,calc(100vw - 36px));padding:12px 15px;border:2px solid var(--plum);background:var(--yellow);box-shadow:5px 5px 0 var(--plum);font-weight:850;transform:translateY(120px);opacity:0;transition:.2s ease;pointer-events:none}.toast.show{transform:translateY(0);opacity:1}
+    .footer{display:flex;justify-content:space-between;gap:20px;margin-top:25px;padding:15px 2px 0;border-top:2px solid var(--plum);font-size:9px;font-weight:800}
+    @media (max-width:1040px){
+      .masthead{grid-template-columns:auto 1fr}.room-form{grid-column:1/-1;grid-row:2;justify-content:start}.transport{grid-column:2;grid-row:1}.hero{grid-template-columns:1fr}.hero-note{max-width:620px}
+      .chat-console{grid-template-columns:1fr}.member-panel{border-left:0;border-top:var(--line);display:grid;grid-template-columns:170px 1fr;gap:13px}.member-panel .name-wrap,.member-panel .scope-note{display:none}.member-list{display:flex;overflow-x:auto;padding:3px}.member{min-width:150px}.room-stats{display:none}
+    }
+    @media (max-width:700px){
+      .app-shell{width:min(100% - 16px,1460px);margin-top:8px}.masthead{gap:11px}.brand-name{display:none}.transport-copy span{display:none}.room-form{grid-template-columns:auto minmax(80px,1fr) auto}.room-form .copy-btn{grid-column:2/-1}
+      .hero{padding:35px 3px 26px}.hero h1{font-size:44px}.hero-note{padding:16px}.chat-console{min-height:0}.message-stage{min-height:440px}.message-stream{max-height:510px;padding:18px 15px 34px 22px}.message-item{max-width:94%}
+      .composer{grid-template-columns:1fr auto}.emoji-tools{grid-column:1/-1;display:flex}.input-wrap textarea{min-height:82px}.send-btn{min-width:72px;min-height:82px}.member-panel{display:block}.member-list{margin-top:8px}.footer{flex-direction:column}
+    }
+    @media (max-width:390px){
+      .masthead{padding:9px}.brand-code{font-size:11px}.transport-copy strong{font-size:8px}.room-form label{display:none}.room-form{grid-template-columns:1fr auto}.room-form .copy-btn{grid-column:1/-1}.hero h1{font-size:38px}
+      .chat-head span{display:none}.message-stage{min-height:440px}.message-stream{padding-left:17px;padding-right:10px}.message-item{max-width:97%;padding-right:10px}.composer{padding:10px 9px;gap:7px}.send-btn{min-width:65px;font-size:14px}.member-panel{padding:14px 10px}
+    }
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="masthead">
+      <div class="brand"><span class="brand-code">PATCH/43</span><span class="brand-name">话路交换局</span></div>
+      <form class="room-form" id="roomForm">
+        <label for="roomInput">LINE</label>
+        <input id="roomInput" name="room" maxlength="24" autocomplete="off" aria-label="房间号">
+        <button class="compact-btn" type="submit">切换线路</button>
+        <button class="compact-btn copy-btn" id="copyRoomBtn" type="button">复制邀请线路</button>
+      </form>
+      <div class="transport local" id="transport" aria-live="polite">
+        <span class="transport-light" aria-hidden="true"></span>
+        <span class="transport-copy"><strong id="transportLabel">准备接线</strong><span id="transportDetail">正在选择通信线路</span></span>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">room-based signal exchange</p>
+        <h1 id="pageTitle">把散落的话，接到<em>同一条线</em>上。</h1>
+      </div>
+      <aside class="hero-note">
+        <strong>消息只走当前线路。</strong>
+        <p>本地服务通过 WebSocket 跨设备群聊；GitHub Pages 使用同浏览器多标签线路，最近历史只保存在运行内存。</p>
+      </aside>
+    </section>
+
+    <div class="signal-line" id="signalLine" aria-hidden="true"></div>
+    <section class="chat-console" aria-label="网页聊天室">
+      <div class="chat-main">
+        <div class="chat-head"><strong id="chatRoomLabel">LINE / —</strong><span>Enter 发送 · Shift+Enter 换行 · Esc 取消回复</span></div>
+        <div class="message-stage">
+          <div class="message-stream" id="messageStream" tabindex="0" aria-label="历史消息">
+            <ol class="message-list" id="messageList"></ol>
+          </div>
+          <div class="empty-state" id="emptyState"><b>线路接通，等你开口。</b><span>第一条消息会成为这个房间的历史起点。</span></div>
+          <button class="new-message-btn" id="newMessageBtn" type="button" hidden>查看新消息 ↓</button>
+        </div>
+        <div class="typing-row" id="typingRow" aria-live="polite"><span>当前没有人正在输入。</span></div>
+        <div class="reply-bar" id="replyBar">
+          <div class="reply-copy"><strong id="replyName">回复</strong><span id="replyText"></span></div>
+          <button class="cancel-reply" id="cancelReplyBtn" type="button" aria-label="取消回复">×</button>
+        </div>
+        <form class="composer" id="composerForm">
+          <div class="emoji-tools" aria-label="快捷表情">
+            <button class="emoji-btn" type="button" data-emoji="👍" aria-label="插入点赞">👍</button>
+            <button class="emoji-btn" type="button" data-emoji="✨" aria-label="插入闪光">✨</button>
+            <button class="emoji-btn" type="button" data-emoji="👀" aria-label="插入查看">👀</button>
+            <button class="emoji-btn" type="button" data-emoji="✅" aria-label="插入完成">✅</button>
+          </div>
+          <div class="input-wrap">
+            <label for="messageInput" class="sr-only">输入消息</label>
+            <textarea id="messageInput" maxlength="600" placeholder="输入消息，按 Enter 接通……" aria-describedby="charCount"></textarea>
+            <span class="char-count" id="charCount">0 / 600</span>
+          </div>
+          <button class="send-btn" id="sendBtn" type="submit" disabled>接通<small>ENTER</small></button>
+        </form>
+      </div>
+
+      <aside class="member-panel" aria-label="在线成员">
+        <div><p class="panel-label">live patch panel</p><h2 class="member-title">线路插孔板</h2></div>
+        <div class="name-wrap"><label for="nameInput">我的显示名</label><input class="name-input" id="nameInput" maxlength="24" autocomplete="nickname"></div>
+        <ul class="member-list" id="memberList"></ul>
+        <div class="room-stats">
+          <div class="stat-card"><strong id="memberCount">1</strong><span>在线</span></div>
+          <div class="stat-card"><strong id="messageCount">0</strong><span>历史</span></div>
+        </div>
+        <p class="scope-note" id="scopeNote">本机线路只连接当前浏览器中的同房间标签页。启动仓库内的 Node 服务即可跨设备群聊。</p>
+      </aside>
+    </section>
+    <footer class="footer"><span>100 Apps Challenge · App #043 · PATCH/43</span><span>最近 120 条内存历史 · 纯文本消息 · WebSocket / BroadcastChannel</span></footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+
+  <script>
+    (()=>{
+      "use strict";
+      const V=1,HISTORY_LIMIT=120,TEXT_LIMIT=600,PREF_KEY="patch43-preferences-v1";
+      const COLORS=["#ff6e4a","#3454e8","#19a67d","#bb3b78","#8255c7","#b36a1d"];
+      const $=id=>document.getElementById(id);
+      const params=new URLSearchParams(location.search);
+      const clientId=getClientId(),room=normalizeRoom(params.get("room"))||randomRoom();
+      const explicitWs=normalizeWs(params.get("ws")),wsEndpoint=explicitWs||localWsEndpoint();
+      const preferences=loadPreferences();
+      let userName=preferences.name||`接线员 ${clientId.slice(-4).toUpperCase()}`;
+      const userColor=preferences.color||COLORS[hash(clientId)%COLORS.length];
+      const messages=new Map(),members=new Map(),typers=new Map(),outbox=[];
+      let socket=null,joined=false,localChannel=null,reconnectTimer=0,reconnectAttempt=0;
+      let replyTo=null,typingTimer=0,lastTypingSent=0,typingActive=false,memberTimer=0,typingSweep=0,renameTimer=0;
+      let toastTimer=0,signalTimer=0,unseenCount=0;
+
+      replaceRoomInUrl();
+      $("roomInput").value=room;$("chatRoomLabel").textContent=`LINE / ${room}`;$("nameInput").value=userName;
+      members.set(clientId,{clientId,name:userName,color:userColor,joinedAt:Date.now(),seenAt:Date.now()});
+
+      function hash(value){let result=0;for(const char of value)result=(result*31+char.charCodeAt(0))>>>0;return result}
+      function uid(prefix){return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`}
+      function getClientId(){try{const key="patch43-client-id";let id=sessionStorage.getItem(key);if(!id){id=uid("client");sessionStorage.setItem(key,id)}return id}catch(error){return uid("client")}}
+      function normalizeRoom(value){const result=String(value||"").trim().toUpperCase();return /^[A-Z0-9-]{3,24}$/.test(result)?result:null}
+      function randomRoom(){return `CALL-${Math.random().toString(36).slice(2,6).toUpperCase()}`}
+      function normalizeWs(value){if(!value)return null;try{const url=new URL(value);return ["ws:","wss:"].includes(url.protocol)?url.href:null}catch(error){return null}}
+      function localWsEndpoint(){if(!["localhost","127.0.0.1","[::1]"].includes(location.hostname))return null;return `${location.protocol==="https:"?"wss:":"ws:"}//${location.host}/ws`}
+      function replaceRoomInUrl(){const url=new URL(location.href);url.searchParams.set("room",room);history.replaceState(null,"",url)}
+      function loadPreferences(){try{return JSON.parse(localStorage.getItem(PREF_KEY)||"{}")||{}}catch(error){return {}}}
+      function savePreferences(){try{localStorage.setItem(PREF_KEY,JSON.stringify({name:userName,color:userColor}))}catch(error){}}
+      function safeName(value){return String(value||"匿名接线员").replace(/[<>\u0000-\u001f]/g,"").trim().slice(0,24)||"匿名接线员"}
+      function safeColor(value){return /^#[0-9a-f]{6}$/i.test(String(value||""))?String(value).toLowerCase():"#3454e8"}
+      function safeText(value){if(typeof value!=="string")return null;const text=value.replace(/\r\n?/g,"\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{4,}/g,"\n\n\n").trim();return text&&text.length<=TEXT_LIMIT?text:null}
+      function validId(value){return /^[a-zA-Z0-9_-]{4,80}$/.test(String(value||""))}
+      function baseMessage(type,extra={}){return {v:V,type,room,clientId,ts:Date.now(),...extra}}
+      function cleanMember(member){return {clientId:member.clientId,name:safeName(member.name),color:safeColor(member.color),joinedAt:Number(member.joinedAt)||Date.now()}}
+      function cleanMessage(message){return {id:message.id,clientId:message.clientId,name:safeName(message.name),color:safeColor(message.color),text:message.text,createdAt:Number(message.createdAt)||Date.now(),replyTo:message.replyTo||null}}
+      function validMessage(message){return message&&validId(message.id)&&validId(message.clientId)&&Boolean(safeText(message.text))&&Number.isFinite(Number(message.createdAt))}
+
+      function setTransport(mode,label,detail){const element=$("transport");element.className=`transport ${mode}`;$("transportLabel").textContent=label;$("transportDetail").textContent=detail;$("scopeNote").textContent=mode==="ws"?"当前通过 WebSocket 房间服务通信，可与其他设备上的同房间成员群聊。":"本机线路只连接当前浏览器中的同房间标签页。启动仓库内的 Node 服务即可跨设备群聊。"}
+      function send(type,extra={}){const message=baseMessage(type,extra);if(joined&&socket&&socket.readyState===WebSocket.OPEN){socket.send(JSON.stringify(message));return "ws"}if(localChannel){localChannel.postMessage(message);return "local"}outbox.push(message);if(outbox.length>240)outbox.shift();return "queued"}
+
+      function connectWebSocket(){
+        if(!wsEndpoint){activateLocal();return}
+        clearTimeout(reconnectTimer);joined=false;
+        if(localChannel)setTransport("local","本机线路","正在后台尝试恢复 WebSocket");else setTransport("connecting","正在接线","正在建立 WebSocket");
+        try{socket=new WebSocket(wsEndpoint)}catch(error){activateLocal();scheduleReconnect();return}
+        socket.addEventListener("open",()=>{reconnectAttempt=0;socket.send(JSON.stringify(baseMessage("join",{name:userName,color:userColor})))});
+        socket.addEventListener("message",event=>{let message;try{message=JSON.parse(event.data)}catch(error){return}if(message.type==="snapshot"){handleSnapshot(message,true);joined=true;setTransport("ws","WebSocket 已接通",`${message.members?.length||1} 人在线`);closeLocal();const remoteIds=new Set((message.history||[]).map(item=>item.id));for(const item of messages.values())if(item.clientId===clientId&&!remoteIds.has(item.id))socket.send(JSON.stringify(baseMessage("chat:send",{message:cleanMessage(item)})));while(outbox.length)socket.send(JSON.stringify(outbox.shift()));showStatus("已恢复房间历史");return}handleMessage(message,"ws")});
+        socket.addEventListener("close",()=>{joined=false;activateLocal();scheduleReconnect()});socket.addEventListener("error",()=>{if(socket&&socket.readyState!==WebSocket.CLOSED)socket.close()});
+      }
+      function scheduleReconnect(){if(!wsEndpoint)return;clearTimeout(reconnectTimer);const delay=Math.min(15000,1000*2**Math.min(reconnectAttempt++,4));reconnectTimer=setTimeout(connectWebSocket,delay)}
+      function activateLocal(){
+        if(localChannel)return;setTransport("local","本机线路",wsEndpoint?"WebSocket 断开，已自动回退":"同浏览器多标签群聊");
+        if(!("BroadcastChannel" in window)){setTransport("offline","单人线路","浏览器不支持本机通信通道");return}
+        localChannel=new BroadcastChannel(`patch43:${room}`);localChannel.addEventListener("message",event=>handleMessage(event.data,"local"));localChannel.postMessage(baseMessage("local:hello",{name:userName,color:userColor,joinedAt:Date.now()}));localChannel.postMessage(baseMessage("local:history:request"));
+        for(const item of messages.values())if(item.clientId===clientId&&item.delivery!=="delivered"){localChannel.postMessage(baseMessage("chat:send",{message:cleanMessage(item)}));item.delivery="delivered"}
+        while(outbox.length)localChannel.postMessage(outbox.shift());renderMessages();renderMembers();
+      }
+      function closeLocal(){if(!localChannel)return;localChannel.postMessage(baseMessage("local:bye"));localChannel.close();localChannel=null}
+
+      function handleSnapshot(snapshot,replaceMembers=false){
+        for(const message of snapshot.history||[])mergeMessage(message,"delivered",false);
+        if(replaceMembers)members.clear();
+        for(const member of snapshot.members||[])if(member&&validId(member.clientId))members.set(member.clientId,{...cleanMember(member),seenAt:Date.now()});
+        if(!members.has(clientId))members.set(clientId,{clientId,name:userName,color:userColor,joinedAt:Date.now(),seenAt:Date.now()});renderMessages();renderMembers();
+      }
+      function handleMessage(message,source){
+        if(!message||message.v!==V||message.room!==room||typeof message.type!=="string")return;
+        if(message.type==="error"){handleError(message.code);return}
+        if(source==="local"){
+          if(message.type==="local:hello"){members.set(message.clientId,{clientId:message.clientId,name:safeName(message.name),color:safeColor(message.color),joinedAt:Number(message.joinedAt)||Date.now(),seenAt:Date.now()});if(message.clientId!==clientId)localChannel?.postMessage(baseMessage("local:member",{target:message.clientId,name:userName,color:userColor,joinedAt:members.get(clientId).joinedAt}));renderMembers();return}
+          if(message.type==="local:member"){if(message.target!==clientId)return;members.set(message.clientId,{clientId:message.clientId,name:safeName(message.name),color:safeColor(message.color),joinedAt:Number(message.joinedAt)||Date.now(),seenAt:Date.now()});renderMembers();return}
+          if(message.type==="local:bye"){members.delete(message.clientId);typers.delete(message.clientId);renderMembers();renderTyping();return}
+          if(message.type==="local:history:request"){if(message.clientId!==clientId)localChannel?.postMessage(baseMessage("local:history",{target:message.clientId,history:[...messages.values()].map(cleanMessage),members:[...members.values()].map(cleanMember)}));return}
+          if(message.type==="local:history"){if(message.target!==clientId)return;handleSnapshot(message,false);return}
+          if(message.clientId===clientId)return;
+          if(message.type==="chat:send"){const item=message.message;if(validMessage(item)){mergeMessage(item,"delivered",true)}return}
+        }
+        if(message.type==="presence"){members.clear();for(const member of message.members||[])members.set(member.clientId,{...cleanMember(member),seenAt:Date.now()});for(const id of typers.keys())if(!members.has(id))typers.delete(id);renderMembers();renderTyping();return}
+        if(message.type==="chat:message"&&validMessage(message.message)){mergeMessage(message.message,"delivered",message.message.clientId!==clientId);return}
+        if(message.type==="typing"&&message.clientId!==clientId){if(message.active)typers.set(message.clientId,{name:safeName(message.name),color:safeColor(message.color),seenAt:Date.now()});else typers.delete(message.clientId);renderMembers();renderTyping();return}
+        if(message.type==="pong")showStatus("线路连接正常");
+      }
+
+      function handleError(code){
+        const labels={chat_rate_limited:"发送太快，请稍后再试。",invalid_chat:"消息为空或超过 600 字。",room_full:"房间已满（最多 30 人）。",message_too_large:"消息载荷超过 32KB。",rate_limited:"操作过于频繁，请稍后再试。"};
+        const text=labels[code]||`线路拒绝了消息：${code||"未知错误"}`;const pending=[...messages.values()].reverse().find(item=>item.clientId===clientId&&item.delivery!=="delivered");if(pending)pending.delivery="failed";renderMessages();showStatus(text,true);toast(text);
+      }
+      function mergeMessage(raw,delivery="delivered",announce=false){
+        if(!validMessage(raw))return;const normalized={...cleanMessage(raw),delivery};const existing=messages.get(normalized.id);if(existing){Object.assign(existing,normalized,{delivery:"delivered"});renderMessages();return}
+        const nearBottom=isNearBottom();messages.set(normalized.id,normalized);trimHistory();renderMessages();pulseSignal();if(announce&&!nearBottom){unseenCount+=1;$("newMessageBtn").textContent=`${unseenCount} 条新消息 ↓`;$("newMessageBtn").hidden=false}else if(nearBottom||normalized.clientId===clientId)scrollToBottom();
+      }
+      function trimHistory(){const ordered=[...messages.values()].sort(sortMessages);while(ordered.length>HISTORY_LIMIT){const removed=ordered.shift();messages.delete(removed.id)}}
+      function sortMessages(a,b){return a.createdAt-b.createdAt||a.id.localeCompare(b.id)}
+
+      function sendChat(){
+        const text=safeText($("messageInput").value);if(!text){toast("输入一条消息再接通");return}
+        const message={id:uid("message"),clientId,name:userName,color:userColor,text,createdAt:Date.now(),replyTo};const item={...message,delivery:"sending"};messages.set(item.id,item);trimHistory();renderMessages();scrollToBottom();pulseSignal();const transport=send("chat:send",{message:cleanMessage(message)});if(transport==="local")item.delivery="delivered";else if(transport==="queued")item.delivery="queued";renderMessages();$("messageInput").value="";updateComposer();cancelReply();sendTyping(false);showStatus(transport==="local"?"消息已送达本机线路":"消息正在送往房间");
+      }
+      function updateComposer(){const length=$("messageInput").value.length;$("charCount").textContent=`${length} / ${TEXT_LIMIT}`;$("sendBtn").disabled=!safeText($("messageInput").value)}
+      function sendTyping(active){
+        clearTimeout(typingTimer);const now=Date.now();if(active&&now-lastTypingSent<1200){typingTimer=setTimeout(()=>sendTyping(false),2200);return}lastTypingSent=now;if(active!==typingActive||active){typingActive=active;send("typing",{active,name:userName,color:userColor})}if(active)typingTimer=setTimeout(()=>sendTyping(false),2400);
+      }
+
+      function renderMessages(){
+        const list=$("messageList"),ordered=[...messages.values()].sort(sortMessages),fragment=document.createDocumentFragment();
+        for(const message of ordered){const li=document.createElement("li");li.className=`message-item${message.clientId===clientId?" own":""}`;li.style.setProperty("--sender",safeColor(message.color));li.dataset.messageId=message.id;
+          const meta=document.createElement("div");meta.className="message-meta";const author=document.createElement("strong");author.textContent=safeName(message.name)+(message.clientId===clientId?"（你）":"");const time=document.createElement("time");time.dateTime=new Date(message.createdAt).toISOString();time.textContent=formatTime(message.createdAt);meta.append(author,time);li.appendChild(meta);
+          if(message.replyTo){const quote=document.createElement("div");quote.className="reply-preview";const target=messages.get(message.replyTo),replyName=document.createElement("strong"),replyText=document.createElement("span");replyName.textContent=target?`回复 ${safeName(target.name)}`:"回复";replyText.textContent=target?target.text.replace(/\n/g," ").slice(0,90):"原消息已离开历史";quote.append(replyName,replyText);li.appendChild(quote)}
+          const body=document.createElement("p");body.className="message-text";body.textContent=message.text;li.appendChild(body);
+          const foot=document.createElement("div");foot.className="message-foot";if(message.clientId===clientId){const delivery=document.createElement("span");delivery.className=`delivery${message.delivery==="failed"?" failed":""}`;delivery.textContent={sending:"发送中…",queued:"等待线路",failed:"发送失败",delivered:"已送达"}[message.delivery]||"已送达";foot.appendChild(delivery)}const reply=document.createElement("button");reply.className="reply-btn";reply.type="button";reply.dataset.replyId=message.id;reply.textContent="回复";foot.appendChild(reply);li.appendChild(foot);fragment.appendChild(li)}
+        list.replaceChildren(fragment);$("emptyState").hidden=ordered.length>0;$("messageCount").textContent=String(ordered.length);
+      }
+      function formatTime(value){return new Intl.DateTimeFormat("zh-CN",{hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(value))}
+      function renderMembers(){const list=$("memberList");list.replaceChildren();const values=[...members.values()].sort((a,b)=>(a.clientId===clientId?-1:b.clientId===clientId?1:(a.joinedAt||0)-(b.joinedAt||0)));for(const member of values){const li=document.createElement("li");li.className=`member${typers.has(member.clientId)?" is-typing":""}`;const jack=document.createElement("span");jack.className="jack";jack.style.setProperty("--member",safeColor(member.color));const copy=document.createElement("span");copy.className="member-copy";const name=document.createElement("strong");name.textContent=safeName(member.name)+(member.clientId===clientId?"（你）":"");const state=document.createElement("span");state.textContent=typers.has(member.clientId)?"正在输入…":member.clientId===clientId?"当前设备":"线路已接通";copy.append(name,state);li.append(jack,copy);list.appendChild(li)}$("memberCount").textContent=String(Math.max(1,values.length));if(joined)$("transportDetail").textContent=`${Math.max(1,values.length)} 人在线`}
+      function renderTyping(){const active=[...typers.values()].map(item=>item.name);const row=$("typingRow");row.replaceChildren();if(!active.length){const text=document.createElement("span");text.textContent="当前没有人正在输入。";row.appendChild(text);return}const dots=document.createElement("span");dots.className="typing-dots";dots.setAttribute("aria-hidden","true");dots.append(document.createElement("i"),document.createElement("i"),document.createElement("i"));const text=document.createElement("span");text.textContent=active.length===1?`${active[0]} 正在输入…`:`${active.slice(0,2).join("、")} 等 ${active.length} 人正在输入…`;row.append(dots,text)}
+
+      function selectReply(id){const target=messages.get(id);if(!target)return;replyTo=id;$("replyName").textContent=`回复 ${safeName(target.name)}`;$("replyText").textContent=target.text.replace(/\n/g," ").slice(0,110);$("replyBar").classList.add("show");$("messageInput").focus()}
+      function cancelReply(){replyTo=null;$("replyBar").classList.remove("show");$("replyName").textContent="回复";$("replyText").textContent=""}
+      function isNearBottom(){const stream=$("messageStream");return stream.scrollHeight-stream.scrollTop-stream.clientHeight<120}
+      function scrollToBottom(){requestAnimationFrame(()=>{$("messageStream").scrollTop=$("messageStream").scrollHeight;unseenCount=0;$("newMessageBtn").hidden=true})}
+      function pulseSignal(){const line=$("signalLine");line.classList.remove("pulse");clearTimeout(signalTimer);requestAnimationFrame(()=>line.classList.add("pulse"));signalTimer=setTimeout(()=>line.classList.remove("pulse"),700)}
+      function showStatus(text,isError=false){$("typingRow").title=text;if(isError)$("typingRow").style.color="#b3372f";else $("typingRow").style.color=""}
+      function toast(text){const element=$("toast");element.textContent=text;element.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>element.classList.remove("show"),2300)}
+
+      function pruneLocalMembers(){const now=Date.now();if(localChannel){localChannel.postMessage(baseMessage("local:hello",{name:userName,color:userColor,joinedAt:members.get(clientId)?.joinedAt||now}));for(const [id,member] of members)if(id!==clientId&&member.seenAt&&now-member.seenAt>11000){members.delete(id);typers.delete(id)}}renderMembers()}
+      function sweepTyping(){const now=Date.now();let changed=false;for(const [id,item] of typers)if(now-item.seenAt>4200){typers.delete(id);changed=true}if(changed){renderMembers();renderTyping()}}
+      function commitUserName(){
+        clearTimeout(renameTimer);const next=safeName($("nameInput").value);$("nameInput").value=next;if(next===userName)return;userName=next;savePreferences();const current=members.get(clientId)||{clientId,color:userColor,joinedAt:Date.now()};members.set(clientId,{...current,name:userName,seenAt:Date.now()});renderMembers();if(socket&&socket.readyState===WebSocket.OPEN)socket.close(4000,"Name changed");else localChannel?.postMessage(baseMessage("local:hello",{name:userName,color:userColor,joinedAt:members.get(clientId).joinedAt}));
+      }
+
+      $("composerForm").addEventListener("submit",event=>{event.preventDefault();sendChat()});
+      $("messageInput").addEventListener("input",()=>{updateComposer();sendTyping(Boolean(safeText($("messageInput").value)))});
+      $("messageInput").addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendChat()}else if(event.key==="Escape"&&replyTo){event.preventDefault();cancelReply()}});
+      document.querySelector(".emoji-tools").addEventListener("click",event=>{const button=event.target.closest("[data-emoji]");if(!button)return;const input=$("messageInput"),start=input.selectionStart,end=input.selectionEnd;input.setRangeText(button.dataset.emoji,start,end,"end");input.focus();updateComposer();sendTyping(true)});
+      $("messageList").addEventListener("click",event=>{const button=event.target.closest("[data-reply-id]");if(button)selectReply(button.dataset.replyId)});$("cancelReplyBtn").addEventListener("click",cancelReply);$("newMessageBtn").addEventListener("click",scrollToBottom);
+      $("roomForm").addEventListener("submit",event=>{event.preventDefault();const next=normalizeRoom($("roomInput").value);if(!next){toast("房间号需为 3—24 位字母、数字或连字符");$("roomInput").focus();return}const url=new URL(location.href);url.searchParams.set("room",next);location.href=url.href});
+      $("copyRoomBtn").addEventListener("click",async()=>{const url=new URL(location.href);url.searchParams.set("room",room);try{await navigator.clipboard.writeText(url.href);toast("邀请线路已复制")}catch(error){$("roomInput").select();toast("浏览器未开放剪贴板，房间号已选中")}});
+      $("nameInput").addEventListener("input",()=>{clearTimeout(renameTimer);renameTimer=setTimeout(commitUserName,450)});
+      $("nameInput").addEventListener("blur",commitUserName);
+      $("nameInput").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();$("nameInput").blur()}});
+      $("messageStream").addEventListener("scroll",()=>{if(isNearBottom()){unseenCount=0;$("newMessageBtn").hidden=true}});
+      window.addEventListener("beforeunload",()=>{sendTyping(false);if(localChannel)localChannel.postMessage(baseMessage("local:bye"));if(socket)socket.close()});
+
+      window.patch43={room,clientId,getState:()=>({room,clientId,messages:[...messages.values()],members:[...members.values()],typers:[...typers.values()],transport:$("transportLabel").textContent}),injectMessage:message=>{if(validMessage(message)){mergeMessage(message,"delivered",true);return true}return false}};
+      renderMessages();renderMembers();renderTyping();updateComposer();memberTimer=setInterval(pruneLocalMembers,3000);typingSweep=setInterval(sweepTyping,1000);connectWebSocket();
+    })();
+  </script>
+</body>
+</html>

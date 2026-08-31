@@ -6,9 +6,10 @@
   <meta name="theme-color" content="#2458e6">
   <meta name="description" content="INDEX/100：星哥的 100 Apps Challenge 个人作品集，浏览一百个真实项目与完整交付记录。">
   <title>INDEX/100 · 星哥的个人作品集</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="portfolio-core.js" defer></script>
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260831.2">
+  <script src="portfolio-core.js?v=20260831.2" defer></script>
+  <script src="project-catalog.js?v=20260831.2" defer></script>
+  <script src="app.js?v=20260831.2" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#archive">跳到项目档案</a>
@@ -56,7 +57,7 @@
           </div>
         </div>
 
-        <p class="board-help" id="board-help">每一格都带有线上运行地址。悬停查看项目，点击即在新标签页运行。</p>
+        <p class="board-help" id="board-help">每一格都内置线上运行地址。悬停查看项目，点击即直接进入运行。</p>
         <div class="punchboard" id="punchboard" role="grid" aria-describedby="board-help" aria-label="100 个应用项目索引"></div>
         <div class="board-legend" aria-hidden="true">
           <span><i class="legend-done"></i>已完成</span>
@@ -73,7 +74,7 @@
           <p id="readout-description">从挑战追踪器读取最新作品名称、说明和上线地址。</p>
           <a id="readout-link" href="#archive">浏览项目档案 <span aria-hidden="true">↗</span></a>
         </article>
-        <p class="data-status" id="data-status" role="status">正在读取挑战追踪器…</p>
+        <p class="data-status" id="data-status" role="status">正在装入内置的 100 项完整目录…</p>
       </div>
     </section>
 
@@ -191,7 +192,7 @@
         <div><dt>难度</dt><dd id="dialog-level">Level —</dd></div>
         <div><dt>交付</dt><dd id="dialog-delivery">—</dd></div>
       </dl>
-      <a class="button dialog-link" id="dialog-link" href="#" target="_blank" rel="noopener noreferrer">打开线上项目 <span aria-hidden="true">↗</span></a>
+      <a class="button dialog-link" id="dialog-link" href="#">打开线上项目 <span aria-hidden="true">→</span></a>
       <p class="dialog-unavailable" id="dialog-unavailable" hidden>这个项目还没有公开访问链接，可在根追踪器查看当前进度。</p>
     </div>
   </dialog>

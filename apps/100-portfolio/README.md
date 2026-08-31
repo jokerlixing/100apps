@@ -6,18 +6,18 @@
 
 ## 核心功能
 
-- 从根追踪器读取最新的前 100 个项目，不复制第二份官方进度
+- 构建时从根追踪器同步完整 100 项目录，首屏无需等待网络请求即可运行
 - 10×10 项目打孔索引内置 100 个唯一部署地址，可悬停预览并点击直接运行
 - 按项目名称、说明、编号、难度和完成状态组合筛选
 - 项目详情弹窗展示难度、状态、说明和公开访问入口
 - 下载当前作品清单为 JSON，方便备份或二次整理
 - 明暗阅读模式保存在浏览器本地
-- 追踪器读取失败时切换到内置精选集，并明确标记数据来源
+- 后台核对根追踪器；请求超时或失败时继续使用内置的 100 项完整目录
 - 适配键盘、减少动态效果偏好、桌面与移动端布局
 
 ## 数据与隐私
 
-页面只请求同一 GitHub Pages 站点下的根 `index.html`，通过纯文本解析读取 `IDEAS` 和 `INIT_DONE`。解析过程不会执行追踪器中的 JavaScript，只接受 `http` / `https` 项目链接。除阅读模式外不保存个人数据，也不调用第三方 API。
+页面先读取随 App 100 发布的静态目录，再在后台请求同一 GitHub Pages 站点下的根 `index.html`，通过纯文本解析核对 `IDEAS` 和 `INIT_DONE`。解析过程不会执行追踪器中的 JavaScript，只接受 `http` / `https` 项目链接。除阅读模式外不保存个人数据，也不调用第三方 API。
 
 ## 本地运行
 
@@ -33,16 +33,23 @@ python -m http.server 8000
 http://127.0.0.1:8000/apps/100-portfolio/
 ```
 
-直接双击 `index.html` 时，浏览器通常会阻止页面读取上级目录文件；此时作品集会使用内置精选集。要检查完整 100 项，请使用静态服务器。
+直接双击 `index.html` 时，后台追踪器核对可能会被浏览器阻止，但内置 100 项目录仍会立即显示。建议使用静态服务器检查完整行为。
 
 ## 验证
 
 ```powershell
 node --test apps/100-portfolio/portfolio-core.test.js
+node --test apps/100-portfolio/catalog-sync.test.js
 node apps/100-portfolio/qa/browser-smoke.mjs
 ```
 
-浏览器验收会检查真实追踪器加载、100 个唯一运行链接、项目选择、组合筛选、详情弹窗、JSON 导出、焦点样式、移动端 44px 触控格、页面溢出和运行时错误，并更新以下视觉证据：
+根追踪器内容变更后，先同步 App 100 的静态目录：
+
+```powershell
+node apps/100-portfolio/qa/sync-project-catalog.mjs
+```
+
+浏览器验收会检查内置目录即时渲染、真实追踪器后台核对、100 个唯一运行链接、项目选择、组合筛选、详情弹窗、JSON 导出、焦点样式、移动端 44px 触控格、页面溢出和运行时错误，并更新以下视觉证据：
 
 - `assets/screenshot-desktop.png`
 - `assets/screenshot-archive.png`

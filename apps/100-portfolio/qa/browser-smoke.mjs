@@ -32,6 +32,7 @@ const allowedFiles = new Set([
   'apps/100-portfolio/index.html',
   'apps/100-portfolio/styles.css',
   'apps/100-portfolio/portfolio-core.js',
+  'apps/100-portfolio/project-catalog.js',
   'apps/100-portfolio/app.js',
 ]);
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -121,8 +122,15 @@ function staticServer() {
       response.end('Not found');
       return;
     }
-    response.writeHead(200, { 'content-type': mimeTypes[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
-    response.end(readFileSync(file));
+    const sendFile = () => {
+      response.writeHead(200, { 'content-type': mimeTypes[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+      response.end(readFileSync(file));
+    };
+    if (relative === 'index.html') {
+      setTimeout(sendFile, 1_200);
+      return;
+    }
+    sendFile();
   });
 }
 
@@ -158,6 +166,16 @@ async function run() {
 
     await client.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
     await navigate(client, baseUrl);
+    const embedded = await evaluate(client, `(() => ({
+      source: window.__INDEX100__.getState().source,
+      projects: window.__INDEX100__.getState().projects.length,
+      cells: document.querySelectorAll('.project-cell').length,
+      linked: document.querySelector('#linked-count').textContent
+    }))()`);
+    assert.equal(embedded.source, 'embedded');
+    assert.equal(embedded.projects, 100);
+    assert.equal(embedded.cells, 100);
+    assert.equal(embedded.linked, '100');
     await waitForExpression(client, `window.__INDEX100__.getState().source === 'tracker' && window.__INDEX100__.getState().projects.length === 100`);
 
     const initial = await evaluate(client, `(() => ({
@@ -186,7 +204,7 @@ async function run() {
     assert.equal(gridLinks.length, 100);
     assert.equal(gridLinks.every((cell) => cell.tag === 'A'), true);
     assert.equal(gridLinks.every((cell) => cell.href.startsWith('https://jokerlixing.github.io/100apps/')), true);
-    assert.equal(gridLinks.every((cell) => cell.target === '_blank' && cell.rel.includes('noopener')), true);
+    assert.equal(gridLinks.every((cell) => cell.target === ''), true);
     assert.equal(new Set(gridLinks.map((cell) => cell.href)).size, 100);
     assert.equal(gridLinks.find((cell) => cell.id === 86).href, 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
 
@@ -234,9 +252,18 @@ async function run() {
     await sleep(250);
     await screenshot(client, 'screenshot-archive.png');
 
+    await evaluate(client, `(() => {
+      const cell=document.querySelector('.project-cell[data-project-id="2"]');
+      cell.href=new URL('?clicked=2',location.href).href;
+      cell.click();
+    })()`);
+    await waitForExpression(client, `new URL(location.href).searchParams.get('clicked') === '2'`);
+    const clickedUrl = await evaluate(client, 'location.href');
+    assert.match(clickedUrl, /[?&]clicked=2(?:&|$)/);
+
     await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });
     await navigate(client, `${baseUrl}?mobile=1`);
-    await waitForExpression(client, `window.__INDEX100__.getState().projects.length === 100`);
+    await waitForExpression(client, `window.__INDEX100__.getState().source === 'tracker' && window.__INDEX100__.getState().projects.length === 100`);
     const mobile = await evaluate(client, `(() => {
       const cells=[...document.querySelectorAll('.project-cell')].slice(0,10).map(element=>{const box=element.getBoundingClientRect();return {width:box.width,height:box.height};});
       const controls=[document.querySelector('#tone-button'),...document.querySelectorAll('.hero-actions a')].map(element=>{const box=element.getBoundingClientRect();return {width:box.width,height:box.height,left:box.left,right:box.right};});
@@ -257,7 +284,7 @@ async function run() {
     await screenshot(client, 'screenshot-mobile.png');
 
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ initial, gridLinks: `${gridLinks.length} unique runnable links`, filtered, exportedCount, mobile: { ...mobile, cells: `${mobile.cells.length} checked`, controls: `${mobile.controls.length} checked` }, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ embedded, initial, gridLinks: `${gridLinks.length} unique runnable links`, clickedUrl, filtered, exportedCount, mobile: { ...mobile, cells: `${mobile.cells.length} checked`, controls: `${mobile.controls.length} checked` }, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

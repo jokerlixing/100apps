@@ -2,7 +2,7 @@
   'use strict';
 
   const Core = window.PortfolioCore;
-  const FALLBACK_PROJECTS = [
+  const FEATURED_FALLBACK_PROJECTS = [
     [1, '百应用挑战追踪器', '进度、筛选与挑战数据备份', 1, '../../index.html'],
     [37, '个人博客', 'Markdown 写作、全文检索与标签归档', 3, '../037-personal-blog/'],
     [40, '图片压缩工具', 'Canvas 本地批量压缩与下载', 3, '../040-image-compressor/'],
@@ -25,12 +25,21 @@
     status: 'done',
   }));
 
+  function readEmbeddedCatalog() {
+    const rows = window.PORTFOLIO_CATALOG;
+    if (!Array.isArray(rows) || rows.length !== Core.MAX_PROJECTS) return FEATURED_FALLBACK_PROJECTS;
+    const doneIds = new Set(rows.flatMap((row, index) => row[4] === 'done' ? [index + 1] : []));
+    return Core.normalizeProjects(rows.map((row) => row.slice(0, 4)), doneIds);
+  }
+
+  const EMBEDDED_PROJECTS = readEmbeddedCatalog();
+
   const state = {
-    projects: FALLBACK_PROJECTS,
-    filteredProjects: FALLBACK_PROJECTS,
+    projects: EMBEDDED_PROJECTS,
+    filteredProjects: EMBEDDED_PROJECTS,
     selectedId: 100,
     filters: { query: '', level: 'all', status: 'all' },
-    source: 'fallback',
+    source: EMBEDDED_PROJECTS.length === Core.MAX_PROJECTS ? 'embedded' : 'featured-fallback',
     lastExport: null,
   };
 
@@ -76,12 +85,10 @@
     state.projects.forEach((project) => {
       const link = create('a', 'project-cell');
       link.href = project.link;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
       link.dataset.projectId = project.id;
       link.dataset.status = project.status;
       link.setAttribute('role', 'gridcell');
-      link.setAttribute('aria-label', `运行 App ${project.code}：${project.name}，${statusLabel(project)}（新标签页打开）`);
+      link.setAttribute('aria-label', `运行 App ${project.code}：${project.name}，${statusLabel(project)}`);
       link.title = `${project.code} · ${project.name} · 点击运行`;
       link.textContent = project.id % 10 === 0 ? project.id : '';
       link.addEventListener('mouseenter', () => selectProject(project.id));
@@ -108,8 +115,8 @@
     dom.readoutLink.hidden = !project.link;
     if (project.link) {
       dom.readoutLink.href = project.link;
-      dom.readoutLink.target = '_blank';
-      dom.readoutLink.rel = 'noopener noreferrer';
+      dom.readoutLink.removeAttribute('target');
+      dom.readoutLink.removeAttribute('rel');
       dom.readoutLink.firstChild.textContent = '打开线上项目 ';
     }
   }
@@ -127,8 +134,6 @@
       meta.append(create('span', '', `LEVEL ${project.level}`), create('span', '', 'LIVE BUILD'));
       const link = create('a', 'featured-link', '查看项目 ↗');
       link.href = project.link;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
       link.setAttribute('aria-label', `打开 ${project.name}`);
       article.append(marker, copy, meta, link);
       fragment.appendChild(article);
@@ -237,25 +242,42 @@
     }
   }
 
+  function showEmbeddedCatalog() {
+    state.projects = EMBEDDED_PROJECTS;
+    state.filteredProjects = EMBEDDED_PROJECTS;
+    state.source = EMBEDDED_PROJECTS.length === Core.MAX_PROJECTS ? 'embedded' : 'featured-fallback';
+    state.selectedId = 100;
+    dom.dataStatus.textContent = EMBEDDED_PROJECTS.length === Core.MAX_PROJECTS
+      ? '已装入内置目录 · 100 个项目可直接运行 · 正在后台核对追踪器'
+      : `完整目录不可用 · 当前展示 ${EMBEDDED_PROJECTS.length} 个精选项目`;
+    renderAll();
+    document.body.classList.add('ready');
+  }
+
   async function loadCatalog() {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
     try {
-      const response = await fetch(new URL('../../index.html', window.location.href), { cache: 'no-store' });
+      const response = await fetch(new URL('../../index.html', window.location.href), {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const projects = Core.parseTrackerSource(await response.text());
       if (projects.length !== 100) throw new Error(`只读取到 ${projects.length} 个项目`);
       state.projects = projects;
       state.source = 'tracker';
       state.selectedId = 100;
-      dom.dataStatus.textContent = '已连接根追踪器 · 数据随官方进度更新';
+      dom.dataStatus.textContent = '已核对根追踪器 · 100 个项目可直接运行';
+      renderAll();
     } catch (error) {
-      state.projects = FALLBACK_PROJECTS;
-      state.source = 'fallback';
-      state.selectedId = 100;
-      dom.dataStatus.textContent = `追踪器暂不可读，当前展示 ${FALLBACK_PROJECTS.length} 个内置精选项目。`;
-      console.warn('INDEX/100 tracker fallback:', error.message);
+      dom.dataStatus.textContent = EMBEDDED_PROJECTS.length === Core.MAX_PROJECTS
+        ? '根追踪器暂未响应 · 已使用内置的 100 项完整目录'
+        : `追踪器暂不可读 · 当前展示 ${EMBEDDED_PROJECTS.length} 个精选项目`;
+      console.warn('INDEX/100 tracker refresh skipped:', error.name === 'AbortError' ? 'timeout' : error.message);
+    } finally {
+      window.clearTimeout(timeoutId);
     }
-    renderAll();
-    document.body.classList.add('ready');
     return state.projects;
   }
 
@@ -288,5 +310,6 @@
     reloadCatalog: loadCatalog,
   });
 
-  loadCatalog();
+  showEmbeddedCatalog();
+  void loadCatalog();
 })();

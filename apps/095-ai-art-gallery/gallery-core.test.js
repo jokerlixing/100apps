@@ -16,6 +16,8 @@ const {
   normalizeArtwork,
   normalizeGalleryState,
   toggleFavorite,
+  removeUserArtwork,
+  clearUserArtworks,
   filterArtworks,
   getCanvasSize,
   buildShareText
@@ -117,6 +119,30 @@ test('toggles favorites without mutating the source artwork list', () => {
   assert.equal(toggled[0].liked, true);
   assert.equal(source[0].liked, false);
   assert.equal(toggleFavorite(toggled, source[0].id)[0].liked, false);
+});
+
+test('removes one user artwork and its favorite reference', () => {
+  const first = createArtwork({ prompt: '紫色雨夜', seed: 11, createdAt: 1 });
+  const second = createArtwork({ prompt: '珊瑚色清晨', seed: 12, createdAt: 2 });
+  const source = { artworks: [first, second], likedIds: [first.id, second.id, 'exhibit-library'] };
+  const result = removeUserArtwork(source, first.id);
+
+  assert.deepEqual(result.artworks.map((artwork) => artwork.id), [second.id]);
+  assert.deepEqual(result.likedIds, [second.id, 'exhibit-library']);
+  assert.equal(source.artworks.length, 2, 'source state should not be mutated');
+  assert.deepEqual(removeUserArtwork(source, 'exhibit-library').artworks.map((artwork) => artwork.id), [second.id, first.id]);
+});
+
+test('clears every user artwork while preserving curated favorites', () => {
+  const first = createArtwork({ prompt: '雾中车站', seed: 21, createdAt: 1 });
+  const second = createArtwork({ prompt: '月光花园', seed: 22, createdAt: 2 });
+  const result = clearUserArtworks({
+    artworks: [first, second],
+    likedIds: [first.id, 'exhibit-library', second.id, 'builtin-02']
+  });
+
+  assert.deepEqual(result.artworks, []);
+  assert.deepEqual(result.likedIds, ['exhibit-library', 'builtin-02']);
 });
 
 test('filters all, personal and liked artworks with keyword search', () => {

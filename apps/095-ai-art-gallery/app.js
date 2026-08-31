@@ -39,6 +39,7 @@
     galleryGrid: document.querySelector('#galleryGrid'),
     galleryEmpty: document.querySelector('#galleryEmpty'),
     clearFiltersButton: document.querySelector('#clearFiltersButton'),
+    clearArtworksButton: document.querySelector('#clearArtworksButton'),
     allCount: document.querySelector('#allCount'),
     mineCount: document.querySelector('#mineCount'),
     likedCount: document.querySelector('#likedCount'),
@@ -223,6 +224,48 @@
     showToast(next.has(id) ? '作品已收藏。' : '已取消收藏。');
   }
 
+  function showFallbackHeroIfDeleted(deletedIds) {
+    if (!deletedIds.has(currentArtwork.id)) return;
+    const fallback = Core.normalizeArtwork(Core.BUILTIN_ARTWORKS[0]);
+    renderHero(fallback, { status: 'ready', label: '内置样片已就绪' });
+  }
+
+  function deleteArtwork(id) {
+    const artwork = state.artworks.find((item) => item.id === id);
+    if (!artwork) {
+      showToast('内置样片会一直保留，只有自己的作品可以删除。');
+      return false;
+    }
+    if (!window.confirm(`确定删除这张作品吗？\n\n「${artwork.prompt}」\n\n删除后无法恢复。`)) return false;
+    state = Core.removeUserArtwork(state, id);
+    saveState();
+    showFallbackHeroIfDeleted(new Set([id]));
+    renderGallery();
+    updateCounts();
+    showToast('作品已删除。');
+    return true;
+  }
+
+  function clearAllArtworks() {
+    const count = state.artworks.length;
+    if (!count) {
+      showToast('还没有可以清空的个人作品。');
+      return false;
+    }
+    if (!window.confirm(`确定清空全部 ${count} 张个人作品吗？\n\n内置灵感样片会保留，删除后无法恢复。`)) return false;
+    const deletedIds = new Set(state.artworks.map((artwork) => artwork.id));
+    state = Core.clearUserArtworks(state);
+    saveState();
+    showFallbackHeroIfDeleted(deletedIds);
+    elements.gallerySearch.value = '';
+    currentFilter = 'all';
+    elements.filterButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.filter === 'all')));
+    renderGallery();
+    updateCounts();
+    showToast(`已清空 ${count} 张个人作品，内置样片已保留。`);
+    return true;
+  }
+
   function createSvgIcon(pathData) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
@@ -239,6 +282,7 @@
     button.dataset.action = action;
     button.setAttribute('aria-label', label);
     button.title = label;
+    if (action === 'delete') button.classList.add('delete-action');
     if (typeof pressed === 'boolean') button.setAttribute('aria-pressed', String(pressed));
     button.append(createSvgIcon(iconPath));
     if (action === 'share') {
@@ -304,6 +348,10 @@
     const share = createCardButton('复制提示词配方', 'share', 'M8 12h8M12 8l4 4-4 4M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z');
     const download = createCardButton('下载 PNG', 'download', 'M12 3v12m0 0 4-4m-4 4-4-4M5 20h14');
     actions.append(like, share, download);
+    if (artwork.source === 'user') {
+      actions.classList.add('has-delete');
+      actions.append(createCardButton('删除这张作品', 'delete', 'M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5'));
+    }
 
     actions.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-action]');
@@ -311,6 +359,7 @@
       if (button.dataset.action === 'like') toggleFavorite(artwork.id);
       if (button.dataset.action === 'share') copyRecipe(artwork);
       if (button.dataset.action === 'download') downloadArtwork(artwork);
+      if (button.dataset.action === 'delete') deleteArtwork(artwork.id);
     });
 
     caption.append(prompt, recipe, actions);
@@ -343,6 +392,8 @@
     elements.allCount.textContent = String(total).padStart(2, '0');
     elements.mineCount.textContent = String(state.artworks.length).padStart(2, '0');
     elements.likedCount.textContent = String(likedCount).padStart(2, '0');
+    elements.clearArtworksButton.disabled = state.artworks.length === 0;
+    elements.clearArtworksButton.setAttribute('aria-label', `清空全部个人作品，当前 ${state.artworks.length} 张`);
   }
 
   async function copyText(text) {
@@ -440,6 +491,7 @@
 
     elements.filterButtons.forEach((button) => button.addEventListener('click', () => setFilter(button.dataset.filter)));
     elements.gallerySearch.addEventListener('input', renderGallery);
+    elements.clearArtworksButton.addEventListener('click', clearAllArtworks);
     elements.clearFiltersButton.addEventListener('click', () => {
       elements.gallerySearch.value = '';
       setFilter('all');
@@ -457,6 +509,8 @@
     getState: () => JSON.parse(JSON.stringify(state)),
     getCurrent: () => JSON.parse(JSON.stringify(currentArtwork)),
     generate: generateArtwork,
+    deleteArtwork,
+    clearAllArtworks,
     renderGallery,
     storageKey: STORAGE_KEY
   });

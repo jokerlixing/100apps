@@ -913,6 +913,12 @@ svg {
   background: rgba(251, 250, 252, .62);
 }
 
+.gallery-management {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .filter-buttons {
   display: flex;
   gap: 5px;
@@ -971,6 +977,42 @@ svg {
   background: transparent;
   color: var(--ink);
   font-size: 11px;
+}
+
+.clear-artworks-button {
+  display: inline-flex;
+  min-height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(194, 66, 61, .42);
+  border-radius: 7px;
+  padding: 0 12px;
+  background: rgba(255, 115, 94, .07);
+  color: #9a3638;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.clear-artworks-button:hover:not(:disabled) {
+  border-color: var(--coral-dark);
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.clear-artworks-button:disabled {
+  border-color: #c8cad3;
+  background: transparent;
+  color: #a4a0aa;
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.clear-artworks-button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .gallery-grid {
@@ -1093,6 +1135,10 @@ svg {
   margin-top: auto;
 }
 
+.card-actions.has-delete {
+  grid-template-columns: 42px 1fr 42px 42px;
+}
+
 .card-actions button {
   display: flex;
   min-height: 42px;
@@ -1111,6 +1157,12 @@ svg {
 .card-actions button:hover {
   border-color: var(--violet);
   color: var(--violet-dark);
+}
+
+.card-actions .delete-action:hover {
+  border-color: var(--coral-dark);
+  background: rgba(255, 115, 94, .1);
+  color: #a93438;
 }
 
 .card-actions button[aria-pressed="true"] svg {
@@ -1474,6 +1526,11 @@ footer a {
     padding: 8px;
   }
 
+  .gallery-management {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .filter-buttons {
     overflow-x: auto;
     padding-bottom: 2px;
@@ -1485,6 +1542,11 @@ footer a {
   }
 
   .search-field {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .clear-artworks-button {
     width: 100%;
     min-height: 46px;
   }
@@ -1507,6 +1569,14 @@ footer a {
 
   .card-actions button {
     min-height: 46px;
+  }
+
+  .card-actions {
+    grid-template-columns: 46px 1fr 46px;
+  }
+
+  .card-actions.has-delete {
+    grid-template-columns: 46px 1fr 46px 46px;
   }
 
   footer {

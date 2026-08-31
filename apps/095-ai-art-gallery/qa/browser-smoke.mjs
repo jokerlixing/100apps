@@ -243,6 +243,78 @@ async function run() {
     assert.match(download.filename, /^muse-95-poster-4242\.png$/);
     assert.match(download.href, /^blob:/);
 
+    assert.equal(await evaluate(client, `document.querySelectorAll('[data-action="delete"]').length`), 1);
+    await evaluate(client, `window.__confirmMessages=[]; window.__allowDestructiveAction=false; window.confirm=(message)=>{ window.__confirmMessages.push(message); return window.__allowDestructiveAction; }; document.querySelector('[data-artwork-id^="user-"] [data-action="delete"]').click()`);
+    assert.equal(await evaluate(client, `window.__MUSE95__.getState().artworks.length`), 1, 'canceling single delete should preserve the artwork');
+    await evaluate(client, `window.__allowDestructiveAction=true; document.querySelector('[data-artwork-id^="user-"] [data-action="delete"]').click()`);
+    await waitForExpression(client, `window.__MUSE95__.getState().artworks.length === 0 && document.querySelectorAll('.art-card').length === 6`);
+    const singleDelete = await evaluate(client, `(() => ({
+      cards: document.querySelectorAll('.art-card').length,
+      deleteButtons: document.querySelectorAll('[data-action="delete"]').length,
+      stored: JSON.parse(localStorage.getItem(window.__MUSE95__.storageKey)).artworks.length,
+      likedIds: window.__MUSE95__.getState().likedIds,
+      currentSource: window.__MUSE95__.getCurrent().source,
+      confirmMessages: window.__confirmMessages
+    }))()`);
+    assert.equal(singleDelete.deleteButtons, 0, 'curated artworks must not expose delete buttons');
+    assert.equal(singleDelete.stored, 0);
+    assert.equal(singleDelete.likedIds.includes(userId), false);
+    assert.equal(singleDelete.currentSource, 'ai');
+    assert.match(singleDelete.confirmMessages[0], /删除后无法恢复/);
+
+    await evaluate(client, `(() => {
+      const prompt=document.querySelector('#promptInput');
+      prompt.value='月光下的水晶温室';
+      prompt.dispatchEvent(new Event('input',{bubbles:true}));
+      document.querySelector('#seedInput').value='5252';
+      document.querySelector('#promptForm').requestSubmit();
+    })()`);
+    await waitForExpression(client, `window.__MUSE95__.getState().artworks.length === 1 && !document.querySelector('#generateButton').disabled`);
+    await evaluate(client, `(() => {
+      const prompt=document.querySelector('#promptInput');
+      prompt.value='漂浮在云端的红色剧院';
+      prompt.dispatchEvent(new Event('input',{bubbles:true}));
+      document.querySelector('#seedInput').value='6262';
+      document.querySelector('#promptForm').requestSubmit();
+    })()`);
+    await waitForExpression(client, `window.__MUSE95__.getState().artworks.length === 2 && !document.querySelector('#generateButton').disabled`);
+    assert.equal(await evaluate(client, `document.querySelector('#clearArtworksButton').disabled`), false);
+    await evaluate(client, `document.querySelector('[data-artwork-id^="user-"]').scrollIntoView({ block: 'center', behavior: 'instant' }); document.querySelector('#toast').classList.remove('show')`);
+    await sleep(180);
+    await screenshot(client, 'screenshot-delete-controls.png');
+    await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });
+    await evaluate(client, `document.querySelector('[data-artwork-id^="user-"]').scrollIntoView({ block: 'center', behavior: 'instant' })`);
+    await sleep(180);
+    const deletionMobile = await evaluate(client, `(() => {
+      const controls=[...document.querySelectorAll('#clearArtworksButton,[data-artwork-id^="user-"] .card-actions button')].map((element)=>{ const box=element.getBoundingClientRect(); return { width:box.width,height:box.height }; });
+      return { scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,controls };
+    })()`);
+    assert.equal(deletionMobile.scrollWidth, 390);
+    assert.equal(deletionMobile.clientWidth, 390);
+    deletionMobile.controls.forEach((box) => assert.ok(box.width >= 44 && box.height >= 44, `Deletion touch target failed: ${JSON.stringify(box)}`));
+    await screenshot(client, 'screenshot-delete-controls-mobile.png');
+    await client.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false, screenWidth: 1440, screenHeight: 1100 });
+    await evaluate(client, `document.querySelector('[data-artwork-id^="user-"]').scrollIntoView({ block: 'center', behavior: 'instant' })`);
+    await sleep(120);
+    await evaluate(client, `window.__allowDestructiveAction=false; document.querySelector('#clearArtworksButton').click()`);
+    assert.equal(await evaluate(client, `window.__MUSE95__.getState().artworks.length`), 2, 'canceling clear all should preserve every artwork');
+    await evaluate(client, `window.__allowDestructiveAction=true; document.querySelector('#clearArtworksButton').click()`);
+    await waitForExpression(client, `window.__MUSE95__.getState().artworks.length === 0 && document.querySelectorAll('.art-card').length === 6 && document.querySelector('#clearArtworksButton').disabled`);
+    const clearAll = await evaluate(client, `(() => ({
+      cards: document.querySelectorAll('.art-card').length,
+      stored: JSON.parse(localStorage.getItem(window.__MUSE95__.storageKey)).artworks.length,
+      currentSource: window.__MUSE95__.getCurrent().source,
+      clearDisabled: document.querySelector('#clearArtworksButton').disabled,
+      confirmation: window.__confirmMessages.at(-1)
+    }))()`);
+    assert.deepEqual(clearAll, {
+      cards: 6,
+      stored: 0,
+      currentSource: 'ai',
+      clearDisabled: true,
+      confirmation: '确定清空全部 2 张个人作品吗？\n\n内置灵感样片会保留，删除后无法恢复。'
+    });
+
     await evaluate(client, `localStorage.clear(); location.reload()`);
     await waitForExpression(client, `Boolean(window.__MUSE95__) && document.querySelectorAll('.art-card').length === 6 && document.querySelector('#heroImage').naturalWidth > 0`);
     await evaluate(client, `document.querySelector('#promptInput').focus(); document.querySelector('#toast').classList.remove('show'); window.scrollTo({ top: 0, behavior: 'instant' })`);
@@ -273,7 +345,7 @@ async function run() {
     await navigate(client, baseUrl);
     await waitForExpression(client, `Boolean(window.__MUSE95__) && document.querySelector('#heroImage').naturalWidth > 0`);
     const mobile = await evaluate(client, `(() => {
-      const selectors = '.brand,.prompt-suggestions button,.style-options button,.ratio-options button,#randomSeedButton,#generateButton,.stage-actions button,.filter-buttons button';
+      const selectors = '.brand,.prompt-suggestions button,.style-options button,.ratio-options button,#randomSeedButton,#generateButton,.stage-actions button,.filter-buttons button,#clearArtworksButton';
       const controls = [...document.querySelectorAll(selectors)].map((element) => { const box=element.getBoundingClientRect(); return { tag:element.tagName,width:box.width,height:box.height,left:box.left,right:box.right }; });
       return {
         scrollWidth: document.documentElement.scrollWidth,
@@ -297,6 +369,7 @@ async function run() {
     console.log(JSON.stringify({
       initial,
       generated: { current: generated.current, canvas: generated.canvas, cards: generated.cards },
+      deletion: { singleDelete, clearAll, mobileControls: `${deletionMobile.controls.length} checked` },
       desktop,
       mobile: {
         scrollWidth: mobile.scrollWidth,

@@ -8,6 +8,7 @@ MUSE/95 是一个完全运行在浏览器里的提示词绘画工作台。输入
 - 三种画幅：1:1、3:4、3:2
 - 确定性种子：相同提示词、风格、比例和种子会得到相同作品
 - 本地画廊：保存最近 18 张用户作品，支持全部、我的、收藏筛选与搜索
+- 作品管理：单件删除或一键清空全部个人作品，并同步清理关联收藏
 - 作品操作：收藏、复制提示词配方、导出 PNG
 - 响应式布局：覆盖 1440px 桌面和 390px 移动端
 - 零构建依赖：原生 HTML、CSS、JavaScript 与 Canvas 2D
@@ -36,7 +37,7 @@ node --check apps/095-ai-art-gallery/qa/browser-smoke.mjs
 node apps/095-ai-art-gallery/qa/browser-smoke.mjs
 ```
 
-浏览器冒烟测试会验证生成、持久化、收藏、筛选、搜索、复制配方、PNG 下载，以及桌面和移动端布局；截图写入 `assets/screenshot-desktop.png` 与 `assets/screenshot-mobile.png`。
+浏览器冒烟测试会验证生成、持久化、收藏、筛选、搜索、复制配方、PNG 下载、单件删除、清空全部个人作品，以及桌面和移动端布局；截图写入 `assets/screenshot-desktop.png` 与 `assets/screenshot-mobile.png`。
 
 ## 生成边界与隐私
 

@@ -190,6 +190,25 @@
     }));
   }
 
+  function removeUserArtwork(value, requestedId) {
+    const state = normalizeGalleryState(value);
+    const id = typeof requestedId === 'string' ? requestedId.trim() : '';
+    if (!id || !state.artworks.some((artwork) => artwork.id === id)) return state;
+    return {
+      artworks: state.artworks.filter((artwork) => artwork.id !== id),
+      likedIds: state.likedIds.filter((likedId) => likedId !== id)
+    };
+  }
+
+  function clearUserArtworks(value) {
+    const state = normalizeGalleryState(value);
+    const userIds = new Set(state.artworks.map((artwork) => artwork.id));
+    return {
+      artworks: [],
+      likedIds: state.likedIds.filter((id) => !userIds.has(id))
+    };
+  }
+
   function filterArtworks(builtinInput, userInput, options) {
     const settings = options && typeof options === 'object' ? options : {};
     const builtins = (Array.isArray(builtinInput) ? builtinInput : []).map(normalizeArtwork).filter(Boolean);
@@ -239,6 +258,8 @@
     normalizeArtwork,
     normalizeGalleryState,
     toggleFavorite,
+    removeUserArtwork,
+    clearUserArtworks,
     filterArtworks,
     getCanvasSize,
     buildShareText

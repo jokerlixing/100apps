@@ -51,6 +51,7 @@
       'move-folder', 'move-button', 'active-actions', 'trash-actions', 'download-button',
       'share-button', 'trash-button', 'restore-button', 'destroy-button',
       'mobile-detail-button', 'folder-dialog', 'folder-form', 'folder-name',
+      'folder-close-button', 'folder-cancel-button',
       'share-dialog', 'share-days', 'share-result', 'share-link', 'share-token',
       'create-share-button', 'copy-share-button', 'revoke-share-button',
       'confirm-dialog', 'confirm-title', 'confirm-copy', 'confirm-button',
@@ -142,7 +143,10 @@
     refs['folder-list'].innerHTML = state.folders.map((folder) => {
       const count = state.files.filter((file) => !file.deletedAt && file.folderId === folder.id).length;
       const active = state.view === 'folder' && state.folderId === folder.id;
-      return `<button class="folder-button${active ? ' is-active' : ''}" data-folder-id="${escapeHtml(folder.id)}" type="button" aria-current="${active ? 'page' : 'false'}"><span>${escapeHtml(folder.name)}</span><b>${count}</b></button>`;
+      return `<div class="folder-row">
+        <button class="folder-button${active ? ' is-active' : ''}" data-folder-id="${escapeHtml(folder.id)}" type="button" aria-current="${active ? 'page' : 'false'}"><span>${escapeHtml(folder.name)}</span><b>${count}</b></button>
+        <button class="folder-delete-button" data-delete-folder-id="${escapeHtml(folder.id)}" type="button" aria-label="删除资料夹 ${escapeHtml(folder.name)}" title="删除资料夹">×</button>
+      </div>`;
     }).join('');
   }
 
@@ -321,6 +325,24 @@
     toast(`资料夹“${cleanName}”已建立`);
   }
 
+  function requestFolderDeletion(folderId) {
+    const folder = state.folders.find((item) => item.id === folderId);
+    if (!folder) return;
+    const affectedCount = state.files.filter((file) => file.folderId === folder.id).length;
+    const copy = affectedCount
+      ? `“${folder.name}”内的 ${affectedCount} 份资料将移回总库，文件内容和回收状态都会保留。`
+      : `“${folder.name}”是空资料夹，删除后无法恢复。`;
+    openConfirm(`删除资料夹“${folder.name}”？`, copy, async () => {
+      await Storage.deleteFolder(folder.id);
+      if (state.view === 'folder' && state.folderId === folder.id) {
+        state.view = 'all';
+        state.folderId = null;
+      }
+      await refresh({ selectId: state.selectedId });
+      toast(affectedCount ? `资料夹已删除，${affectedCount} 份资料已移回总库` : '空资料夹已删除');
+    }, '删除资料夹');
+  }
+
   async function updateSelected(mutator, message) {
     const file = state.files.find((item) => item.id === state.selectedId);
     if (!file) return;
@@ -428,6 +450,11 @@
       render();
     });
     refs['folder-list'].addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-delete-folder-id]');
+      if (deleteButton) {
+        requestFolderDeletion(deleteButton.dataset.deleteFolderId);
+        return;
+      }
       const button = event.target.closest('[data-folder-id]');
       if (!button) return;
       state.view = 'folder';
@@ -451,8 +478,10 @@
       refs['folder-dialog'].showModal();
       setTimeout(() => refs['folder-name'].focus(), 0);
     });
+    const closeFolderDialog = () => refs['folder-dialog'].close('cancel');
+    refs['folder-close-button'].addEventListener('click', closeFolderDialog);
+    refs['folder-cancel-button'].addEventListener('click', closeFolderDialog);
     refs['folder-form'].addEventListener('submit', (event) => {
-      if (event.submitter && event.submitter.value === 'cancel') return;
       event.preventDefault();
       const name = refs['folder-name'].value.trim();
       if (!name) return;

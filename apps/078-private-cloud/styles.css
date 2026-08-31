@@ -65,12 +65,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .section-heading > span { font: 800 11px/1 var(--mono); }
 .icon-button { width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.5); color: var(--paper); background: transparent; font-size: 20px; line-height: 1; }
 .folder-list { display: grid; gap: 7px; margin-top: 14px; }
+.folder-row { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) 36px; gap: 4px; }
 .folder-button { width: 100%; min-height: 41px; display: grid; grid-template-columns: 19px minmax(0,1fr) auto; align-items: center; gap: 8px; border: 0; padding: 6px 8px; color: #c8d8d5; background: transparent; text-align: left; font-size: 11px; }
 .folder-button::before { content: "└"; color: var(--mustard); font: 700 12px/1 var(--mono); }
 .folder-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .folder-button b { color: var(--mustard); font: 700 9px/1 var(--mono); }
 .folder-button:hover, .folder-button.is-active { color: var(--ink); background: var(--mist); }
 .folder-button.is-active b { color: var(--brick); }
+.folder-delete-button { min-width: 36px; min-height: 41px; border: 1px solid rgba(255,255,255,.22); color: #c8d8d5; background: transparent; font: 700 17px/1 var(--mono); }
+.folder-delete-button:hover { color: #fff; border-color: var(--brick); background: var(--brick); }
 
 .capacity-ledger { position: relative; min-height: 230px; margin-top: 34px; padding-top: 17px; border-top: 1px solid rgba(255,255,255,.26); }
 .capacity-ruler { position: absolute; top: 52px; left: 2px; width: 52px; height: 152px; border-left: 2px solid var(--paper); background: repeating-linear-gradient(to top, transparent 0 14px, rgba(255,255,255,.35) 14px 15px); }
@@ -220,7 +223,9 @@ body.is-busy button { pointer-events: none; }
   .folder-section { margin-top: 14px; }
   .section-heading h2 { font-size: 13px; }
   .folder-list { display: flex; overflow-x: auto; margin-top: 9px; }
+  .folder-row { min-width: max-content; grid-template-columns: minmax(0,1fr) 44px; }
   .folder-button { min-width: max-content; width: auto; border: 1px solid rgba(255,255,255,.24); }
+  .folder-delete-button { min-width: 44px; min-height: 44px; }
   .capacity-ledger { min-height: auto; margin-top: 14px; padding-top: 13px; }
   .capacity-ruler, .usage-key, .capacity-note { display: none; }
   .usage-copy { margin: 8px 0 0; }

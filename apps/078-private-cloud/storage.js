@@ -104,6 +104,19 @@
     return useStore(['folders'], 'readwrite', (transaction) => transaction.objectStore('folders').put(folder));
   }
 
+  function deleteFolder(id) {
+    return useStore(['files', 'folders'], 'readwrite', (transaction) => {
+      transaction.objectStore('folders').delete(id);
+      const request = transaction.objectStore('files').index('folderId').openCursor(id);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        cursor.update({ ...cursor.value, folderId: 'root', updatedAt: new Date().toISOString() });
+        cursor.continue();
+      };
+    });
+  }
+
   async function getSetting(key) {
     const db = await open();
     const record = await requestAsPromise(db.transaction('settings', 'readonly').objectStore('settings').get(key));
@@ -189,6 +202,7 @@
     deleteFile,
     listFolders,
     putFolder,
+    deleteFolder,
     getSetting,
     setSetting,
     seed,

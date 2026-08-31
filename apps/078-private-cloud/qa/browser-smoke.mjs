@@ -146,6 +146,11 @@ async function run() {
     await waitForExpression(client, `window.__DEPOT78__.getState().files.length === 3`);
     assert.match(await evaluate(client, `document.querySelector('#storage-status').textContent`), /已就绪/);
 
+    const foldersBeforeCancel = await evaluate(client, `window.__DEPOT78__.getState().folders.length`);
+    await evaluate(client, `document.querySelector('#new-folder-button').click(); document.querySelector('#folder-cancel-button').click()`);
+    await waitForExpression(client, `!document.querySelector('#folder-dialog').open`);
+    assert.equal(await evaluate(client, `window.__DEPOT78__.getState().folders.length`), foldersBeforeCancel);
+
     await evaluate(client, `(async () => {
       const content='真实入库验收：' + '档案'.repeat(360);
       const file=new File([content], '验收记录.txt', {type:'text/plain'});
@@ -162,6 +167,10 @@ async function run() {
     await waitForExpression(client, `window.__DEPOT78__.getState().folders.some(folder => folder.name === '验收资料')`);
     await evaluate(client, `(() => { const folder=window.__DEPOT78__.getState().folders.find(item => item.name==='验收资料'); const select=document.querySelector('#move-folder'); select.value=folder.id; document.querySelector('#move-button').click(); })()`);
     await waitForExpression(client, `(() => { const state=window.__DEPOT78__.getState(); const folder=state.folders.find(item=>item.name==='验收资料'); return state.files.find(item=>item.name==='验收记录.txt')?.folderId===folder.id; })()`);
+    await evaluate(client, `(() => { const folder=window.__DEPOT78__.getState().folders.find(item=>item.name==='验收资料'); document.querySelector('[data-delete-folder-id="'+folder.id+'"]').click(); })()`);
+    await waitForExpression(client, `document.querySelector('#confirm-dialog').open && document.querySelector('#confirm-copy').textContent.includes('1 份资料')`);
+    await evaluate(client, `document.querySelector('#confirm-button').click()`);
+    await waitForExpression(client, `(() => { const state=window.__DEPOT78__.getState(); return !state.folders.some(folder=>folder.name==='验收资料') && state.files.find(file=>file.name==='验收记录.txt')?.folderId==='root'; })()`);
 
     await evaluate(client, `document.querySelector('#share-button').click(); document.querySelector('#create-share-button').click()`);
     await waitForExpression(client, `!document.querySelector('#share-result').hidden && document.querySelector('#share-token').textContent.length === 8`);
@@ -191,7 +200,7 @@ async function run() {
       return { files:state.files.length, folders:state.folders.length, selected:document.querySelector('#detail-title').textContent, h1:document.querySelectorAll('h1').length, scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, outline:focus.outlineWidth, shareToken:state.files.find(file=>file.name==='验收记录.txt').share.token };
     })()`);
     assert.equal(desktop.files, 4);
-    assert.equal(desktop.folders, 3);
+    assert.equal(desktop.folders, 2);
     assert.equal(desktop.selected, '验收记录.txt');
     assert.equal(desktop.h1, 1);
     assert.equal(desktop.scrollWidth, desktop.clientWidth);
@@ -202,6 +211,12 @@ async function run() {
     await client.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true, screenWidth: 390, screenHeight: 844 });
     await navigate(client, `${baseUrl}#share=${shareToken}`);
     await waitForExpression(client, `document.querySelector('#detail-dialog').open && document.querySelector('#detail-title')?.textContent === '验收记录.txt'`);
+    await evaluate(client, `document.querySelector('#detail-close').click()`);
+    await waitForExpression(client, `!document.querySelector('#detail-dialog').open`);
+    const mobileFolderControls = await evaluate(client, `[...document.querySelectorAll('.folder-delete-button, #new-folder-button')].map(element=>{const box=element.getBoundingClientRect();return {id:element.id||element.getAttribute('aria-label'),width:box.width,height:box.height,left:box.left,right:box.right};})`);
+    mobileFolderControls.forEach((box) => assert.ok(box.width >= 44 && box.height >= 44 && box.left >= 0 && box.right <= 390, `Folder touch target failed: ${JSON.stringify(box)}`));
+    await evaluate(client, `document.querySelector('#mobile-detail-button').click()`);
+    await waitForExpression(client, `document.querySelector('#detail-dialog').open`);
     await evaluate(client, `document.querySelector('#toast').classList.remove('is-visible')`);
     await sleep(350);
     const mobile = await evaluate(client, `(() => {
@@ -217,7 +232,7 @@ async function run() {
     await screenshot(client, 'screenshot-mobile.png');
 
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ desktop, mobile: { ...mobile, controls: `${mobile.controls.length} checked` }, quotaResult, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ desktop, mobile: { ...mobile, controls: `${mobile.controls.length} checked`, folderControls: `${mobileFolderControls.length} checked` }, quotaResult, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

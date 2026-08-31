@@ -159,12 +159,12 @@
 
   <dialog class="form-dialog" id="folder-dialog" aria-labelledby="folder-dialog-title">
     <form method="dialog" id="folder-form">
-      <div class="dialog-heading"><span>NEW DRAWER</span><button value="cancel" aria-label="关闭">×</button></div>
+      <div class="dialog-heading"><span>NEW DRAWER</span><button id="folder-close-button" type="button" aria-label="关闭">×</button></div>
       <h2 id="folder-dialog-title">新建资料夹</h2>
       <label for="folder-name">资料夹名称</label>
       <input id="folder-name" name="folderName" maxlength="40" autocomplete="off" required>
       <p class="form-hint">名称只保存在当前浏览器。</p>
-      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="primary-button" value="default">建立资料夹</button></div>
+      <div class="dialog-actions"><button class="secondary-button" id="folder-cancel-button" type="button">取消</button><button class="primary-button" value="default">建立资料夹</button></div>
     </form>
   </dialog>
 

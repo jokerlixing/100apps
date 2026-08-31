@@ -7,6 +7,7 @@
   const params = new URLSearchParams(location.search);
   const NAME_KEY = 'galley74:member-name';
   const RECENT_KEY = 'galley74:recent-rooms';
+  const ROOM_DELETE_KEY = 'galley74:room-deleted';
   const room = Core.normalizeRoom(params.get('room'));
   const memberId = sessionStorage.getItem('galley74:member-id') || makeId('member');
   const memberName = Core.normalizeName(localStorage.getItem(NAME_KEY));
@@ -81,6 +82,7 @@
   let connectionMode = 'local';
   let activePane = 'editor';
   let lastDeleteRevision = -1;
+  let roomDeleted = false;
   const wsEndpoint = inferWebSocketEndpoint();
 
   function makeId(prefix) {
@@ -137,6 +139,7 @@
   }
 
   function persistState({ broadcast = true } = {}) {
+    if (roomDeleted) return;
     try {
       localStorage.setItem(documentKey(), JSON.stringify(state));
       rememberRoom();
@@ -223,6 +226,32 @@
     if (elements.restoreDialog.open) updateRestoreConfirmation();
   }
 
+  function forgetRoom() {
+    try {
+      localStorage.removeItem(documentKey());
+      const recent = readRecentRooms().filter((item) => item && Core.normalizeRoom(item.room) !== room);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+      renderRecentRooms(recent);
+    } catch {
+      // Navigation still proceeds if the browser blocks local storage cleanup.
+    }
+  }
+
+  function makeRoomCode() {
+    const taken = new Set([room, ...readRecentRooms().map((item) => Core.normalizeRoom(item && item.room))]);
+    let nextRoom;
+    do {
+      nextRoom = `DOC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    } while (taken.has(nextRoom));
+    return nextRoom;
+  }
+
+  function roomUrl(nextRoom) {
+    const url = new URL(location.href);
+    url.searchParams.set('room', Core.normalizeRoom(nextRoom));
+    return url.toString();
+  }
+
   function setSaveState(mode, text) {
     elements.saveState.dataset.state = mode;
     $('span', elements.saveState).textContent = text;
@@ -252,12 +281,14 @@
   }
 
   function queueSave(immediate = false) {
+    if (roomDeleted) return;
     clearTimeout(saveTimer);
     setSaveState('saving', '待同步');
     saveTimer = setTimeout(flushDraft, immediate ? 0 : 240);
   }
 
   function flushDraft() {
+    if (roomDeleted) return;
     clearTimeout(saveTimer);
     saveTimer = null;
     const draft = collectDraft();
@@ -729,8 +760,8 @@
     const waitingForSync = connectionMode === 'online' && socketPending && !deletePending;
     elements.deleteConfirmButton.disabled = !matchesRoom || waitingForSync;
     elements.deleteScopeText.textContent = connectionMode === 'online'
-      ? `所有在线成员的正文、批注和全部版本都会被清空，房间 ${room} 仍会保留。${waitingForSync ? ' 当前修改同步完成后才能删除。' : ''}`
-      : `本浏览器中房间 ${room} 的正文、批注和全部版本都会被清空，同房间标签页将同步更新。`;
+      ? `房间 ${room}、正文、批注和全部版本都会被删除；所有在线成员将一起进入新房间。${waitingForSync ? ' 当前修改同步完成后才能删除。' : ''}`
+      : `本浏览器中的房间 ${room}、正文、批注和全部版本都会被删除；同房间标签页将一起进入新房间。`;
   }
 
   function openDeleteDialog() {
@@ -783,6 +814,41 @@
     toast(fromSelf ? '协作稿已永久删除，房间已清空。' : '同伴已删除协作稿，房间已同步清空。');
   }
 
+  function leaveDeletedRoom(nextRoom, { notifyLocal = false } = {}) {
+    if (roomDeleted) return;
+    const replacementRoom = Core.normalizeRoom(nextRoom);
+    if (replacementRoom === room) return;
+    const notification = {
+      type: 'room:deleted',
+      room,
+      nextRoom: replacementRoom,
+      source: memberId,
+      at: Date.now(),
+    };
+    roomDeleted = true;
+    clearTimeout(reconnectTimer);
+    clearDraftInteractions();
+    socketPending = false;
+    deletePending = false;
+    defaultRestorePending = false;
+    if (elements.deleteDialog.open) elements.deleteDialog.close();
+    if (elements.restoreDialog.open) elements.restoreDialog.close();
+    if (notifyLocal) {
+      localChannel?.postMessage(notification);
+      try {
+        localStorage.setItem(ROOM_DELETE_KEY, JSON.stringify(notification));
+        localStorage.removeItem(ROOM_DELETE_KEY);
+      } catch {
+        // BroadcastChannel remains the primary same-browser transport.
+      }
+    }
+    forgetRoom();
+    setSaveState('saving', '正在进入新房间');
+    toast('协作稿与房间号已删除，正在进入新房间…');
+    stopLocalPresence();
+    setTimeout(() => location.replace(roomUrl(replacementRoom)), 40);
+  }
+
   function submitDeleteDocument(event) {
     event.preventDefault();
     if (elements.deleteConfirmInput.value.trim().toUpperCase() !== room || elements.deleteConfirmButton.disabled) return;
@@ -794,26 +860,23 @@
       elements.deleteDialog.close();
       socket.send(JSON.stringify({
         v: Core.PROTOCOL_VERSION,
-        type: 'document:delete',
+        type: 'room:delete',
         baseRevision: state.revision,
+        nextRoom: makeRoomCode(),
       }));
       setSaveState('saving', '删除中');
       return;
     }
 
     const stored = loadLocalState();
-    const base = stored.revision > state.revision ? stored : state;
-    const result = Core.deleteDocument(base, {
-      baseRevision: base.revision,
-    }, { id: memberId, name: memberName }, new Date().toISOString());
-    if (!result.ok) return toast('文档刚刚发生变化，请重新确认后再删除。');
-    const snapshot = Core.toClientState(result.state);
-    acceptDeletedSnapshot(snapshot, { fromSelf: true });
-    localChannel?.postMessage({
-      type: 'document:deleted',
-      source: memberId,
-      revision: snapshot.revision,
-    });
+    if (stored.revision !== state.revision) {
+      state = stored;
+      renderState();
+      setSaveState('saved', '已收到同伴更新');
+      toast('同伴刚更新了文档，请查看最新稿后重新确认删除。');
+      return;
+    }
+    leaveDeletedRoom(makeRoomCode(), { notifyLocal: true });
   }
 
   function connectWebSocket() {
@@ -835,6 +898,7 @@
     });
     socket.addEventListener('message', handleSocketMessage);
     socket.addEventListener('close', () => {
+      if (roomDeleted) return;
       if (defaultRestorePending) {
         defaultRestorePending = false;
         renderState();
@@ -847,6 +911,7 @@
       reconnectDelay = Math.min(reconnectDelay * 1.8, 12000);
     });
     socket.addEventListener('error', () => {
+      if (roomDeleted) return;
       setConnection('error', '服务不可达');
     });
   }
@@ -904,6 +969,10 @@
     }
     if (message.type === 'document:deleted') {
       acceptDeletedSnapshot(message.state, { fromSelf: message.source === memberId });
+      return;
+    }
+    if (message.type === 'room:deleted' && Core.normalizeRoom(message.room) === room) {
+      leaveDeletedRoom(message.nextRoom);
       return;
     }
     if (message.type === 'document:conflict') {
@@ -988,6 +1057,10 @@
 
   function handleLocalMessage(event) {
     const message = event.data || {};
+    if (message.type === 'room:deleted' && Core.normalizeRoom(message.room) === room) {
+      leaveDeletedRoom(message.nextRoom);
+      return;
+    }
     if (message.source === memberId) return;
     if (message.type === 'presence' && message.member) {
       localMembers.set(message.source, { ...message.member, seenAt: Date.now() });
@@ -1204,9 +1277,7 @@
     $('#shareButton').addEventListener('click', () => copyText(shareUrl(), '房间链接已复制。'));
     $('#copyRoomButton').addEventListener('click', () => copyText(room, '房间号已复制。'));
     $('#newDocumentButton').addEventListener('click', () => {
-      const url = new URL(location.href);
-      url.searchParams.set('room', `DOC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`);
-      location.href = url.toString();
+      location.href = roomUrl(makeRoomCode());
     });
     elements.recentList.addEventListener('click', (event) => {
       const button = event.target.closest('[data-room]');
@@ -1221,6 +1292,15 @@
     $('#importFile').addEventListener('change', (event) => { importBackup(event.target.files[0]); event.target.value = ''; });
     $$('.mobile-tabs button').forEach((button) => button.addEventListener('click', () => showPane(button.dataset.pane)));
     window.addEventListener('storage', (event) => {
+      if (event.key === ROOM_DELETE_KEY && event.newValue) {
+        try {
+          const message = JSON.parse(event.newValue);
+          if (Core.normalizeRoom(message.room) === room) leaveDeletedRoom(message.nextRoom);
+        } catch {
+          // Ignore malformed events written by unrelated scripts.
+        }
+        return;
+      }
       if (event.key !== documentKey() || connectionMode === 'online') return;
       const stored = loadLocalState();
       if (stored.revision <= state.revision) return;
@@ -1233,9 +1313,11 @@
       if (!saveTimer) { state = stored; renderState(); }
     });
     window.addEventListener('beforeunload', () => {
-      if (saveTimer) flushDraft();
-      publishPresence('bye');
-      stopLocalPresence();
+      if (!roomDeleted && saveTimer) flushDraft();
+      if (!roomDeleted) {
+        publishPresence('bye');
+        stopLocalPresence();
+      }
       socket?.close();
     });
     window.addEventListener('keydown', (event) => {

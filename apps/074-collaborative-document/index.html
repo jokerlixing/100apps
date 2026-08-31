@@ -71,7 +71,7 @@
         </button>
         <button class="proof-action-button delete-draft-button" id="deleteDocumentButton" type="button" aria-haspopup="dialog">
           <span>WITHDRAW PROOF</span>
-          <b>删除协作稿</b>
+          <b>删除协作稿与房间</b>
         </button>
       </section>
 
@@ -216,8 +216,8 @@
   <dialog class="dialog compact-dialog delete-dialog" id="deleteDialog" aria-labelledby="deleteDialogTitle">
     <form method="dialog" id="deleteForm">
       <div class="dialog-kicker">WITHDRAW PROOF</div>
-      <h2 id="deleteDialogTitle">删除这份协作稿？</h2>
-      <p id="deleteScopeText">正文、批注和全部版本都会被清空，房间仍会保留。</p>
+      <h2 id="deleteDialogTitle">删除协作稿与房间？</h2>
+      <p id="deleteScopeText">房间号、正文、批注和全部版本都会被删除，成员将一起进入新房间。</p>
       <div class="delete-warning" id="deleteWarning" role="note">
         <b>此操作无法撤销</b>
         <span>如需留档，请先取消并导出 JSON 备份。</span>
@@ -227,7 +227,7 @@
       </label>
       <div class="dialog-actions">
         <button class="button button-quiet" value="cancel" type="button" data-close-dialog="deleteDialog">取消</button>
-        <button class="button button-danger" id="deleteConfirmButton" value="default" type="submit" disabled>永久删除</button>
+        <button class="button button-danger" id="deleteConfirmButton" value="default" type="submit" disabled>删除房间</button>
       </div>
     </form>
   </dialog>

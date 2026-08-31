@@ -282,60 +282,6 @@ async function run() {
     assert.match(await evaluate(second, `document.querySelector('#editor').textContent`), /一起编辑/);
     console.log('[smoke] version restore verified');
 
-    const deleteGuard = await evaluate(first, `(() => {
-      document.querySelector('#deleteDocumentButton').click();
-      const input = document.querySelector('#deleteConfirmInput');
-      const confirm = document.querySelector('#deleteConfirmButton');
-      const initiallyDisabled = confirm.disabled;
-      input.value = 'WRONG-ROOM';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      const wrongRoomDisabled = confirm.disabled;
-      input.value = '${room}';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      return {
-        open: document.querySelector('#deleteDialog').open,
-        initiallyDisabled,
-        wrongRoomDisabled,
-        ready: !confirm.disabled,
-        scope: document.querySelector('#deleteScopeText').textContent
-      };
-    })()`);
-    assert.deepEqual(deleteGuard, {
-      open: true,
-      initiallyDisabled: true,
-      wrongRoomDisabled: true,
-      ready: true,
-      scope: `所有在线成员的正文、批注和全部版本都会被清空，房间 ${room} 仍会保留。`,
-    });
-    await evaluate(second, `(() => {
-      const title = document.querySelector('#documentTitle');
-      title.value = '删除前收到的同伴更新';
-      title.dispatchEvent(new Event('input', { bubbles: true }));
-    })()`);
-    await waitForExpression(first, `!document.querySelector('#deleteDialog').open && document.querySelector('#documentTitle').value === '删除前收到的同伴更新'`);
-    assert.match(await evaluate(first, `document.querySelector('#toast').textContent`), /重新确认删除/);
-    await evaluate(first, `(() => {
-      document.querySelector('#deleteDocumentButton').click();
-      const input = document.querySelector('#deleteConfirmInput');
-      input.value = '${room}';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      document.querySelector('#deleteForm').requestSubmit();
-    })()`);
-    await waitForExpression(second, `document.querySelector('#documentTitle').value === '未命名文档' && document.querySelector('#editor').textContent.trim() === ''`);
-    await waitForExpression(first, `document.querySelector('#saveState').textContent.includes('删除已同步')`);
-    const deleted = await evaluate(second, `(() => ({
-      title: document.querySelector('#documentTitle').value,
-      body: document.querySelector('#editor').textContent.trim(),
-      comments: document.querySelector('#openCommentCount').textContent,
-      versions: document.querySelector('#versionCount').textContent,
-      revision: document.querySelector('#drawerRevision').textContent
-    }))()`);
-    assert.equal(deleted.title, '未命名文档');
-    assert.equal(deleted.body, '');
-    assert.equal(deleted.comments, '0');
-    assert.equal(deleted.versions, '0');
-    console.log('[smoke] online guarded deletion synchronized');
-
     const defaultRestoreGuard = await evaluate(first, `(() => {
       document.querySelector('#restoreDefaultButton').click();
       return {
@@ -382,6 +328,88 @@ async function run() {
     assert.match(defaultRestored.versionText, /恢复前收到的同伴稿/);
     console.log('[smoke] online default draft restored with concurrent update guard');
 
+    const deleteGuard = await evaluate(first, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      const input = document.querySelector('#deleteConfirmInput');
+      const confirm = document.querySelector('#deleteConfirmButton');
+      const initiallyDisabled = confirm.disabled;
+      input.value = 'WRONG-ROOM';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const wrongRoomDisabled = confirm.disabled;
+      input.value = '${room}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return {
+        open: document.querySelector('#deleteDialog').open,
+        title: document.querySelector('#deleteDialogTitle').textContent,
+        confirmText: confirm.textContent,
+        initiallyDisabled,
+        wrongRoomDisabled,
+        ready: !confirm.disabled,
+        scope: document.querySelector('#deleteScopeText').textContent
+      };
+    })()`);
+    assert.deepEqual(deleteGuard, {
+      open: true,
+      title: '删除协作稿与房间？',
+      confirmText: '删除房间',
+      initiallyDisabled: true,
+      wrongRoomDisabled: true,
+      ready: true,
+      scope: `房间 ${room}、正文、批注和全部版本都会被删除；所有在线成员将一起进入新房间。`,
+    });
+    await evaluate(second, `(() => {
+      const title = document.querySelector('#documentTitle');
+      title.value = '删除前收到的同伴更新';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForExpression(first, `!document.querySelector('#deleteDialog').open && document.querySelector('#documentTitle').value === '删除前收到的同伴更新'`);
+    assert.match(await evaluate(first, `document.querySelector('#toast').textContent`), /重新确认删除/);
+    await evaluate(first, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      const input = document.querySelector('#deleteConfirmInput');
+      input.value = '${room}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#deleteForm').requestSubmit();
+    })()`);
+    await waitForExpression(first, `new URL(location.href).searchParams.get('room') !== '${room}' && document.body.classList.contains('ready')`);
+    await waitForExpression(second, `new URL(location.href).searchParams.get('room') !== '${room}' && document.body.classList.contains('ready')`);
+    const firstReplacementRoom = await evaluate(first, `new URL(location.href).searchParams.get('room')`);
+    const secondReplacementRoom = await evaluate(second, `new URL(location.href).searchParams.get('room')`);
+    assert.equal(firstReplacementRoom, secondReplacementRoom);
+    assert.notEqual(firstReplacementRoom, room);
+    await waitForExpression(first, `document.querySelector('#connectionText').textContent.includes('跨设备在线')`);
+    await waitForExpression(second, `document.querySelector('#connectionText').textContent.includes('跨设备在线')`);
+    const deletedRoom = await evaluate(second, `(() => ({
+      room: new URL(location.href).searchParams.get('room'),
+      title: document.querySelector('#documentTitle').value,
+      body: document.querySelector('#editor').textContent.trim(),
+      comments: document.querySelector('#openCommentCount').textContent,
+      versions: document.querySelector('#versionCount').textContent,
+      oldDocument: localStorage.getItem('galley74:document:${room}'),
+      recentRooms: (JSON.parse(localStorage.getItem('galley74:recent-rooms') || '[]')).map((item) => item.room)
+    }))()`);
+    assert.equal(deletedRoom.title, '协作发布稿');
+    assert.match(deletedRoom.body, /一起编辑这份校样/);
+    assert.equal(deletedRoom.comments, '0');
+    assert.equal(deletedRoom.versions, '0');
+    assert.equal(deletedRoom.oldDocument, null);
+    assert.equal(deletedRoom.recentRooms.includes(room), false);
+    assert.equal(service.rooms.has(room), false);
+
+    const reopened = await createPage(debugPort, baseUrl, runtimeErrors);
+    clients.push(reopened);
+    const reopenedState = await evaluate(reopened, `(() => ({
+      room: new URL(location.href).searchParams.get('room'),
+      title: document.querySelector('#documentTitle').value,
+      body: document.querySelector('#editor').textContent,
+      revision: document.querySelector('#drawerRevision').textContent
+    }))()`);
+    assert.equal(reopenedState.room, room);
+    assert.equal(reopenedState.title, '协作发布稿');
+    assert.equal(reopenedState.revision, '0');
+    assert.match(reopenedState.body, /一起编辑这份校样/);
+    console.log('[smoke] online room deletion moved all members and old code reopened fresh');
+
     const localRoom = `LOCAL-${process.pid}`;
     const localUrl = `http://127.0.0.1:${address.port}/?room=${localRoom}&ws=local`;
     const localFirst = await createPage(debugPort, localUrl, runtimeErrors, '本机协作');
@@ -390,28 +418,12 @@ async function run() {
     await evaluate(localFirst, `(() => {
       const title = document.querySelector('#documentTitle');
       const editor = document.querySelector('#editor');
-      title.value = '本机待删除协作稿';
-      editor.innerHTML = '<p>只保存在本浏览器的协作内容。</p>';
+      title.value = '本机待恢复协作稿';
+      editor.innerHTML = '<p>先验证恢复默认发布稿，再删除整个房间。</p>';
       title.dispatchEvent(new Event('input', { bubbles: true }));
       editor.dispatchEvent(new Event('input', { bubbles: true }));
     })()`);
-    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '本机待删除协作稿'`);
-    await evaluate(localFirst, `(() => {
-      document.querySelector('#deleteDocumentButton').click();
-      const input = document.querySelector('#deleteConfirmInput');
-      input.value = '${localRoom}';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      document.querySelector('#deleteForm').requestSubmit();
-    })()`);
-    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '未命名文档' && document.querySelector('#editor').textContent.trim() === ''`);
-    const localDeleted = await evaluate(localSecond, `(() => ({
-      connection: document.querySelector('#connectionText').textContent,
-      comments: document.querySelector('#openCommentCount').textContent,
-      versions: document.querySelector('#versionCount').textContent
-    }))()`);
-    assert.match(localDeleted.connection, /本机协作/);
-    assert.equal(localDeleted.comments, '0');
-    assert.equal(localDeleted.versions, '0');
+    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '本机待恢复协作稿'`);
     await evaluate(localFirst, `(() => {
       document.querySelector('#restoreDefaultButton').click();
       document.querySelector('#restoreForm').requestSubmit();
@@ -425,15 +437,59 @@ async function run() {
     assert.equal(localRestored.title, '协作发布稿');
     assert.match(localRestored.body, /一起编辑这份校样/);
     assert.ok(Number(localRestored.versions) >= 1);
+
+    await evaluate(localFirst, `(() => {
+      const title = document.querySelector('#documentTitle');
+      const editor = document.querySelector('#editor');
+      title.value = '本机待删除协作稿';
+      editor.innerHTML = '<p>只保存在本浏览器的协作内容。</p>';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '本机待删除协作稿'`);
+    const localDeleteScope = await evaluate(localFirst, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      return document.querySelector('#deleteScopeText').textContent;
+    })()`);
+    assert.equal(localDeleteScope, `本浏览器中的房间 ${localRoom}、正文、批注和全部版本都会被删除；同房间标签页将一起进入新房间。`);
+    await evaluate(localFirst, `(() => {
+      const input = document.querySelector('#deleteConfirmInput');
+      input.value = '${localRoom}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#deleteForm').requestSubmit();
+    })()`);
+    await waitForExpression(localFirst, `new URL(location.href).searchParams.get('room') !== '${localRoom}' && document.body.classList.contains('ready')`);
+    await waitForExpression(localSecond, `new URL(location.href).searchParams.get('room') !== '${localRoom}' && document.body.classList.contains('ready')`);
+    const localFirstReplacement = await evaluate(localFirst, `new URL(location.href).searchParams.get('room')`);
+    const localSecondReplacement = await evaluate(localSecond, `new URL(location.href).searchParams.get('room')`);
+    assert.equal(localFirstReplacement, localSecondReplacement);
+    assert.notEqual(localFirstReplacement, localRoom);
+    const localDeleted = await evaluate(localSecond, `(() => ({
+      room: new URL(location.href).searchParams.get('room'),
+      title: document.querySelector('#documentTitle').value,
+      body: document.querySelector('#editor').textContent,
+      connection: document.querySelector('#connectionText').textContent,
+      comments: document.querySelector('#openCommentCount').textContent,
+      versions: document.querySelector('#versionCount').textContent,
+      oldDocument: localStorage.getItem('galley74:document:${localRoom}'),
+      recentRooms: (JSON.parse(localStorage.getItem('galley74:recent-rooms') || '[]')).map((item) => item.room)
+    }))()`);
+    assert.equal(localDeleted.title, '协作发布稿');
+    assert.match(localDeleted.body, /一起编辑这份校样/);
+    assert.match(localDeleted.connection, /本机协作/);
+    assert.equal(localDeleted.comments, '0');
+    assert.equal(localDeleted.versions, '0');
+    assert.equal(localDeleted.oldDocument, null);
+    assert.equal(localDeleted.recentRooms.includes(localRoom), false);
     assert.deepEqual(runtimeErrors, []);
-    console.log('[smoke] local deletion and default restoration synchronized without runtime errors');
+    console.log('[smoke] local restoration and room deletion synchronized without runtime errors');
 
     const result = {
       initial,
       sync: {
         members: await evaluate(first, `document.querySelector('#memberCount').textContent`),
         secondTitle: await evaluate(second, `document.querySelector('#documentTitle').value`),
-        deletedRevision: deleted.revision,
+        replacementRoom: deletedRoom.room,
         restoredRevision: defaultRestored.revision,
       },
       exports: [jsonFile, htmlFile],

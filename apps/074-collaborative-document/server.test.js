@@ -16,6 +16,10 @@ function waitForOpen(socket) {
   });
 }
 
+function waitForClose(socket) {
+  return new Promise((resolve) => socket.once('close', (code) => resolve(code)));
+}
+
 function trackedClient(url) {
   const socket = new WebSocket(url);
   const messages = [];
@@ -201,4 +205,62 @@ test('deleting a collaborative draft clears the room for every member and reject
   }));
   const conflict = await first.client.next((message) => message.type === 'document:conflict' && message.state.revision === 2);
   assert.equal(conflict.state.title, '未命名文档');
+});
+
+test('deleting a room removes its instance, moves every member, and lets the old code reopen fresh', async () => {
+  const roomName = 'REMOVE-ROOM-74';
+  const replacementRoom = 'FRESH-ROOM-74';
+  const first = await join(roomName, 'member-room-a', '林星');
+  const second = await join(roomName, 'member-room-b', '陈晨');
+
+  first.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'document:update',
+    baseRevision: 0,
+    title: '将随房间删除的稿件',
+    content: '<p>旧房间实例不应保留这段正文。</p>',
+    comments: [],
+  }));
+  await second.client.next((message) => message.type === 'document:update' && message.state.revision === 1);
+
+  first.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'room:delete',
+    baseRevision: 0,
+    nextRoom: replacementRoom,
+  }));
+  const conflict = await first.client.next((message) => message.type === 'document:conflict' && message.state.revision === 1);
+  assert.equal(conflict.state.title, '将随房间删除的稿件');
+  assert.equal(service.rooms.has(roomName), true);
+
+  const firstClosed = waitForClose(first.client.socket);
+  const secondClosed = waitForClose(second.client.socket);
+  second.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'room:delete',
+    baseRevision: 1,
+    nextRoom: replacementRoom,
+  }));
+
+  const deletedForFirst = await first.client.next((message) => message.type === 'room:deleted');
+  const deletedForSecond = await second.client.next((message) => message.type === 'room:deleted');
+  assert.deepEqual({
+    room: deletedForFirst.room,
+    nextRoom: deletedForFirst.nextRoom,
+    source: deletedForFirst.source,
+  }, {
+    room: roomName,
+    nextRoom: replacementRoom,
+    source: 'member-room-b',
+  });
+  assert.equal(deletedForSecond.nextRoom, replacementRoom);
+  assert.equal(await firstClosed, 4004);
+  assert.equal(await secondClosed, 4004);
+  assert.equal(service.rooms.has(roomName), false);
+
+  const reopened = await join(roomName, 'member-room-new', '周青');
+  assert.equal(reopened.snapshot.state.revision, 0);
+  assert.equal(reopened.snapshot.state.title, '协作发布稿');
+  assert.match(reopened.snapshot.state.content, /一起编辑这份校样/);
+  assert.equal(reopened.snapshot.members.length, 1);
 });

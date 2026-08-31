@@ -3,6 +3,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomBytes } = require('node:crypto');
 const { WebSocket, WebSocketServer } = require('ws');
 const {
   PROTOCOL_VERSION,
@@ -125,6 +126,7 @@ function createGalleyServer(options = {}) {
         state: createInitialState(roomName),
         clients: new Map(),
         cleanupTimer: null,
+        deleted: false,
       };
       rooms.set(roomName, room);
     }
@@ -136,7 +138,7 @@ function createGalleyServer(options = {}) {
   }
 
   function scheduleCleanup(room) {
-    if (room.clients.size || room.cleanupTimer) return;
+    if (room.deleted || room.clients.size || room.cleanupTimer) return;
     room.cleanupTimer = setTimeout(() => {
       if (!room.clients.size) rooms.delete(room.name);
     }, roomIdleMs);
@@ -243,6 +245,46 @@ function createGalleyServer(options = {}) {
     }));
   }
 
+  function replacementRoomFor(currentRoom, requestedRoom) {
+    const requested = String(requestedRoom == null ? '' : requestedRoom).trim();
+    if (requested) {
+      const normalized = normalizeRoom(requested);
+      if (normalized !== currentRoom && !rooms.has(normalized)) return normalized;
+    }
+    let generated;
+    do {
+      generated = `DOC-${randomBytes(4).toString('hex').toUpperCase()}`;
+    } while (generated === currentRoom || rooms.has(generated));
+    return generated;
+  }
+
+  function handleRoomDelete(socket, connection, message) {
+    const { client, room } = connection;
+    if (!consumeUpdateToken(client)) return sendError(socket, 'rate_limited');
+    const result = deleteDocument(room.state, message, client, new Date().toISOString());
+    if (!result.ok) {
+      sendJson(socket, protocolMessage('document:conflict', {
+        code: result.code,
+        state: toClientState(room.state),
+      }));
+      return;
+    }
+
+    const nextRoom = replacementRoomFor(room.name, message.nextRoom);
+    room.deleted = true;
+    if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = null;
+    rooms.delete(room.name);
+    broadcast(room, protocolMessage('room:deleted', {
+      room: room.name,
+      nextRoom,
+      source: client.id,
+    }));
+    setImmediate(() => {
+      for (const member of room.clients.values()) member.socket.close(4004, 'Room deleted');
+    });
+  }
+
   wss.on('connection', (socket, request, connection) => {
     socket.on('error', () => {});
     socket.on('message', (payload, isBinary) => {
@@ -259,9 +301,11 @@ function createGalleyServer(options = {}) {
         return;
       }
       if (message.v !== PROTOCOL_VERSION) return sendError(socket, 'invalid_protocol');
+      if (connection.room.deleted) return;
       if (message.type === 'document:update') handleDocumentUpdate(socket, connection, message);
       else if (message.type === 'version:restore') handleVersionRestore(socket, connection, message);
       else if (message.type === 'document:delete') handleDocumentDelete(socket, connection, message);
+      else if (message.type === 'room:delete') handleRoomDelete(socket, connection, message);
       else if (message.type === 'ping') sendJson(socket, protocolMessage('pong', { at: Date.now() }));
       else sendError(socket, 'unknown_message');
     });
@@ -269,6 +313,7 @@ function createGalleyServer(options = {}) {
       const { room, client } = connection;
       if (!room || !client || room.clients.get(client.id)?.socket !== socket) return;
       room.clients.delete(client.id);
+      if (room.deleted) return;
       broadcastPresence(room);
       scheduleCleanup(room);
     });

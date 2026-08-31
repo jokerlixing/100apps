@@ -336,6 +336,52 @@ async function run() {
     assert.equal(deleted.versions, '0');
     console.log('[smoke] online guarded deletion synchronized');
 
+    const defaultRestoreGuard = await evaluate(first, `(() => {
+      document.querySelector('#restoreDefaultButton').click();
+      return {
+        open: document.querySelector('#restoreDialog').open,
+        title: document.querySelector('#restoreDialogTitle').textContent,
+        copy: document.querySelector('#restoreDialogText').textContent,
+        confirm: document.querySelector('#restoreConfirmButton').textContent,
+        ready: !document.querySelector('#restoreConfirmButton').disabled
+      };
+    })()`);
+    assert.deepEqual(defaultRestoreGuard, {
+      open: true,
+      title: '恢复默认发布稿？',
+      copy: '当前内容会保留在版本记录中，再恢复 GALLEY/74 的默认标题与正文。',
+      confirm: '恢复默认稿',
+      ready: true,
+    });
+    await evaluate(second, `(() => {
+      const title = document.querySelector('#documentTitle');
+      const editor = document.querySelector('#editor');
+      title.value = '恢复前收到的同伴稿';
+      editor.innerHTML = '<p>同伴已经开始填写新一轮发布内容。</p>';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForExpression(first, `!document.querySelector('#restoreDialog').open && document.querySelector('#documentTitle').value === '恢复前收到的同伴稿'`);
+    assert.match(await evaluate(first, `document.querySelector('#toast').textContent`), /重新确认恢复/);
+    await evaluate(first, `(() => {
+      document.querySelector('#restoreDefaultButton').click();
+      document.querySelector('#restoreForm').requestSubmit();
+    })()`);
+    await waitForExpression(second, `document.querySelector('#documentTitle').value === '协作发布稿' && document.querySelector('#editor').textContent.includes('一起编辑这份校样')`);
+    await waitForExpression(first, `document.querySelector('#saveState').textContent.includes('默认稿已恢复')`);
+    const defaultRestored = await evaluate(second, `(() => ({
+      title: document.querySelector('#documentTitle').value,
+      body: document.querySelector('#editor').textContent,
+      versions: document.querySelector('#versionCount').textContent,
+      versionText: document.querySelector('#versionList').textContent,
+      revision: document.querySelector('#drawerRevision').textContent
+    }))()`);
+    assert.equal(defaultRestored.title, '协作发布稿');
+    assert.match(defaultRestored.body, /一起编辑这份校样/);
+    assert.ok(Number(defaultRestored.versions) >= 2);
+    assert.match(defaultRestored.versionText, /恢复前收到的同伴稿/);
+    console.log('[smoke] online default draft restored with concurrent update guard');
+
     const localRoom = `LOCAL-${process.pid}`;
     const localUrl = `http://127.0.0.1:${address.port}/?room=${localRoom}&ws=local`;
     const localFirst = await createPage(debugPort, localUrl, runtimeErrors, '本机协作');
@@ -366,8 +412,21 @@ async function run() {
     assert.match(localDeleted.connection, /本机协作/);
     assert.equal(localDeleted.comments, '0');
     assert.equal(localDeleted.versions, '0');
+    await evaluate(localFirst, `(() => {
+      document.querySelector('#restoreDefaultButton').click();
+      document.querySelector('#restoreForm').requestSubmit();
+    })()`);
+    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '协作发布稿' && document.querySelector('#editor').textContent.includes('一起编辑这份校样')`);
+    const localRestored = await evaluate(localSecond, `(() => ({
+      title: document.querySelector('#documentTitle').value,
+      versions: document.querySelector('#versionCount').textContent,
+      body: document.querySelector('#editor').textContent
+    }))()`);
+    assert.equal(localRestored.title, '协作发布稿');
+    assert.match(localRestored.body, /一起编辑这份校样/);
+    assert.ok(Number(localRestored.versions) >= 1);
     assert.deepEqual(runtimeErrors, []);
-    console.log('[smoke] local deletion synchronized without runtime errors');
+    console.log('[smoke] local deletion and default restoration synchronized without runtime errors');
 
     const result = {
       initial,
@@ -375,10 +434,12 @@ async function run() {
         members: await evaluate(first, `document.querySelector('#memberCount').textContent`),
         secondTitle: await evaluate(second, `document.querySelector('#documentTitle').value`),
         deletedRevision: deleted.revision,
+        restoredRevision: defaultRestored.revision,
       },
       exports: [jsonFile, htmlFile],
       mobile,
       localDeleted,
+      localRestored,
       runtimeErrors,
       outputDir,
     };

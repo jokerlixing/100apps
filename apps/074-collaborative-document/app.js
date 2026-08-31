@@ -46,7 +46,9 @@
     memberNameInput: $('#memberNameInput'),
     wsInput: $('#wsInput'),
     restoreDialog: $('#restoreDialog'),
+    restoreDialogTitle: $('#restoreDialogTitle'),
     restoreDialogText: $('#restoreDialogText'),
+    restoreConfirmButton: $('#restoreConfirmButton'),
     deleteDialog: $('#deleteDialog'),
     deleteScopeText: $('#deleteScopeText'),
     deleteRoomCode: $('#deleteRoomCode'),
@@ -61,12 +63,14 @@
   let selectedQuote = '';
   let commentFilter = 'open';
   let pendingRestoreRevision = null;
+  let restoreDialogMode = null;
   let saveTimer = null;
   let toastTimer = null;
   let socket = null;
   let socketJoined = false;
   let socketPending = false;
   let deletePending = false;
+  let defaultRestorePending = false;
   let pendingDraft = null;
   let dirtyAfterPending = false;
   let reconnectTimer = null;
@@ -216,6 +220,7 @@
     elements.connectionPill.dataset.state = mode;
     elements.connectionText.textContent = text;
     if (elements.deleteDialog.open) updateDeleteConfirmation();
+    if (elements.restoreDialog.open) updateRestoreConfirmation();
   }
 
   function setSaveState(mode, text) {
@@ -580,9 +585,108 @@
   }
 
   function openRestoreDialog(revision) {
+    if (saveTimer) flushDraft();
+    restoreDialogMode = 'version';
     pendingRestoreRevision = Number(revision);
+    elements.restoreDialogTitle.textContent = '恢复这个版本？';
     elements.restoreDialogText.textContent = `将 r${pendingRestoreRevision} 恢复为新版本。当前内容会先保留在历史记录中。`;
+    elements.restoreConfirmButton.textContent = '恢复版本';
+    elements.restoreConfirmButton.classList.add('button-proof');
+    elements.restoreConfirmButton.classList.remove('button-primary');
+    updateRestoreConfirmation();
     elements.restoreDialog.showModal();
+  }
+
+  function defaultDraft() {
+    const initial = Core.createInitialState(room);
+    return {
+      title: initial.title,
+      content: initial.content,
+      comments: [],
+    };
+  }
+
+  function updateRestoreConfirmation() {
+    const waitingForSync = connectionMode === 'online' && socketPending && !defaultRestorePending;
+    elements.restoreConfirmButton.disabled = waitingForSync;
+    if (restoreDialogMode === 'default') {
+      elements.restoreDialogText.textContent = `当前内容会保留在版本记录中，再恢复 GALLEY/74 的默认标题与正文。${waitingForSync ? ' 当前修改同步完成后才能恢复。' : ''}`;
+    }
+  }
+
+  function openDefaultRestoreDialog() {
+    if (saveTimer) flushDraft();
+    restoreDialogMode = 'default';
+    pendingRestoreRevision = null;
+    elements.restoreDialogTitle.textContent = '恢复默认发布稿？';
+    elements.restoreConfirmButton.textContent = '恢复默认稿';
+    elements.restoreConfirmButton.classList.add('button-primary');
+    elements.restoreConfirmButton.classList.remove('button-proof');
+    updateRestoreConfirmation();
+    elements.restoreDialog.showModal();
+  }
+
+  function cancelRestoreConfirmationForUpdate() {
+    if (!elements.restoreDialog.open) return;
+    const wasDefault = restoreDialogMode === 'default';
+    elements.restoreDialog.close();
+    restoreDialogMode = null;
+    pendingRestoreRevision = null;
+    toast(wasDefault
+      ? '同伴刚更新了文档，请查看最新稿后重新确认恢复默认稿。'
+      : '文档版本刚刚更新，请重新选择要恢复的版本。');
+  }
+
+  function submitRestore(event) {
+    event.preventDefault();
+    if (elements.restoreConfirmButton.disabled) return;
+    const mode = restoreDialogMode;
+    elements.restoreDialog.close();
+    restoreDialogMode = null;
+    if (mode === 'default') restoreDefaultDraft();
+    else restorePendingVersion();
+  }
+
+  function restoreDefaultDraft() {
+    const draft = defaultDraft();
+    if (connectionMode === 'online' && socket?.readyState === WebSocket.OPEN && socketJoined) {
+      defaultRestorePending = true;
+      socketPending = true;
+      pendingDraft = draft;
+      dirtyAfterPending = false;
+      elements.title.value = draft.title;
+      resizeTitle();
+      elements.editor.innerHTML = sanitizeHtml(draft.content);
+      updateCounts();
+      socket.send(JSON.stringify({
+        v: Core.PROTOCOL_VERSION,
+        type: 'document:update',
+        baseRevision: state.revision,
+        ...draft,
+      }));
+      setSaveState('saving', '恢复默认稿');
+      return;
+    }
+
+    const stored = loadLocalState();
+    if (stored.revision !== state.revision) {
+      state = stored;
+      renderState();
+      setSaveState('saved', '已收到同伴更新');
+      toast('同伴刚更新了文档，请查看最新稿后重新确认恢复默认稿。');
+      return;
+    }
+    const result = Core.applyDocumentUpdate(state, {
+      baseRevision: state.revision,
+      ...draft,
+    }, { id: memberId, name: memberName }, new Date().toISOString());
+    if (!result.ok) return toast('文档刚刚发生变化，请重新确认恢复默认稿。');
+    state = result.state;
+    remoteVersions = [];
+    persistState();
+    renderState();
+    setSaveState('saved', '默认稿已恢复');
+    toast('默认发布稿已恢复，原稿已保留在版本记录中。');
   }
 
   function restorePendingVersion() {
@@ -652,6 +756,7 @@
     pendingDraft = null;
     dirtyAfterPending = false;
     pendingRestoreRevision = null;
+    restoreDialogMode = null;
     selectedQuote = '';
     elements.selectionQuote.textContent = '先在正文中选中一段文字';
     elements.commentInput.value = '';
@@ -667,7 +772,9 @@
     deletePending = false;
     applyClientSnapshot(snapshot, { replaceEditor: true, clearHistory: true, broadcast: false });
     if (elements.deleteDialog.open) elements.deleteDialog.close();
+    if (elements.restoreDialog.open) elements.restoreDialog.close();
     updateDeleteConfirmation();
+    updateRestoreConfirmation();
     setSaveState('saved', connectionMode === 'online' ? '删除已同步' : '已在本机删除');
     if (fromSelf) {
       showPane('editor');
@@ -728,6 +835,10 @@
     });
     socket.addEventListener('message', handleSocketMessage);
     socket.addEventListener('close', () => {
+      if (defaultRestorePending) {
+        defaultRestorePending = false;
+        renderState();
+      }
       socketJoined = false;
       socketPending = false;
       deletePending = false;
@@ -759,6 +870,7 @@
         queueSave(true);
       } else setSaveState('saved', '已同步');
       updateDeleteConfirmation();
+      updateRestoreConfirmation();
       return;
     }
     if (message.type === 'presence') {
@@ -768,13 +880,22 @@
     }
     if (message.type === 'document:update' || message.type === 'version:restored') {
       const fromSelf = message.source === memberId;
+      const completedDefaultRestore = defaultRestorePending && fromSelf && message.type === 'document:update';
+      if (completedDefaultRestore) defaultRestorePending = false;
       socketPending = false;
       pendingDraft = null;
-      applyClientSnapshot(message.state, { replaceEditor: !fromSelf || message.type === 'version:restored' });
-      setSaveState('saved', '已同步');
+      applyClientSnapshot(message.state, {
+        replaceEditor: !fromSelf || message.type === 'version:restored' || (completedDefaultRestore && !dirtyAfterPending),
+      });
+      setSaveState('saved', completedDefaultRestore ? '默认稿已恢复' : '已同步');
       updateDeleteConfirmation();
-      if (!fromSelf) cancelDeleteConfirmationForUpdate();
+      updateRestoreConfirmation();
+      if (!fromSelf) {
+        cancelDeleteConfirmationForUpdate();
+        cancelRestoreConfirmationForUpdate();
+      }
       if (message.type === 'version:restored') toast('历史版本已恢复。');
+      if (completedDefaultRestore) toast('默认发布稿已恢复，原稿已保留在版本记录中。');
       if (dirtyAfterPending) {
         dirtyAfterPending = false;
         queueSave(true);
@@ -797,6 +918,18 @@
         toast('同伴刚更新了文档，请确认最新内容后再次删除。');
         return;
       }
+      if (defaultRestorePending) {
+        socketPending = false;
+        defaultRestorePending = false;
+        pendingDraft = null;
+        dirtyAfterPending = false;
+        applyClientSnapshot(message.state);
+        updateDeleteConfirmation();
+        updateRestoreConfirmation();
+        setSaveState('saved', '已同步最新稿');
+        toast('同伴先提交了更新，默认发布稿未恢复，请查看后重试。');
+        return;
+      }
       const draft = pendingDraft || collectDraft();
       socketPending = false;
       pendingDraft = null;
@@ -810,9 +943,14 @@
       return;
     }
     if (message.type === 'error') {
+      if (defaultRestorePending) {
+        defaultRestorePending = false;
+        renderState();
+      }
       socketPending = false;
       deletePending = false;
       updateDeleteConfirmation();
+      updateRestoreConfirmation();
       setSaveState('error', '同步失败');
       toast(message.message || '协作服务未能处理这次操作。');
     }
@@ -868,6 +1006,7 @@
     }
     if (message.type === 'state:changed' && Number(message.revision) > state.revision) {
       cancelDeleteConfirmationForUpdate();
+      cancelRestoreConfirmationForUpdate();
       if (saveTimer) flushDraft();
       else {
         const stored = loadLocalState();
@@ -1056,11 +1195,12 @@
     $('#roomButton').addEventListener('click', openRoomDialog);
     $('#identityButton').addEventListener('click', openRoomDialog);
     $('#roomForm').addEventListener('submit', submitRoom);
+    $('#restoreDefaultButton').addEventListener('click', openDefaultRestoreDialog);
     $('#deleteDocumentButton').addEventListener('click', openDeleteDialog);
     elements.deleteConfirmInput.addEventListener('input', updateDeleteConfirmation);
     $('#deleteForm').addEventListener('submit', submitDeleteDocument);
     $$('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => document.getElementById(button.dataset.closeDialog).close()));
-    $('#restoreForm').addEventListener('submit', (event) => { event.preventDefault(); elements.restoreDialog.close(); restorePendingVersion(); });
+    $('#restoreForm').addEventListener('submit', submitRestore);
     $('#shareButton').addEventListener('click', () => copyText(shareUrl(), '房间链接已复制。'));
     $('#copyRoomButton').addEventListener('click', () => copyText(room, '房间号已复制。'));
     $('#newDocumentButton').addEventListener('click', () => {
@@ -1089,6 +1229,7 @@
         return;
       }
       cancelDeleteConfirmationForUpdate();
+      cancelRestoreConfirmationForUpdate();
       if (!saveTimer) { state = stored; renderState(); }
     });
     window.addEventListener('beforeunload', () => {

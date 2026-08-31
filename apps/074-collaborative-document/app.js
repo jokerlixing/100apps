@@ -31,6 +31,7 @@
     drawerRevision: $('#drawerRevision'),
     currentFileHeading: $('#currentFileHeading'),
     recentList: $('#recentList'),
+    clearRecentRoomsButton: $('#clearRecentRoomsButton'),
     selectionQuote: $('#selectionQuote'),
     commentInput: $('#commentInput'),
     commentCounter: $('#commentCounter'),
@@ -172,6 +173,7 @@
 
   function renderRecentRooms(recent = readRecentRooms()) {
     elements.recentList.replaceChildren();
+    elements.clearRecentRoomsButton.disabled = recent.length === 0;
     if (!recent.length) {
       const empty = document.createElement('p');
       empty.className = 'recent-empty';
@@ -234,6 +236,17 @@
       renderRecentRooms(recent);
     } catch {
       // Navigation still proceeds if the browser blocks local storage cleanup.
+    }
+  }
+
+  function clearRecentRooms() {
+    if (!readRecentRooms().length) return;
+    try {
+      localStorage.removeItem(RECENT_KEY);
+      renderRecentRooms([]);
+      toast('最近房间记录已清空，房间与稿件仍保留。');
+    } catch {
+      toast('无法清空最近房间记录，请检查浏览器存储权限。');
     }
   }
 
@@ -1286,12 +1299,17 @@
       url.searchParams.set('room', button.dataset.room);
       location.href = url.toString();
     });
+    elements.clearRecentRoomsButton.addEventListener('click', clearRecentRooms);
     $('#exportJsonButton').addEventListener('click', exportJson);
     $('#exportHtmlButton').addEventListener('click', exportHtml);
     $('#importButton').addEventListener('click', () => $('#importFile').click());
     $('#importFile').addEventListener('change', (event) => { importBackup(event.target.files[0]); event.target.value = ''; });
     $$('.mobile-tabs button').forEach((button) => button.addEventListener('click', () => showPane(button.dataset.pane)));
     window.addEventListener('storage', (event) => {
+      if (event.key === RECENT_KEY) {
+        renderRecentRooms();
+        return;
+      }
       if (event.key === ROOM_DELETE_KEY && event.newValue) {
         try {
           const message = JSON.parse(event.newValue);

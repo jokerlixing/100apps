@@ -268,6 +268,17 @@ button:not(:disabled) { cursor: pointer; }
 .section-label { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .section-label h3 { margin: 0; font-size: 11px; letter-spacing: .08em; }
 .section-label span { color: var(--muted); font: 700 9px/1 var(--mono); }
+.recent-tools { display: flex; align-items: center; gap: 8px; }
+.clear-recent-button {
+  padding: 1px 0 2px;
+  color: var(--proof-dark);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  font: 800 9px/1 var(--ui);
+}
+.clear-recent-button:hover:not(:disabled) { border-bottom-style: solid; }
+.clear-recent-button:disabled { color: var(--muted); border-bottom-color: transparent; opacity: .5; }
 .recent-list { display: grid; margin-top: 6px; }
 
 .recent-item {

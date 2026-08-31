@@ -208,6 +208,29 @@ async function run() {
     assert.match(await evaluate(second, `document.querySelector('#editor').textContent`), /林星负责核对链接/);
     console.log('[smoke] second editor synchronized');
 
+    const recentBeforeClear = await evaluate(first, `(() => ({
+      label: document.querySelector('#clearRecentRoomsButton').textContent,
+      disabled: document.querySelector('#clearRecentRoomsButton').disabled,
+      count: document.querySelectorAll('#recentList .recent-item').length
+    }))()`);
+    assert.deepEqual(recentBeforeClear, { label: '清空记录', disabled: false, count: 1 });
+    await evaluate(first, `document.querySelector('#clearRecentRoomsButton').click()`);
+    await waitForExpression(first, `document.querySelector('#clearRecentRoomsButton').disabled && document.querySelector('#recentList .recent-empty')`);
+    await waitForExpression(second, `document.querySelector('#clearRecentRoomsButton').disabled && document.querySelector('#recentList .recent-empty')`);
+    const recentAfterClear = await evaluate(first, `(() => ({
+      rooms: JSON.parse(localStorage.getItem('galley74:recent-rooms') || '[]'),
+      empty: document.querySelector('#recentList').textContent,
+      title: document.querySelector('#documentTitle').value,
+      documentPreserved: Boolean(localStorage.getItem('galley74:document:${room}')),
+      toast: document.querySelector('#toast').textContent
+    }))()`);
+    assert.deepEqual(recentAfterClear.rooms, []);
+    assert.match(recentAfterClear.empty, /打开或新建房间/);
+    assert.equal(recentAfterClear.title, '八月发布检查清单');
+    assert.equal(recentAfterClear.documentPreserved, true);
+    assert.match(recentAfterClear.toast, /房间与稿件仍保留/);
+    console.log('[smoke] recent rooms cleared across tabs without deleting the draft');
+
     await evaluate(first, `(() => {
       const paragraph = document.querySelector('#editor p');
       const range = document.createRange();

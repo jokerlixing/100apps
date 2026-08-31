@@ -110,7 +110,7 @@ async function waitForExpression(client, expression, timeout = 12_000) {
   return waitFor(() => evaluate(client, `Boolean(${expression})`), timeout, expression);
 }
 
-async function preparePage(client, url, runtimeErrors) {
+async function preparePage(client, url, runtimeErrors, expectedConnection = '跨设备在线') {
   client.on('Runtime.exceptionThrown', ({ exceptionDetails }) => runtimeErrors.push(exceptionDetails.exception?.description || exceptionDetails.text || 'Runtime exception'));
   client.on('Runtime.consoleAPICalled', ({ type, args }) => {
     if (type === 'error') runtimeErrors.push(args.map((argument) => argument.value || argument.description).join(' '));
@@ -119,7 +119,7 @@ async function preparePage(client, url, runtimeErrors) {
   await client.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await client.send('Page.navigate', { url });
   await waitForExpression(client, `document.readyState === 'complete' && document.body.classList.contains('ready')`);
-  await waitForExpression(client, `document.querySelector('#connectionText').textContent.includes('跨设备在线')`);
+  await waitForExpression(client, `document.querySelector('#connectionText').textContent.includes(${JSON.stringify(expectedConnection)})`);
 }
 
 async function screenshot(client, filename) {
@@ -131,11 +131,11 @@ async function screenshot(client, filename) {
   writeFileSync(path.join(outputDir, filename), Buffer.from(result.data, 'base64'));
 }
 
-async function createPage(debugPortValue, url, runtimeErrors) {
+async function createPage(debugPortValue, url, runtimeErrors, expectedConnection) {
   const target = await fetch(`http://127.0.0.1:${debugPortValue}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' }).then((response) => response.json());
   const client = new CdpClient(target.webSocketDebuggerUrl);
   await client.connect();
-  await preparePage(client, url, runtimeErrors);
+  await preparePage(client, url, runtimeErrors, expectedConnection);
   return client;
 }
 
@@ -280,18 +280,105 @@ async function run() {
     })()`);
     await waitForExpression(second, `document.querySelector('#documentTitle').value === '协作发布稿'`);
     assert.match(await evaluate(second, `document.querySelector('#editor').textContent`), /一起编辑/);
+    console.log('[smoke] version restore verified');
+
+    const deleteGuard = await evaluate(first, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      const input = document.querySelector('#deleteConfirmInput');
+      const confirm = document.querySelector('#deleteConfirmButton');
+      const initiallyDisabled = confirm.disabled;
+      input.value = 'WRONG-ROOM';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const wrongRoomDisabled = confirm.disabled;
+      input.value = '${room}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return {
+        open: document.querySelector('#deleteDialog').open,
+        initiallyDisabled,
+        wrongRoomDisabled,
+        ready: !confirm.disabled,
+        scope: document.querySelector('#deleteScopeText').textContent
+      };
+    })()`);
+    assert.deepEqual(deleteGuard, {
+      open: true,
+      initiallyDisabled: true,
+      wrongRoomDisabled: true,
+      ready: true,
+      scope: `所有在线成员的正文、批注和全部版本都会被清空，房间 ${room} 仍会保留。`,
+    });
+    await evaluate(second, `(() => {
+      const title = document.querySelector('#documentTitle');
+      title.value = '删除前收到的同伴更新';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForExpression(first, `!document.querySelector('#deleteDialog').open && document.querySelector('#documentTitle').value === '删除前收到的同伴更新'`);
+    assert.match(await evaluate(first, `document.querySelector('#toast').textContent`), /重新确认删除/);
+    await evaluate(first, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      const input = document.querySelector('#deleteConfirmInput');
+      input.value = '${room}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#deleteForm').requestSubmit();
+    })()`);
+    await waitForExpression(second, `document.querySelector('#documentTitle').value === '未命名文档' && document.querySelector('#editor').textContent.trim() === ''`);
+    await waitForExpression(first, `document.querySelector('#saveState').textContent.includes('删除已同步')`);
+    const deleted = await evaluate(second, `(() => ({
+      title: document.querySelector('#documentTitle').value,
+      body: document.querySelector('#editor').textContent.trim(),
+      comments: document.querySelector('#openCommentCount').textContent,
+      versions: document.querySelector('#versionCount').textContent,
+      revision: document.querySelector('#drawerRevision').textContent
+    }))()`);
+    assert.equal(deleted.title, '未命名文档');
+    assert.equal(deleted.body, '');
+    assert.equal(deleted.comments, '0');
+    assert.equal(deleted.versions, '0');
+    console.log('[smoke] online guarded deletion synchronized');
+
+    const localRoom = `LOCAL-${process.pid}`;
+    const localUrl = `http://127.0.0.1:${address.port}/?room=${localRoom}&ws=local`;
+    const localFirst = await createPage(debugPort, localUrl, runtimeErrors, '本机协作');
+    const localSecond = await createPage(debugPort, localUrl, runtimeErrors, '本机协作');
+    clients.push(localFirst, localSecond);
+    await evaluate(localFirst, `(() => {
+      const title = document.querySelector('#documentTitle');
+      const editor = document.querySelector('#editor');
+      title.value = '本机待删除协作稿';
+      editor.innerHTML = '<p>只保存在本浏览器的协作内容。</p>';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '本机待删除协作稿'`);
+    await evaluate(localFirst, `(() => {
+      document.querySelector('#deleteDocumentButton').click();
+      const input = document.querySelector('#deleteConfirmInput');
+      input.value = '${localRoom}';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#deleteForm').requestSubmit();
+    })()`);
+    await waitForExpression(localSecond, `document.querySelector('#documentTitle').value === '未命名文档' && document.querySelector('#editor').textContent.trim() === ''`);
+    const localDeleted = await evaluate(localSecond, `(() => ({
+      connection: document.querySelector('#connectionText').textContent,
+      comments: document.querySelector('#openCommentCount').textContent,
+      versions: document.querySelector('#versionCount').textContent
+    }))()`);
+    assert.match(localDeleted.connection, /本机协作/);
+    assert.equal(localDeleted.comments, '0');
+    assert.equal(localDeleted.versions, '0');
     assert.deepEqual(runtimeErrors, []);
-    console.log('[smoke] version restore and runtime errors verified');
+    console.log('[smoke] local deletion synchronized without runtime errors');
 
     const result = {
       initial,
       sync: {
         members: await evaluate(first, `document.querySelector('#memberCount').textContent`),
         secondTitle: await evaluate(second, `document.querySelector('#documentTitle').value`),
-        restoredRevision: await evaluate(second, `document.querySelector('#drawerRevision').textContent`),
+        deletedRevision: deleted.revision,
       },
       exports: [jsonFile, htmlFile],
       mobile,
+      localDeleted,
       runtimeErrors,
       outputDir,
     };

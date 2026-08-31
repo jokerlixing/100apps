@@ -47,6 +47,11 @@
     wsInput: $('#wsInput'),
     restoreDialog: $('#restoreDialog'),
     restoreDialogText: $('#restoreDialogText'),
+    deleteDialog: $('#deleteDialog'),
+    deleteScopeText: $('#deleteScopeText'),
+    deleteRoomCode: $('#deleteRoomCode'),
+    deleteConfirmInput: $('#deleteConfirmInput'),
+    deleteConfirmButton: $('#deleteConfirmButton'),
     toast: $('#toast'),
   };
 
@@ -61,6 +66,7 @@
   let socket = null;
   let socketJoined = false;
   let socketPending = false;
+  let deletePending = false;
   let pendingDraft = null;
   let dirtyAfterPending = false;
   let reconnectTimer = null;
@@ -70,6 +76,7 @@
   let localMembers = new Map();
   let connectionMode = 'local';
   let activePane = 'editor';
+  let lastDeleteRevision = -1;
   const wsEndpoint = inferWebSocketEndpoint();
 
   function makeId(prefix) {
@@ -208,6 +215,7 @@
     connectionMode = mode;
     elements.connectionPill.dataset.state = mode;
     elements.connectionText.textContent = text;
+    if (elements.deleteDialog.open) updateDeleteConfirmation();
   }
 
   function setSaveState(mode, text) {
@@ -304,11 +312,11 @@
     };
   }
 
-  function applyClientSnapshot(snapshot, { replaceEditor = true } = {}) {
+  function applyClientSnapshot(snapshot, { replaceEditor = true, clearHistory = false, broadcast } = {}) {
     const checked = Core.validateDocumentInput(snapshot);
     if (!checked.ok) return;
-    let history = state.history || [];
-    if (Number(snapshot.revision) > state.revision) {
+    let history = clearHistory ? [] : (state.history || []);
+    if (!clearHistory && Number(snapshot.revision) > state.revision) {
       history = [...history, captureCurrentVersion()].slice(-Core.LIMITS.history);
     }
     state = {
@@ -320,7 +328,7 @@
       history,
     };
     remoteVersions = Array.isArray(snapshot.versions) ? snapshot.versions : [];
-    persistState({ broadcast: connectionMode !== 'online' });
+    persistState({ broadcast: broadcast ?? connectionMode !== 'online' });
     renderState({ replaceEditor });
   }
 
@@ -602,6 +610,105 @@
     pendingRestoreRevision = null;
   }
 
+  function isClearedDraft(candidate) {
+    return candidate
+      && candidate.title === '未命名文档'
+      && candidate.content === ''
+      && Array.isArray(candidate.comments)
+      && candidate.comments.length === 0
+      && (!candidate.history || candidate.history.length === 0)
+      && (!candidate.versions || candidate.versions.length === 0);
+  }
+
+  function updateDeleteConfirmation() {
+    const matchesRoom = elements.deleteConfirmInput.value.trim().toUpperCase() === room;
+    const waitingForSync = connectionMode === 'online' && socketPending && !deletePending;
+    elements.deleteConfirmButton.disabled = !matchesRoom || waitingForSync;
+    elements.deleteScopeText.textContent = connectionMode === 'online'
+      ? `所有在线成员的正文、批注和全部版本都会被清空，房间 ${room} 仍会保留。${waitingForSync ? ' 当前修改同步完成后才能删除。' : ''}`
+      : `本浏览器中房间 ${room} 的正文、批注和全部版本都会被清空，同房间标签页将同步更新。`;
+  }
+
+  function openDeleteDialog() {
+    if (saveTimer) flushDraft();
+    elements.deleteRoomCode.textContent = room;
+    elements.deleteConfirmInput.value = '';
+    updateDeleteConfirmation();
+    elements.deleteDialog.showModal();
+    requestAnimationFrame(() => elements.deleteConfirmInput.focus());
+  }
+
+  function cancelDeleteConfirmationForUpdate() {
+    if (!elements.deleteDialog.open) return;
+    elements.deleteDialog.close();
+    elements.deleteConfirmInput.value = '';
+    updateDeleteConfirmation();
+    toast('同伴刚更新了文档，请查看最新稿后重新确认删除。');
+  }
+
+  function clearDraftInteractions() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    pendingDraft = null;
+    dirtyAfterPending = false;
+    pendingRestoreRevision = null;
+    selectedQuote = '';
+    elements.selectionQuote.textContent = '先在正文中选中一段文字';
+    elements.commentInput.value = '';
+    elements.commentCounter.textContent = '0 / 1000';
+  }
+
+  function acceptDeletedSnapshot(snapshot, { fromSelf = false } = {}) {
+    const revision = Math.max(0, Number(snapshot && snapshot.revision) || 0);
+    if (revision < state.revision || revision === lastDeleteRevision || !isClearedDraft(snapshot)) return;
+    lastDeleteRevision = revision;
+    clearDraftInteractions();
+    socketPending = false;
+    deletePending = false;
+    applyClientSnapshot(snapshot, { replaceEditor: true, clearHistory: true, broadcast: false });
+    if (elements.deleteDialog.open) elements.deleteDialog.close();
+    updateDeleteConfirmation();
+    setSaveState('saved', connectionMode === 'online' ? '删除已同步' : '已在本机删除');
+    if (fromSelf) {
+      showPane('editor');
+      elements.editor.focus();
+    }
+    toast(fromSelf ? '协作稿已永久删除，房间已清空。' : '同伴已删除协作稿，房间已同步清空。');
+  }
+
+  function submitDeleteDocument(event) {
+    event.preventDefault();
+    if (elements.deleteConfirmInput.value.trim().toUpperCase() !== room || elements.deleteConfirmButton.disabled) return;
+    if (connectionMode === 'online' && socket?.readyState === WebSocket.OPEN && socketJoined) {
+      deletePending = true;
+      socketPending = true;
+      pendingDraft = null;
+      dirtyAfterPending = false;
+      elements.deleteDialog.close();
+      socket.send(JSON.stringify({
+        v: Core.PROTOCOL_VERSION,
+        type: 'document:delete',
+        baseRevision: state.revision,
+      }));
+      setSaveState('saving', '删除中');
+      return;
+    }
+
+    const stored = loadLocalState();
+    const base = stored.revision > state.revision ? stored : state;
+    const result = Core.deleteDocument(base, {
+      baseRevision: base.revision,
+    }, { id: memberId, name: memberName }, new Date().toISOString());
+    if (!result.ok) return toast('文档刚刚发生变化，请重新确认后再删除。');
+    const snapshot = Core.toClientState(result.state);
+    acceptDeletedSnapshot(snapshot, { fromSelf: true });
+    localChannel?.postMessage({
+      type: 'document:deleted',
+      source: memberId,
+      revision: snapshot.revision,
+    });
+  }
+
   function connectWebSocket() {
     if (!wsEndpoint) return startLocalMode('本机协作');
     clearTimeout(reconnectTimer);
@@ -623,6 +730,7 @@
     socket.addEventListener('close', () => {
       socketJoined = false;
       socketPending = false;
+      deletePending = false;
       startLocalMode('服务断开 · 本机协作');
       reconnectTimer = setTimeout(connectWebSocket, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 1.8, 12000);
@@ -650,6 +758,7 @@
         state.comments = localDraft.comments;
         queueSave(true);
       } else setSaveState('saved', '已同步');
+      updateDeleteConfirmation();
       return;
     }
     if (message.type === 'presence') {
@@ -663,6 +772,8 @@
       pendingDraft = null;
       applyClientSnapshot(message.state, { replaceEditor: !fromSelf || message.type === 'version:restored' });
       setSaveState('saved', '已同步');
+      updateDeleteConfirmation();
+      if (!fromSelf) cancelDeleteConfirmationForUpdate();
       if (message.type === 'version:restored') toast('历史版本已恢复。');
       if (dirtyAfterPending) {
         dirtyAfterPending = false;
@@ -670,7 +781,22 @@
       }
       return;
     }
+    if (message.type === 'document:deleted') {
+      acceptDeletedSnapshot(message.state, { fromSelf: message.source === memberId });
+      return;
+    }
     if (message.type === 'document:conflict') {
+      if (deletePending) {
+        socketPending = false;
+        deletePending = false;
+        pendingDraft = null;
+        dirtyAfterPending = false;
+        applyClientSnapshot(message.state);
+        updateDeleteConfirmation();
+        setSaveState('saved', '已同步最新稿');
+        toast('同伴刚更新了文档，请确认最新内容后再次删除。');
+        return;
+      }
       const draft = pendingDraft || collectDraft();
       socketPending = false;
       pendingDraft = null;
@@ -685,6 +811,8 @@
     }
     if (message.type === 'error') {
       socketPending = false;
+      deletePending = false;
+      updateDeleteConfirmation();
       setSaveState('error', '同步失败');
       toast(message.message || '协作服务未能处理这次操作。');
     }
@@ -733,7 +861,13 @@
       renderLocalMembers();
       return;
     }
+    if (message.type === 'document:deleted' && Number(message.revision) >= state.revision) {
+      const stored = loadLocalState();
+      acceptDeletedSnapshot(stored);
+      return;
+    }
     if (message.type === 'state:changed' && Number(message.revision) > state.revision) {
+      cancelDeleteConfirmationForUpdate();
       if (saveTimer) flushDraft();
       else {
         const stored = loadLocalState();
@@ -922,6 +1056,9 @@
     $('#roomButton').addEventListener('click', openRoomDialog);
     $('#identityButton').addEventListener('click', openRoomDialog);
     $('#roomForm').addEventListener('submit', submitRoom);
+    $('#deleteDocumentButton').addEventListener('click', openDeleteDialog);
+    elements.deleteConfirmInput.addEventListener('input', updateDeleteConfirmation);
+    $('#deleteForm').addEventListener('submit', submitDeleteDocument);
     $$('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => document.getElementById(button.dataset.closeDialog).close()));
     $('#restoreForm').addEventListener('submit', (event) => { event.preventDefault(); elements.restoreDialog.close(); restorePendingVersion(); });
     $('#shareButton').addEventListener('click', () => copyText(shareUrl(), '房间链接已复制。'));
@@ -944,9 +1081,15 @@
     $('#importFile').addEventListener('change', (event) => { importBackup(event.target.files[0]); event.target.value = ''; });
     $$('.mobile-tabs button').forEach((button) => button.addEventListener('click', () => showPane(button.dataset.pane)));
     window.addEventListener('storage', (event) => {
-      if (event.key !== documentKey() || saveTimer || connectionMode === 'online') return;
+      if (event.key !== documentKey() || connectionMode === 'online') return;
       const stored = loadLocalState();
-      if (stored.revision > state.revision) { state = stored; renderState(); }
+      if (stored.revision <= state.revision) return;
+      if (isClearedDraft(stored)) {
+        acceptDeletedSnapshot(stored);
+        return;
+      }
+      cancelDeleteConfirmationForUpdate();
+      if (!saveTimer) { state = stored; renderState(); }
     });
     window.addEventListener('beforeunload', () => {
       if (saveTimer) flushDraft();

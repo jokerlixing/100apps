@@ -155,6 +155,24 @@
     }, actor, now);
   }
 
+  function deleteDocument(state, input, actor = {}, now = new Date().toISOString()) {
+    const baseRevision = Number(input && input.baseRevision);
+    if (!Number.isInteger(baseRevision) || baseRevision !== state.revision) return conflict(state);
+    return {
+      ok: true,
+      state: {
+        ...state,
+        revision: state.revision + 1,
+        title: '未命名文档',
+        content: '',
+        comments: [],
+        updatedAt: safeIso(now, new Date().toISOString()),
+        updatedBy: normalizeName(actor.name),
+        history: [],
+      },
+    };
+  }
+
   function toClientState(state) {
     return {
       room: state.room,
@@ -182,6 +200,7 @@
     validateDocumentInput,
     applyDocumentUpdate,
     restoreVersion,
+    deleteDocument,
     toClientState,
   };
 }));

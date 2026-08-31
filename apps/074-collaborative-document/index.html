@@ -65,6 +65,10 @@
         <span class="file-tab">正在校样</span>
         <h3 id="currentFileHeading">协作发布稿</h3>
         <p><span id="drawerWordCount">0</span> 字 · 第 <span id="drawerRevision">0</span> 版</p>
+        <button class="delete-draft-button" id="deleteDocumentButton" type="button" aria-haspopup="dialog">
+          <span>WITHDRAW PROOF</span>
+          <b>删除协作稿</b>
+        </button>
       </section>
 
       <section class="recent-section" aria-labelledby="recentHeading">
@@ -201,6 +205,25 @@
       <div class="dialog-actions">
         <button class="button button-quiet" value="cancel" type="button" data-close-dialog="restoreDialog">取消</button>
         <button class="button button-proof" value="default" type="submit">恢复版本</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog compact-dialog delete-dialog" id="deleteDialog" aria-labelledby="deleteDialogTitle">
+    <form method="dialog" id="deleteForm">
+      <div class="dialog-kicker">WITHDRAW PROOF</div>
+      <h2 id="deleteDialogTitle">删除这份协作稿？</h2>
+      <p id="deleteScopeText">正文、批注和全部版本都会被清空，房间仍会保留。</p>
+      <div class="delete-warning" id="deleteWarning" role="note">
+        <b>此操作无法撤销</b>
+        <span>如需留档，请先取消并导出 JSON 备份。</span>
+      </div>
+      <label for="deleteConfirmInput">输入房间号 <code id="deleteRoomCode">GALLEY-74</code> 以确认
+        <input id="deleteConfirmInput" name="room-confirmation" maxlength="24" autocomplete="off" spellcheck="false" aria-describedby="deleteWarning">
+      </label>
+      <div class="dialog-actions">
+        <button class="button button-quiet" value="cancel" type="button" data-close-dialog="deleteDialog">取消</button>
+        <button class="button button-danger" id="deleteConfirmButton" value="default" type="submit" disabled>永久删除</button>
       </div>
     </form>
   </dialog>

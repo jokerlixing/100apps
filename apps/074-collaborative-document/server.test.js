@@ -158,3 +158,47 @@ test('a historical version is restored as a new revision for the room', async ()
   assert.equal(restored.state.title, '协作发布稿');
   assert.equal(restored.source, 'member-d');
 });
+
+test('deleting a collaborative draft clears the room for every member and rejects stale deletion', async () => {
+  const first = await join('DELETE-74', 'member-delete-a', '林星');
+  const second = await join('DELETE-74', 'member-delete-b', '陈晨');
+
+  first.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'document:update',
+    baseRevision: 0,
+    title: '待撤回发布稿',
+    content: '<p>这份协作稿会被删除。</p>',
+    comments: [{
+      id: 'comment-delete-1',
+      text: '删除时一并清空',
+      quote: '这份协作稿',
+      author: '林星',
+      createdAt: '2026-08-31T00:20:00.000Z',
+      resolved: false,
+    }],
+  }));
+  await second.client.next((message) => message.type === 'document:update' && message.state.revision === 1);
+
+  second.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'document:delete',
+    baseRevision: 1,
+  }));
+
+  const deletedForFirst = await first.client.next((message) => message.type === 'document:deleted' && message.state.revision === 2);
+  const deletedForSecond = await second.client.next((message) => message.type === 'document:deleted' && message.state.revision === 2);
+  assert.equal(deletedForFirst.source, 'member-delete-b');
+  assert.equal(deletedForSecond.state.title, '未命名文档');
+  assert.equal(deletedForSecond.state.content, '');
+  assert.deepEqual(deletedForSecond.state.comments, []);
+  assert.deepEqual(deletedForSecond.state.versions, []);
+
+  first.client.socket.send(JSON.stringify({
+    v: 1,
+    type: 'document:delete',
+    baseRevision: 1,
+  }));
+  const conflict = await first.client.next((message) => message.type === 'document:conflict' && message.state.revision === 2);
+  assert.equal(conflict.state.title, '未命名文档');
+});

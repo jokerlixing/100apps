@@ -11,6 +11,7 @@ const {
   createInitialState,
   applyDocumentUpdate,
   restoreVersion,
+  deleteDocument,
   toClientState,
 } = require('./sync-core');
 
@@ -224,6 +225,24 @@ function createGalleyServer(options = {}) {
     }));
   }
 
+  function handleDocumentDelete(socket, connection, message) {
+    const { client, room } = connection;
+    if (!consumeUpdateToken(client)) return sendError(socket, 'rate_limited');
+    const result = deleteDocument(room.state, message, client, new Date().toISOString());
+    if (!result.ok) {
+      sendJson(socket, protocolMessage('document:conflict', {
+        code: result.code,
+        state: toClientState(room.state),
+      }));
+      return;
+    }
+    room.state = result.state;
+    broadcast(room, protocolMessage('document:deleted', {
+      state: toClientState(room.state),
+      source: client.id,
+    }));
+  }
+
   wss.on('connection', (socket, request, connection) => {
     socket.on('error', () => {});
     socket.on('message', (payload, isBinary) => {
@@ -242,6 +261,7 @@ function createGalleyServer(options = {}) {
       if (message.v !== PROTOCOL_VERSION) return sendError(socket, 'invalid_protocol');
       if (message.type === 'document:update') handleDocumentUpdate(socket, connection, message);
       else if (message.type === 'version:restore') handleVersionRestore(socket, connection, message);
+      else if (message.type === 'document:delete') handleDocumentDelete(socket, connection, message);
       else if (message.type === 'ping') sendJson(socket, protocolMessage('pong', { at: Date.now() }));
       else sendError(socket, 'unknown_message');
     });

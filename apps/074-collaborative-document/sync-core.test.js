@@ -9,6 +9,7 @@ const {
   validateDocumentInput,
   applyDocumentUpdate,
   restoreVersion,
+  deleteDocument,
   toClientState,
 } = require('./sync-core');
 
@@ -113,6 +114,47 @@ test('a stored version can be restored as a new revision', () => {
   assert.equal(result.state.revision, 2);
   assert.match(result.state.content, /一起编辑/);
   assert.equal(result.state.updatedBy, '陈晨');
+});
+
+test('deleting a draft clears its content, comments, and history as a new revision', () => {
+  let state = createInitialState('ROOM-74', '2026-08-31T00:00:00.000Z');
+  state = applyDocumentUpdate(state, {
+    baseRevision: 0,
+    title: '待删除协作稿',
+    content: '<p>这段正文不应保留。</p>',
+    comments: [{
+      id: 'comment-delete-1',
+      text: '这条批注也应删除',
+      quote: '这段正文',
+      author: '林星',
+      createdAt: '2026-08-31T00:01:00.000Z',
+      resolved: false,
+    }],
+  }, { id: 'member-1', name: '林星' }, '2026-08-31T00:01:00.000Z').state;
+
+  const result = deleteDocument(state, {
+    baseRevision: 1,
+  }, { id: 'member-2', name: '陈晨' }, '2026-08-31T00:02:00.000Z');
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state.revision, 2);
+  assert.equal(result.state.title, '未命名文档');
+  assert.equal(result.state.content, '');
+  assert.deepEqual(result.state.comments, []);
+  assert.deepEqual(result.state.history, []);
+  assert.equal(result.state.updatedBy, '陈晨');
+});
+
+test('deleting with a stale revision preserves the authoritative draft', () => {
+  const state = createInitialState('ROOM-74', '2026-08-31T00:00:00.000Z');
+  const result = deleteDocument(state, {
+    baseRevision: 9,
+  }, { id: 'member-2', name: '陈晨' }, '2026-08-31T00:02:00.000Z');
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'revision_conflict');
+  assert.equal(result.state.title, '协作发布稿');
+  assert.match(result.state.content, /一起编辑/);
 });
 
 test('client snapshots expose version metadata without historical document bodies', () => {

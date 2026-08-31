@@ -176,15 +176,31 @@ async function run() {
     assert.match(initial.status, /根追踪器/);
     assert.equal(initial.scrollWidth, initial.clientWidth);
 
+    const gridLinks = await evaluate(client, `([...document.querySelectorAll('.project-cell')].map((cell) => ({
+      tag:cell.tagName,
+      href:cell.href,
+      target:cell.target,
+      rel:cell.rel,
+      id:Number(cell.dataset.projectId)
+    })))`);
+    assert.equal(gridLinks.length, 100);
+    assert.equal(gridLinks.every((cell) => cell.tag === 'A'), true);
+    assert.equal(gridLinks.every((cell) => cell.href.startsWith('https://jokerlixing.github.io/100apps/')), true);
+    assert.equal(gridLinks.every((cell) => cell.target === '_blank' && cell.rel.includes('noopener')), true);
+    assert.equal(new Set(gridLinks.map((cell) => cell.href)).size, 100);
+    assert.equal(gridLinks.find((cell) => cell.id === 86).href, 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
+
     const focusResult = await evaluate(client, `(() => {
       const cell=document.querySelector('.project-cell[data-project-id="62"]');
       cell.blur();
       cell.focus();
+      cell.addEventListener('click',(event)=>event.preventDefault(),{once:true});
       cell.click();
-      return {active:document.activeElement===cell,readout:document.querySelector('#readout-code').textContent};
+      return {active:document.activeElement===cell,readout:document.querySelector('#readout-code').textContent,href:cell.href};
     })()`);
     assert.equal(focusResult.active, true);
     assert.match(focusResult.readout, /062/);
+    assert.match(focusResult.href, /apps\/062-ai-chat\/$/);
     const focusOutline = await evaluate(client, `getComputedStyle(document.querySelector('.project-cell[data-project-id="62"]')).outlineWidth`);
     assert.notEqual(focusOutline, '0px');
 
@@ -241,7 +257,7 @@ async function run() {
     await screenshot(client, 'screenshot-mobile.png');
 
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ initial, filtered, exportedCount, mobile: { ...mobile, cells: `${mobile.cells.length} checked`, controls: `${mobile.controls.length} checked` }, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ initial, gridLinks: `${gridLinks.length} unique runnable links`, filtered, exportedCount, mobile: { ...mobile, cells: `${mobile.cells.length} checked`, controls: `${mobile.controls.length} checked` }, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

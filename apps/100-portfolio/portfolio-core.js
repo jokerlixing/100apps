@@ -75,6 +75,11 @@
       const id = Number(pair[1]);
       if (id >= 1 && id <= MAX_PROJECTS) doneIds.add(id);
     }
+    const assignmentPattern = /\bINIT_DONE\s*\[\s*["']?(\d{1,3})["']?\s*\]\s*=\s*(?:1|true|["']done["'])\s*;/gi;
+    while ((pair = assignmentPattern.exec(text))) {
+      const id = Number(pair[1]);
+      if (id >= 1 && id <= MAX_PROJECTS) doneIds.add(id);
+    }
     return normalizeProjects(ideas, doneIds);
   }
 

@@ -258,12 +258,15 @@ button { color: inherit; }
   position: relative;
   min-width: 24px;
   aspect-ratio: 1;
+  display: grid;
+  place-items: center;
   padding: 0;
   color: var(--ledger);
   background: var(--paper);
   border: 1px solid var(--line);
   cursor: pointer;
   font: 700 clamp(6px, .65vw, 9px)/1 var(--mono);
+  text-decoration: none;
   transition: transform .1s ease, background-color .1s ease;
 }
 .project-cell[data-status="done"] { color: #fdfdfb; background: var(--blueprint); border-color: var(--blueprint); }

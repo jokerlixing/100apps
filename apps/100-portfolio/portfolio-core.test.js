@@ -18,6 +18,17 @@ test('parses the root tracker as a safe first-100 project catalog', () => {
   assert.equal(projects.some((project) => project.id === 101), false);
   assert.equal(projects[61].status, 'done');
   assert.match(projects[61].link, /^https:\/\//);
+  assert.equal(projects.every((project) => project.status === 'done'), true);
+  assert.equal(projects.every((project) => project.link.startsWith('https://jokerlixing.github.io/100apps/')), true);
+  assert.equal(new Set(projects.map((project) => project.link)).size, 100);
+  assert.equal(projects[85].link, 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
+
+  projects.forEach((project) => {
+    const url = new URL(project.link);
+    const relative = decodeURIComponent(url.pathname.replace(/^\/100apps\/?/, '')).replace(/\/$/, '');
+    const entry = path.resolve(__dirname, '..', '..', relative, 'index.html');
+    assert.equal(fs.existsSync(entry), true, `App ${project.code} deployment must resolve to ${entry}`);
+  });
 });
 
 test('normalizes text, levels, official state, and only safe public links', () => {
@@ -35,7 +46,8 @@ test('normalizes text, levels, official state, and only safe public links', () =
 test('parses numeric official IDs without evaluating tracker JavaScript', () => {
   const source = `
     const IDEAS=[["一号","说明","1","https://example.com/1"],["二号","说明","2"]];
-    const INIT_DONE={1:1,2:true,900:false};
+    const INIT_DONE={1:1,900:false};
+    INIT_DONE[2]="done";
   `;
   const projects = Core.parseTrackerSource(source);
 

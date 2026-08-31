@@ -954,6 +954,17 @@ test('official completion state migrates a stale app 085 cache entry', () => {
   assert.equal(context.result.didSave, true);
 });
 
+test('app 086 has a runnable GitHub Pages deployment and official completion state', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app86 = ideas[85];
+
+  assert.equal(app86[0], 'CLI 天气工具');
+  assert.match(app86[1], /^SKY\/86/);
+  assert.equal(app86[3], 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
+  assert.equal(doneIds.has(86), true, 'INIT_DONE must mark app 086 as done');
+});
+
 test('app 088 is published and included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

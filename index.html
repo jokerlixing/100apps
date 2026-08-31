@@ -264,7 +264,7 @@ const IDEAS=[
 ["桌面便签应用","TACK/83：本地便签匣+搜索归档+Electron窗口置顶与紧凑模式","4","https://jokerlixing.github.io/100apps/apps/083-desktop-notes/"],
 ["划词翻译插件","MARGIN/84：网页选区批注+本地示例+在线翻译与隐私边界","4","https://jokerlixing.github.io/100apps/apps/084-selection-translator/"],
 ["标签页管理插件","TABLOOM/85：按网站智能分组+标签搜索+重复页清理+本地现场恢复","4","https://jokerlixing.github.io/100apps/apps/085-tab-manager/"],
-["CLI 天气工具","SKY/86：免密城市查询+ASCII天气图+双语单位与JSON输出","5","https://github.com/jokerlixing/100apps/tree/main/apps/086-cli-weather"],
+["CLI 天气工具","SKY/86：免密城市查询+ASCII天气图+双语单位与JSON输出","5","https://jokerlixing.github.io/100apps/apps/086-cli-weather/"],
 ["低代码表单构建器","JIG/87：九类字段装配+规则校准+试填验证与独立HTML导出","5","https://jokerlixing.github.io/100apps/apps/087-low-code-form-builder/"],
 ["可视化大屏编辑器","GRID/88：五类图表拖拽布局+JSON/CSV字段绑定+本地预览与项目迁移","5","https://jokerlixing.github.io/100apps/apps/088-dashboard-editor/"],
 ["个人知识库 Wiki","LOOM/89：本地双链笔记+全文搜索+反向链接与可点击关系星图","5","https://jokerlixing.github.io/100apps/apps/089-knowledge-wiki/"],
@@ -282,9 +282,7 @@ const IDEAS=[
 ];
 
 const KEY="apps100_v3";
-const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",62:"done",63:"done",64:"done",65:"done",66:"done",67:"done",68:"done",69:"done",70:"done",71:"done",72:"done",73:"done",74:"done",75:"done",76:"done",77:"done",78:"done",79:"done",80:"done",81:"done",82:"done",83:"done",84:"done",85:"done",87:"done",88:"done",89:"done",90:"done",91:"done",92:"done",93:"done",94:"done",95:"done",97:"done",98:"done",99:"done",100:"done"}; // 挑战官方进度
-INIT_DONE[86]="done";
-INIT_DONE[96]="done";
+const INIT_DONE={1:"done",2:"done",3:"done",4:"done",5:"done",6:"done",7:"done",8:"done",9:"done",10:"done",11:"done",12:"done",13:"done",14:"done",15:"done",16:"done",17:"done",18:"done",19:"done",20:"done",21:"done",22:"done",23:"done",24:"done",25:"done",26:"done",27:"done",28:"done",29:"done",30:"done",31:"done",32:"done",33:"done",34:"done",35:"done",36:"done",37:"done",38:"done",39:"done",40:"done",41:"done",42:"done",43:"done",44:"done",45:"done",46:"done",47:"done",48:"done",49:"done",50:"done",51:"done",52:"done",53:"done",54:"done",55:"done",56:"done",57:"done",58:"done",59:"done",60:"done",61:"done",62:"done",63:"done",64:"done",65:"done",66:"done",67:"done",68:"done",69:"done",70:"done",71:"done",72:"done",73:"done",74:"done",75:"done",76:"done",77:"done",78:"done",79:"done",80:"done",81:"done",82:"done",83:"done",84:"done",85:"done",86:"done",87:"done",88:"done",89:"done",90:"done",91:"done",92:"done",93:"done",94:"done",95:"done",96:"done",97:"done",98:"done",99:"done",100:"done"}; // 挑战官方进度
 let apps=[];
 function load(){
   try{const s=localStorage.getItem(KEY);if(s){apps=JSON.parse(s);syncOfficial();return}}catch(e){}

@@ -2,6 +2,10 @@
 
 一个零运行时依赖、跨平台的终端天气查询工具。输入城市名即可查看当前体感、湿度、风速、降水、未来预报和对应的 ASCII 天气图；支持中文/英文、摄氏/华氏与 JSON 输出。
 
+在线运行：https://jokerlixing.github.io/100apps/apps/086-cli-weather/
+
+浏览器版本直接复用 CLI 的查询、校验和格式化模块，提供城市输入、摄氏/华氏切换和 3–7 天预报，因此不是静态截图或模拟数据。
+
 ```text
 SKY/86  上海 · 中国
 ────────────────────────────────────────────────────
@@ -15,6 +19,8 @@ SKY/86  上海 · 中国
 ## 快速开始
 
 需要 Node.js 18 或更高版本，不需要 API Key，也不需要安装第三方依赖。
+
+如需在线使用，直接打开上方部署地址；如需命令行使用，从仓库根目录运行：
 
 从仓库根目录直接运行：
 
@@ -86,6 +92,7 @@ node apps/086-cli-weather/bin/weather.js 上海 --days 3 --no-color
 - `src/weather-codes.js`：WMO 天气码、双语文案和 ASCII 图
 - `src/format.js`：终端与 JSON 输出
 - `src/cli.js`：流程编排、帮助和退出码
+- `index.html` / `web.js` / `web.css`：可部署的浏览器运行入口
 - `*.test.js`：单元与 mock 集成测试
 
 数据来源：[Open-Meteo](https://open-meteo.com/)。

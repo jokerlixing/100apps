@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09110f">
+  <meta name="description" content="SKY/86 浏览器版：免密查询全球城市天气，并生成 CLI 风格天气报告。">
+  <title>SKY/86 · 浏览器天气终端</title>
+  <link rel="stylesheet" href="web.css">
+</head>
+<body>
+  <a class="skip-link" href="#weather-form">跳到天气查询</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="SKY/86 首页"><strong>SKY</strong><span>/86</span></a>
+    <p>OPEN-METEO / ZERO KEY / LIVE DATA</p>
+    <a href="../../index.html">100 APPS ↗</a>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div class="intro-copy">
+        <p class="eyebrow">BROWSER TERMINAL · BUILD 086</p>
+        <h1 id="page-title">把城市天气，<br><em>打印成一张终端报告。</em></h1>
+        <p class="lede">输入任意城市，直接调用 Open-Meteo 的免密接口。与命令行版本共用同一套查询、校验和 ASCII 格式化模块。</p>
+      </div>
+      <dl class="signal-card">
+        <div><dt>接口</dt><dd>Open-Meteo</dd></div>
+        <div><dt>密钥</dt><dd>不需要</dd></div>
+        <div><dt>输出</dt><dd>ASCII / 实时</dd></div>
+      </dl>
+    </section>
+
+    <section class="workbench" aria-labelledby="workbench-title">
+      <div class="query-panel">
+        <p class="eyebrow">01 / QUERY</p>
+        <h2 id="workbench-title">查询天气</h2>
+        <form id="weather-form">
+          <label for="city-input">城市或地区</label>
+          <div class="input-row">
+            <input id="city-input" name="city" value="上海" maxlength="80" autocomplete="address-level2" required>
+            <button type="submit">运行查询 <span aria-hidden="true">↵</span></button>
+          </div>
+          <div class="options-row">
+            <label>温标
+              <select id="unit-select" name="unit">
+                <option value="c">摄氏 °C</option>
+                <option value="f">华氏 °F</option>
+              </select>
+            </label>
+            <label>预报
+              <select id="days-select" name="days">
+                <option value="3">未来 3 天</option>
+                <option value="5">未来 5 天</option>
+                <option value="7">未来 7 天</option>
+              </select>
+            </label>
+          </div>
+        </form>
+        <div class="examples" aria-label="示例城市">
+          <span>快速输入</span>
+          <button type="button" data-city="北京">北京</button>
+          <button type="button" data-city="深圳">深圳</button>
+          <button type="button" data-city="Tokyo">Tokyo</button>
+          <button type="button" data-city="Paris">Paris</button>
+        </div>
+        <p class="privacy">查询词仅发送给 Open-Meteo，不在本站保存。</p>
+      </div>
+
+      <div class="terminal" aria-labelledby="terminal-title">
+        <div class="terminal-bar">
+          <div aria-hidden="true"><i></i><i></i><i></i></div>
+          <p id="terminal-title">weather86 — live</p>
+          <span id="request-status" role="status">READY</span>
+        </div>
+        <pre id="terminal-output" tabindex="0" aria-live="polite">$ weather86 上海 --days 3
+
+准备就绪。修改城市或直接按“运行查询”。</pre>
+      </div>
+    </section>
+
+    <section class="notes" aria-label="项目说明">
+      <p><strong>同源内核</strong> Web 页面直接复用 CLI 的 <code>api.js</code> 与 <code>format.js</code>，不是静态演示。</p>
+      <p><strong>双入口</strong> 既可在线运行，也可在仓库中通过 <code>npm start -- 上海</code> 使用命令行版。</p>
+      <a href="https://github.com/jokerlixing/100apps/tree/main/apps/086-cli-weather" rel="noopener noreferrer">查看源码 ↗</a>
+    </section>
+  </main>
+
+  <script type="module" src="web.js"></script>
+</body>
+</html>

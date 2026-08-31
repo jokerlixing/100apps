@@ -128,20 +128,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .next-callout strong { font-family: var(--mono); }
 
 .tape-scroll { margin-top: 25px; overflow-x: auto; overflow-y: hidden; scrollbar-color: var(--mint) transparent; }
-.renewal-tape { position: relative; min-width: 760px; height: 225px; margin: 0 18px; }
-.tape-line { position: absolute; top: 111px; right: 0; left: 0; height: 4px; background: var(--ink); }
+.renewal-tape { position: relative; min-width: 760px; height: 248px; margin: 0 18px; }
+.tape-line { position: absolute; top: 121px; right: 0; left: 0; height: 4px; background: var(--ink); }
 .tape-line::before, .tape-line::after { content: ""; position: absolute; top: -5px; width: 13px; height: 13px; border-radius: 50%; background: var(--ink); }
 .tape-line::before { left: -5px; }.tape-line::after { right: -5px; }
-.tape-ticks span { position: absolute; top: 122px; left: var(--tick); color: #66736e; font: 9px/1 var(--mono); transform: translateX(-50%); }
+.tape-ticks span { position: absolute; top: 133px; left: var(--tick); color: #4f615c; font: 700 10px/1 var(--mono); transform: translateX(-50%); }
 .tape-ticks span::before { content: ""; position: absolute; bottom: 15px; left: 50%; width: 1px; height: 12px; background: var(--ink); }
 .timeline-ticket {
   position: absolute;
   top: var(--lane);
   left: var(--position);
   z-index: 2;
-  width: 148px;
-  min-height: 78px;
-  padding: 11px 12px 9px;
+  width: 164px;
+  min-height: 88px;
+  padding: 12px 13px 11px;
   border: 1px solid var(--ink);
   color: var(--ink);
   background: var(--paper-bright);
@@ -153,9 +153,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .timeline-ticket[data-state="due"] { border-top: 6px solid var(--orange); }
 .timeline-ticket[data-state="upcoming"] { border-top: 6px solid var(--blue); }
 .timeline-ticket button { width: 100%; padding: 0; border: 0; color: inherit; background: transparent; text-align: left; }
-.ticket-date { display: flex; justify-content: space-between; gap: 8px; font: 8px/1 var(--mono); text-transform: uppercase; }
-.timeline-ticket strong { margin: 8px 0 5px; display: block; overflow: hidden; font: 850 14px/1 var(--display); text-overflow: ellipsis; white-space: nowrap; }
-.timeline-ticket b { display: block; font: 700 11px/1 var(--mono); }
+.ticket-date { display: flex; justify-content: space-between; gap: 8px; color: #3e514c; font: 750 10px/1.25 var(--mono); text-transform: uppercase; }
+.timeline-ticket strong { margin: 8px 0 6px; display: block; overflow: hidden; font: 900 16px/1.1 var(--display); letter-spacing: .01em; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-ticket b { display: block; font: 800 13px/1.15 var(--mono); }
 .empty-state { min-height: 148px; display: flex; align-items: center; justify-content: center; gap: 20px; text-align: left; }
 .empty-state[hidden] { display: none; }
 .empty-state p { margin: 5px 0 0; color: #6b746f; font-size: 12px; }
@@ -178,16 +178,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   align-items: center;
   border-top: 1px dashed var(--line);
 }
-.subscription-card::before { content: attr(data-index); color: #9b998e; font: 9px/1 var(--mono); position: absolute; top: 8px; left: 0; }
-.subscription-card h3 { margin: 5px 0 6px; font: 850 19px/1 var(--display); }
-.card-category { color: var(--blue); font: 750 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
-.card-note { max-width: 330px; margin: 0; overflow: hidden; color: #66736e; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.card-money strong, .card-renewal strong { display: block; font: 800 15px/1.2 var(--mono); }
-.card-money span, .card-renewal span { margin-top: 5px; display: block; color: #68746f; font-size: 9px; }
-.status-badge { display: inline-flex !important; width: fit-content; min-height: 25px; padding: 0 8px; align-items: center; border: 1px solid currentColor; font: 750 9px/1 var(--mono) !important; }
+.subscription-card::before { content: attr(data-index); color: #686f6a; font: 700 10px/1 var(--mono); position: absolute; top: 8px; left: 0; }
+.subscription-card h3 { margin: 6px 0 7px; font: 900 21px/1.08 var(--display); letter-spacing: .005em; }
+.card-category { color: #246879; font: 800 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.card-note { max-width: 360px; margin: 0; overflow: hidden; color: #485b56; display: -webkit-box; font-size: 12px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.card-money strong, .card-renewal strong { display: block; font: 850 17px/1.25 var(--mono); }
+.card-money span, .card-renewal span { margin-top: 6px; display: block; color: #4f615c; font-size: 11px; line-height: 1.35; }
+.status-badge { display: inline-flex !important; width: fit-content; min-height: 30px; padding: 0 9px; align-items: center; border: 1px solid currentColor; font: 800 10px/1 var(--mono) !important; }
 .status-overdue { color: var(--red) !important; }.status-due { color: #a55200 !important; }.status-upcoming { color: var(--blue) !important; }.status-later { color: var(--ink-soft) !important; }.status-paused { color: #77766e !important; }
 .card-actions { display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
-.card-actions button { min-width: 44px; min-height: 44px; padding: 0 8px; border: 1px solid var(--line); background: transparent; font-size: 9px; }
+.card-actions button { min-width: 46px; min-height: 44px; padding: 0 9px; border: 1px solid #a9aa9d; background: transparent; font-size: 11px; font-weight: 750; }
 .card-actions button:hover { border-color: var(--ink); background: var(--paper); }
 .ledger-empty { padding: 44px 20px 24px; text-align: center; border-top: 1px dashed var(--line); }
 .ledger-empty[hidden] { display: none; }
@@ -259,7 +259,7 @@ footer { min-height: 58px; padding: 0 clamp(18px, 3vw, 46px); display: flex; ali
   .renewal-tape { min-width: 0; height: auto; margin: 0; }
   .tape-line, .tape-ticks { display: none; }
   .timeline-tickets { margin-top: 18px; display: grid; gap: 12px; }
-  .timeline-ticket { position: relative; top: auto !important; left: auto !important; width: 100%; min-height: 74px; transform: none !important; }
+  .timeline-ticket { position: relative; top: auto !important; left: auto !important; width: 100%; min-height: 88px; transform: none !important; }
   .timeline-ticket button { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
   .timeline-ticket .ticket-date { grid-column: 1 / -1; }
   .timeline-ticket strong { margin: 4px 0 2px; }

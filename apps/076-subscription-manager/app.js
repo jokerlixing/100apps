@@ -144,7 +144,7 @@
       const position = 6 + (Math.max(0, Math.min(30, item.days)) / 30) * 88;
       ticket.dataset.state = state.key;
       ticket.style.setProperty('--position', `${position}%`);
-      ticket.style.setProperty('--lane', `${index % 2 === 0 ? 13 : 139}px`);
+      ticket.style.setProperty('--lane', `${index % 2 === 0 ? 12 : 153}px`);
       ticket.style.setProperty('--tilt', `${index % 3 === 0 ? -1.2 : index % 3 === 1 ? .8 : -.3}deg`);
       ticket.style.setProperty('--order', String(index));
       const button = createElement('button');

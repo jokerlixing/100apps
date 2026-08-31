@@ -226,6 +226,11 @@ async function run() {
       cards: document.querySelectorAll('.subscription-card').length,
       tickets: document.querySelectorAll('.timeline-ticket').length,
       active: document.querySelector('#activeCount').textContent,
+      ticketDateFont: parseFloat(getComputedStyle(document.querySelector('.ticket-date')).fontSize),
+      ticketTitleFont: parseFloat(getComputedStyle(document.querySelector('.timeline-ticket strong')).fontSize),
+      cardNoteFont: parseFloat(getComputedStyle(document.querySelector('.card-note')).fontSize),
+      cardMetaFont: parseFloat(getComputedStyle(document.querySelector('.card-money span')).fontSize),
+      cardActionFont: parseFloat(getComputedStyle(document.querySelector('.card-actions button')).fontSize),
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
       stored: JSON.parse(localStorage.getItem('due76.subscriptions.v1')).length
@@ -233,6 +238,11 @@ async function run() {
     assert.equal(desktop.subscriptions, 6);
     assert.equal(desktop.cards, 6);
     assert.ok(desktop.tickets >= 3);
+    assert.ok(desktop.ticketDateFont >= 10);
+    assert.ok(desktop.ticketTitleFont >= 16);
+    assert.ok(desktop.cardNoteFont >= 12);
+    assert.ok(desktop.cardMetaFont >= 11);
+    assert.ok(desktop.cardActionFont >= 11);
     assert.equal(desktop.stored, 6);
     assert.equal(desktop.scrollWidth, desktop.clientWidth);
     await evaluate(client, `document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0)`);

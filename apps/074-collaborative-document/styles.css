@@ -244,7 +244,7 @@ button:not(:disabled) { cursor: pointer; }
 .current-file h3 { margin: 0 0 8px; font: 800 16px/1.35 var(--serif); }
 .current-file p { margin: 0; color: var(--muted); font: 700 10px/1.4 var(--mono); }
 
-.delete-draft-button {
+.proof-action-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -252,16 +252,17 @@ button:not(:disabled) { cursor: pointer; }
   width: 100%;
   margin-top: 17px;
   padding: 9px 0 5px;
-  color: var(--proof-dark);
   background: transparent;
   border: 0;
   border-top: 1px dashed #c6a39e;
   text-align: left;
 }
 
-.delete-draft-button span { font: 800 7px/1 var(--mono); letter-spacing: .13em; }
-.delete-draft-button b { font-size: 10px; }
-.delete-draft-button:hover b { text-decoration: underline; text-underline-offset: 3px; }
+.proof-action-button span { font: 800 7px/1 var(--mono); letter-spacing: .13em; }
+.proof-action-button b { font-size: 10px; }
+.proof-action-button:hover b { text-decoration: underline; text-underline-offset: 3px; }
+.restore-default-button { color: var(--blue); border-top-color: #9eb0d9; }
+.delete-draft-button { margin-top: 4px; color: var(--proof-dark); }
 
 .recent-section { margin-top: 28px; }
 .section-label { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--line); }

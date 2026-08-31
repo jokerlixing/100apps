@@ -65,7 +65,11 @@
         <span class="file-tab">正在校样</span>
         <h3 id="currentFileHeading">协作发布稿</h3>
         <p><span id="drawerWordCount">0</span> 字 · 第 <span id="drawerRevision">0</span> 版</p>
-        <button class="delete-draft-button" id="deleteDocumentButton" type="button" aria-haspopup="dialog">
+        <button class="proof-action-button restore-default-button" id="restoreDefaultButton" type="button" aria-haspopup="dialog">
+          <span>HOUSE COPY</span>
+          <b>恢复默认发布稿</b>
+        </button>
+        <button class="proof-action-button delete-draft-button" id="deleteDocumentButton" type="button" aria-haspopup="dialog">
           <span>WITHDRAW PROOF</span>
           <b>删除协作稿</b>
         </button>
@@ -204,7 +208,7 @@
       <p id="restoreDialogText">当前内容会先保留为历史，再生成一个恢复版本。</p>
       <div class="dialog-actions">
         <button class="button button-quiet" value="cancel" type="button" data-close-dialog="restoreDialog">取消</button>
-        <button class="button button-proof" value="default" type="submit">恢复版本</button>
+        <button class="button button-proof" id="restoreConfirmButton" value="default" type="submit">恢复版本</button>
       </div>
     </form>
   </dialog>

@@ -757,7 +757,7 @@ test('app 074 is published and included in the official completion state', () =>
 
   assert.equal(app74[0], '在线协同文档');
   assert.match(app74[1], /^GALLEY\/74/);
-  assert.match(app74[1], /确认删除协作稿/);
+  assert.match(app74[1], /确认删除\/恢复默认稿/);
   assert.equal(app74[3], 'https://jokerlixing.github.io/100apps/apps/074-collaborative-document/');
   assert.equal(doneIds.has(74), true, 'INIT_DONE must mark app 074 as done');
 });

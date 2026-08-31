@@ -993,10 +993,38 @@ test('app 100 is published as INDEX/100 and officially complete', () => {
   const doneIds = extractOfficialDoneIds();
   const app100 = ideas[99];
 
+  assert.equal(ideas.length, 100, 'tracker must not render a project 101 card');
   assert.equal(app100[0], '个人作品集网站');
   assert.match(app100[1], /^INDEX\/100/);
   assert.equal(app100[3], 'https://jokerlixing.github.io/100apps/apps/100-portfolio/');
   assert.equal(doneIds.has(100), true, 'INIT_DONE must mark app 100 as done');
+});
+
+test('tracker migration removes the stale official app 101 card', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[
+      {id:101,name:"AI Agent平台",desc:"多工具调用+任务编排执行",lv:5,st:"todo",custom:false,link:""},
+      {id:102,name:"我的自定义点子",desc:"保留",lv:1,st:"todo",custom:true,link:""}
+    ];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps.length, 1);
+  assert.equal(context.result.apps[0].id, 102);
+  assert.equal(context.result.apps[0].custom, true);
+  assert.equal(context.result.didSave, true);
 });
 
 test('official completion state migrates a stale app 100 cache entry', () => {

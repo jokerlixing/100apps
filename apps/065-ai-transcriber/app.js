@@ -22,15 +22,15 @@
     waveEmpty: document.querySelector('#wave-empty'),
     interim: document.querySelector('#interim-text'),
     start: document.querySelector('#start-button'),
+    restart: document.querySelector('#restart-button'),
     pause: document.querySelector('#pause-button'),
     stop: document.querySelector('#stop-button'),
     audioInput: document.querySelector('#audio-input'),
-    demo: document.querySelector('#demo-button'),
-    emptyDemo: document.querySelector('#empty-demo-button'),
     playbackRack: document.querySelector('#playback-rack'),
     audioName: document.querySelector('#audio-name'),
     audioPlayer: document.querySelector('#audio-player'),
     downloadAudio: document.querySelector('#download-audio'),
+    deleteAudio: document.querySelector('#delete-audio'),
     supportNote: document.querySelector('#support-note'),
     metrics: {
       characters: document.querySelector('#metric-characters'),
@@ -83,7 +83,20 @@
   function loadSession() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return Core.sanitizeSession(stored ? JSON.parse(stored) : null);
+      const parsed = stored ? JSON.parse(stored) : null;
+      const records = Array.isArray(parsed?.segments) ? parsed.segments : [];
+      const withoutDemo = records.filter((record) => record?.source !== 'demo');
+      if (withoutDemo.length !== records.length) {
+        if (withoutDemo.length === 0) {
+          localStorage.removeItem(STORAGE_KEY);
+          return Core.sanitizeSession(null);
+        }
+        parsed.segments = withoutDemo;
+        const migrated = Core.sanitizeSession(parsed);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+      return Core.sanitizeSession(parsed);
     } catch {
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
       return Core.sanitizeSession(null);
@@ -128,7 +141,6 @@
   }
 
   function sourceName(source) {
-    if (source === 'demo') return '演示转写';
     if (source === 'manual') return '手动整理';
     return '实时识别';
   }
@@ -267,13 +279,13 @@
     const listening = state.mode === 'listening';
     const paused = state.mode === 'paused';
     const active = listening || paused || state.mode === 'starting';
+    const hasTake = state.session.segments.length > 0 || state.durationMs > 0 || Boolean(state.audioUrl);
     elements.tapeMachine.dataset.state = state.mode;
-    elements.start.disabled = active || !SpeechRecognitionConstructor;
+    elements.start.disabled = active || hasTake || !SpeechRecognitionConstructor;
+    elements.restart.disabled = active || !hasTake || !SpeechRecognitionConstructor;
     elements.pause.disabled = !listening && !paused;
     elements.stop.disabled = !listening && !paused;
     elements.audioInput.disabled = active;
-    elements.demo.disabled = active;
-    elements.emptyDemo.disabled = active;
     elements.pause.querySelector('b').textContent = paused ? '继续' : '暂停';
     elements.pause.querySelector('small').textContent = paused ? '继续本次听写' : '保留当前录音';
     elements.takeLabel.textContent = listening ? 'TAKE 01 · RECORDING' : paused ? 'TAKE 01 · PAUSED' : 'TAKE 01 · READY';
@@ -410,8 +422,13 @@
     if (state.audioContext.state === 'suspended') await state.audioContext.resume();
   }
 
-  async function startTranscription() {
+  async function startTranscription(options = {}) {
+    const fresh = options.fresh === true;
     if (!SpeechRecognitionConstructor || state.mode !== 'idle') return;
+    if (!fresh && (state.session.segments.length > 0 || state.durationMs > 0 || state.audioUrl)) {
+      announce('已有一轮听写；请使用“重新听写”从 00:00 开始。', true);
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       announce('当前页面无法申请麦克风。请使用 HTTPS 或 localhost 打开。', true);
       return;
@@ -425,6 +442,7 @@
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false,
       });
+      if (fresh) clearCurrentTake();
       state.generation += 1;
       state.stream = stream;
       state.mode = 'listening';
@@ -523,8 +541,10 @@
   function releaseAudioUrl() {
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
     state.audioUrl = '';
+    state.audioIsRecording = false;
     elements.audioPlayer.removeAttribute('src');
     elements.audioPlayer.load();
+    elements.downloadAudio.disabled = true;
   }
 
   function setPlayback(source, name, isRecording) {
@@ -535,6 +555,18 @@
     elements.audioName.textContent = name;
     elements.playbackRack.hidden = false;
     elements.downloadAudio.disabled = !isRecording;
+    updateTransport();
+  }
+
+  function deletePlayback() {
+    if (!state.audioUrl) return;
+    releaseAudioUrl();
+    state.recorderChunks = [];
+    state.recordingMime = '';
+    elements.audioInput.value = '';
+    elements.playbackRack.hidden = true;
+    updateTransport();
+    announce('本地录音已删除。');
   }
 
   function handleAudioImport() {
@@ -552,40 +584,6 @@
     }
     setPlayback(file, file.name, false);
     announce('音频已在本机打开，可边听边校对稿件。');
-  }
-
-  function loadDemo() {
-    if (state.mode !== 'idle') return;
-    if (state.session.segments.length > 0) {
-      announce('当前稿件非空；请先“新建会话”再载入演示。', true);
-      return;
-    }
-    const demoSegments = [
-      { id: 'demo-01', startMs: 0, endMs: 6500, text: '欢迎来到 SCRIBE，这是一份明确标注的演示转写。', source: 'demo' },
-      { id: 'demo-02', startMs: 8400, endMs: 17100, text: '我们把每一句话按时间切成段落，方便在采访之后快速校对。', source: 'demo' },
-      { id: 'demo-03', startMs: 20100, endMs: 31100, text: '你可以搜索关键词，直接修改文字，也可以删除不需要的内容。', source: 'demo' },
-      { id: 'demo-04', startMs: 34500, endMs: 46800, text: '整理完成后，复制全文，或下载 TXT 与带时间码的 SRT 字幕。', source: 'demo' },
-    ];
-    state.session = Core.sanitizeSession({
-      title: '产品访谈 · 演示',
-      language: 'zh-CN',
-      segments: demoSegments,
-      updatedAt: new Date().toISOString(),
-    });
-    state.durationMs = 46800;
-    state.pendingSegmentStart = state.durationMs;
-    elements.sessionTitle.value = state.session.title;
-    elements.language.value = state.session.language;
-    elements.takeLabel.textContent = 'DEMO TAKE · 04 LINES';
-    elements.sheetTake.textContent = 'DEMO TAKE';
-    elements.waveEmpty.textContent = '演示声带';
-    elements.interim.textContent = '演示稿不会请求麦克风，也不代表真实识别结果。';
-    document.body.dataset.source = 'demo';
-    renderSegments();
-    renderMetrics();
-    updateClock();
-    persistNow();
-    announce('已载入演示稿；它不是麦克风识别结果。');
   }
 
   function downloadBlob(blob, filename) {
@@ -651,13 +649,22 @@
     else if (window.confirm('清空当前稿件并新建会话？')) resetSession();
   }
 
-  function resetSession() {
-    if (elements.resetDialog.open) elements.resetDialog.close();
+  function clearCurrentTake(options = {}) {
     state.generation += 1;
-    state.session = Core.sanitizeSession(null);
+    state.session = options.resetMetadata
+      ? Core.sanitizeSession(null)
+      : Core.sanitizeSession({
+        title: state.session.title,
+        language: state.session.language,
+        segments: [],
+        updatedAt: new Date().toISOString(),
+      });
     state.durationMs = 0;
     state.pendingSegmentStart = 0;
-    state.mode = 'idle';
+    state.activeStartedAt = 0;
+    state.recorder = null;
+    state.recorderChunks = [];
+    state.recordingMime = '';
     elements.search.value = '';
     elements.sessionTitle.value = state.session.title;
     elements.language.value = state.session.language;
@@ -667,12 +674,22 @@
     elements.playbackRack.hidden = true;
     elements.audioInput.value = '';
     releaseAudioUrl();
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     renderSegments();
     renderMetrics();
-    updateTransport();
     updateClock();
     document.body.dataset.source = 'empty';
+    if (options.removeStoredSession) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    } else {
+      persistNow();
+    }
+  }
+
+  function resetSession() {
+    if (elements.resetDialog.open) elements.resetDialog.close();
+    state.mode = 'idle';
+    clearCurrentTake({ resetMetadata: true, removeStoredSession: true });
+    updateTransport();
     announce('已新建空白会话。');
   }
 
@@ -681,7 +698,7 @@
       elements.engineState.dataset.tone = 'limited';
       elements.engineLabel.textContent = '此浏览器无实时识别';
       elements.start.disabled = true;
-      elements.supportNote.querySelector('p').append(' 当前浏览器未提供 SpeechRecognition，请使用新版 Chrome / Edge，或先载入演示稿。');
+      elements.supportNote.querySelector('p').append(' 当前浏览器未提供 SpeechRecognition，请使用新版 Chrome / Edge。');
       return;
     }
     elements.engineState.dataset.tone = 'ready';
@@ -705,7 +722,7 @@
     }
     context.clearRect(0, 0, width, height);
     context.lineWidth = Math.max(2, ratio * 1.6);
-    context.strokeStyle = state.mode === 'listening' ? '#5bbec2' : document.body.dataset.source === 'demo' ? '#f1c75b' : '#416079';
+    context.strokeStyle = state.mode === 'listening' ? '#5bbec2' : '#416079';
     context.beginPath();
 
     if (state.analyser && state.mode === 'listening') {
@@ -718,8 +735,8 @@
         else context.lineTo(x, y);
       });
     } else {
-      const animated = document.body.dataset.source === 'demo' && !prefersReducedMotion ? performance.now() / 420 : 0;
-      const amplitude = document.body.dataset.source === 'demo' ? height * .2 : height * .035;
+      const animated = state.mode === 'listening' && !prefersReducedMotion ? performance.now() / 900 : 0;
+      const amplitude = height * .035;
       for (let x = 0; x <= width; x += 4 * ratio) {
         const carrier = Math.sin(x / (18 * ratio) + animated) + .42 * Math.sin(x / (7 * ratio) - animated * .6);
         const y = height / 2 + carrier * amplitude;
@@ -746,13 +763,13 @@
       schedulePersist();
       announce('识别语言已更新，将在下一次听写时生效。');
     });
-    elements.start.addEventListener('click', startTranscription);
+    elements.start.addEventListener('click', () => startTranscription());
+    elements.restart.addEventListener('click', () => startTranscription({ fresh: true }));
     elements.pause.addEventListener('click', pauseTranscription);
     elements.stop.addEventListener('click', () => stopTranscription());
     elements.audioInput.addEventListener('change', handleAudioImport);
-    elements.demo.addEventListener('click', loadDemo);
-    elements.emptyDemo.addEventListener('click', loadDemo);
     elements.downloadAudio.addEventListener('click', downloadRecording);
+    elements.deleteAudio.addEventListener('click', deletePlayback);
     elements.search.addEventListener('input', applySearch);
     elements.copy.addEventListener('click', copyTranscript);
     elements.txt.addEventListener('click', () => downloadText('txt'));
@@ -793,18 +810,15 @@
     window.setInterval(updateClock, 250);
     document.body.classList.add('ready');
 
-    if (new URLSearchParams(location.search).get('demo') === '1' && state.session.segments.length === 0) {
-      loadDemo();
-    }
   }
 
   window.__SCRIBE65__ = Object.freeze({
-    loadDemo,
     resetSession,
     getSnapshot: () => ({
       mode: state.mode,
       source: document.body.dataset.source,
       durationMs: state.durationMs,
+      hasAudio: Boolean(state.audioUrl),
       session: Core.sanitizeSession(state.session),
     }),
   });

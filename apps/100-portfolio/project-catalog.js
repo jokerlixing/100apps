@@ -451,7 +451,7 @@ window.PORTFOLIO_CATALOG = Object.freeze([
   ],
   [
     "AI语音转文字",
-    "SCRIBE/65：实时听写+本地录音+逐段校对+TXT/SRT导出",
+    "SCRIBE/65：00:00重新听写+可删除本地录音+逐段校对+TXT/SRT导出",
     4,
     "https://jokerlixing.github.io/100apps/apps/065-ai-transcriber/",
     "done"

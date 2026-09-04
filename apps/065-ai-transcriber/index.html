@@ -88,6 +88,10 @@
             <span class="record-dot" aria-hidden="true"></span>
             <span><b>开始听写</b><small>Ctrl + Enter</small></span>
           </button>
+          <button class="transport-button restart-button" id="restart-button" type="button" disabled>
+            <span class="restart-icon" aria-hidden="true">↺</span>
+            <span><b>重新听写</b><small>从 00:00 开始</small></span>
+          </button>
           <button class="transport-button" id="pause-button" type="button" disabled>
             <span class="pause-icon" aria-hidden="true"></span>
             <span><b>暂停</b><small>保留当前录音</small></span>
@@ -107,13 +111,6 @@
             <label class="file-button" for="audio-input">选择音频</label>
             <input id="audio-input" type="file" accept="audio/*" hidden>
           </div>
-          <div class="source-card demo-card">
-            <div class="source-card-copy">
-              <span class="source-number">02</span>
-              <div><b>没有麦克风？</b><small>载入明确标注的演示稿，体验校对、搜索与导出。</small></div>
-            </div>
-            <button class="file-button demo-button" id="demo-button" type="button">载入演示</button>
-          </div>
         </div>
 
         <div class="playback-rack" id="playback-rack" hidden>
@@ -122,7 +119,10 @@
             <b id="audio-name">本次录音</b>
           </div>
           <audio id="audio-player" controls preload="metadata"></audio>
-          <button id="download-audio" class="rack-button" type="button" disabled>下载录音</button>
+          <div class="rack-actions">
+            <button id="download-audio" class="rack-button" type="button" disabled>下载录音</button>
+            <button id="delete-audio" class="rack-button delete-audio" type="button">删除录音</button>
+          </div>
         </div>
 
         <aside class="privacy-note" id="support-note">
@@ -162,8 +162,7 @@
           <div class="empty-state" id="empty-state">
             <div class="empty-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             <strong>稿纸还是空的</strong>
-            <p>从左侧开始听写，或先载入一份演示稿。</p>
-            <button id="empty-demo-button" type="button">看看演示稿</button>
+            <p>从左侧开始听写，第一句会从 00:00 进入稿纸。</p>
           </div>
           <ol class="segment-list" id="segment-list" aria-label="转写段落"></ol>
           <p class="no-results" id="no-results" hidden>没有段落包含这个关键词。</p>

@@ -15,6 +15,91 @@ const chromeCandidates = [
   path.join(process.env['PROGRAMFILES(X86)'] || '', 'Microsoft/Edge/Application/msedge.exe'),
 ];
 
+const browserApiMocks = String.raw`
+(() => {
+  class MockSpeechRecognition {
+    static active = null;
+
+    constructor() {
+      this.listeners = new Map();
+      this.lang = 'zh-CN';
+      this.continuous = true;
+      this.interimResults = true;
+      this.maxAlternatives = 1;
+    }
+
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) || [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    emit(type, payload = {}) {
+      (this.listeners.get(type) || []).forEach((listener) => listener(payload));
+    }
+
+    start() {
+      MockSpeechRecognition.active = this;
+    }
+
+    stop() {
+      if (MockSpeechRecognition.active === this) MockSpeechRecognition.active = null;
+      this.emit('end');
+    }
+  }
+
+  class MockMediaRecorder {
+    static isTypeSupported() { return true; }
+
+    constructor(stream, options = {}) {
+      this.stream = stream;
+      this.mimeType = options.mimeType || 'audio/webm';
+      this.state = 'inactive';
+      this.listeners = new Map();
+    }
+
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) || [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    emit(type, payload = {}) {
+      (this.listeners.get(type) || []).forEach((listener) => listener(payload));
+    }
+
+    start() { this.state = 'recording'; }
+    pause() { this.state = 'paused'; }
+    resume() { this.state = 'recording'; }
+    stop() {
+      this.state = 'inactive';
+      queueMicrotask(() => {
+        this.emit('dataavailable', { data: new Blob(['mock-audio'], { type: this.mimeType }) });
+        this.emit('stop');
+      });
+    }
+  }
+
+  const stream = { getTracks: () => [{ stop() {} }] };
+  Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: MockSpeechRecognition });
+  Object.defineProperty(window, 'webkitSpeechRecognition', { configurable: true, value: undefined });
+  Object.defineProperty(window, 'MediaRecorder', { configurable: true, value: MockMediaRecorder });
+  Object.defineProperty(window, 'AudioContext', { configurable: true, value: undefined });
+  Object.defineProperty(window, 'webkitAudioContext', { configurable: true, value: undefined });
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getUserMedia: async () => stream },
+  });
+
+  window.__emitMockTranscript = (text) => {
+    const recognition = MockSpeechRecognition.active;
+    if (!recognition) throw new Error('No active mock recognition session');
+    const result = [{ transcript: text }];
+    result.isFinal = true;
+    recognition.emit('result', { resultIndex: 0, results: [result] });
+  };
+})();`;
+
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 async function waitFor(check, timeout = 12_000, label = 'condition') {
@@ -139,6 +224,7 @@ async function run() {
       client.send('Runtime.enable'),
       client.send('Network.enable'),
     ]);
+    await client.send('Page.addScriptToEvaluateOnNewDocument', { source: browserApiMocks });
 
     await client.send('Emulation.setDeviceMetricsOverride', {
       width: 1440,
@@ -147,20 +233,149 @@ async function run() {
       mobile: false,
     });
     await navigate(client, `${baseUrl}?demo=1`);
-    await evaluate(client, `window.__SCRIBE65__.resetSession(); location.reload()`);
-    try {
-      await waitForExpression(client, `document.body.dataset.source === 'demo' && document.querySelectorAll('.segment-card').length === 4`);
-    } catch (error) {
-      const snapshot = await evaluate(client, `(() => ({
-        source: document.body?.dataset.source,
-        classes: document.body?.className,
-        segments: document.querySelectorAll('.segment-card').length,
-        hasApi: Boolean(window.__SCRIBE65__),
-        text: document.querySelector('#interim-text')?.textContent,
-        storage: localStorage.getItem('scribe65.session.v1')
-      }))()`);
-      throw new Error(`${error.message}\nInitial page snapshot: ${JSON.stringify(snapshot)}\nRuntime errors: ${JSON.stringify(runtimeErrors)}`);
-    }
+    await evaluate(client, `window.__SCRIBE65__.resetSession()`);
+
+    const initial = await evaluate(client, `(() => ({
+      source: document.body.dataset.source,
+      clock: document.querySelector('#recording-clock').textContent,
+      startEnabled: !document.querySelector('#start-button').disabled,
+      restartDisabled: document.querySelector('#restart-button').disabled,
+      demoButtons: document.querySelectorAll('#demo-button, #empty-demo-button').length,
+      emptyCopy: document.querySelector('#empty-state p').textContent.trim()
+    }))()`);
+    assert.equal(initial.source, 'empty');
+    assert.equal(initial.clock, '00:00');
+    assert.equal(initial.startEnabled, true);
+    assert.equal(initial.restartDisabled, true);
+    assert.equal(initial.demoButtons, 0);
+    assert.match(initial.emptyCopy, /00:00/);
+
+    const legacyDemoSession = {
+      version: 1,
+      title: '旧演示稿',
+      language: 'zh-CN',
+      segments: [{ id: 'demo-old', startMs: 0, endMs: 3_000, text: '旧演示内容', source: 'demo' }],
+      updatedAt: new Date().toISOString(),
+    };
+    await evaluate(client, `document.body.dataset.testReload = 'pending'; localStorage.setItem('scribe65.session.v1', ${JSON.stringify(JSON.stringify(legacyDemoSession))}); location.reload()`);
+    await waitForExpression(client, `!document.body.dataset.testReload && document.body.classList.contains('ready')`);
+    assert.equal(await evaluate(client, `document.body.dataset.source`), 'empty');
+    assert.equal(await evaluate(client, `document.querySelectorAll('.segment-card').length`), 0);
+    assert.equal(await evaluate(client, `localStorage.getItem('scribe65.session.v1')`), null);
+
+    await evaluate(client, `document.querySelector('#start-button').click()`);
+    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'listening'`);
+    const firstStart = await evaluate(client, `(() => ({
+      clock: document.querySelector('#recording-clock').textContent,
+      durationMs: window.__SCRIBE65__.getSnapshot().durationMs,
+      startDisabled: document.querySelector('#start-button').disabled,
+      restartDisabled: document.querySelector('#restart-button').disabled
+    }))()`);
+    assert.equal(firstStart.clock, '00:00');
+    assert.equal(firstStart.durationMs, 0);
+    assert.equal(firstStart.startDisabled, true);
+    assert.equal(firstStart.restartDisabled, true);
+
+    await evaluate(client, `window.__emitMockTranscript('第一轮听写从零秒开始。')`);
+    await waitForExpression(client, `document.querySelectorAll('.segment-card').length === 1`);
+    assert.equal(await evaluate(client, `document.querySelector('.segment-card time').textContent`), '00:00');
+    await evaluate(client, `document.querySelector('#stop-button').click()`);
+    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'idle' && !document.querySelector('#playback-rack').hidden`);
+
+    const playback = await evaluate(client, `(() => ({
+      hasAudio: window.__SCRIBE65__.getSnapshot().hasAudio,
+      downloadEnabled: !document.querySelector('#download-audio').disabled,
+      deleteLabel: document.querySelector('#delete-audio').textContent.trim(),
+      startDisabled: document.querySelector('#start-button').disabled,
+      restartEnabled: !document.querySelector('#restart-button').disabled
+    }))()`);
+    assert.equal(playback.hasAudio, true);
+    assert.equal(playback.downloadEnabled, true);
+    assert.equal(playback.deleteLabel, '删除录音');
+    assert.equal(playback.startDisabled, true);
+    assert.equal(playback.restartEnabled, true);
+
+    await evaluate(client, `document.querySelector('#playback-rack').scrollIntoView({ block: 'center' })`);
+    await sleep(3_000);
+    await screenshot(client, 'app65-desktop-cdp.png');
+    await evaluate(client, `document.querySelector('#delete-audio').click()`);
+    const deletedPlayback = await evaluate(client, `(() => ({
+      hidden: document.querySelector('#playback-rack').hidden,
+      hasAudio: window.__SCRIBE65__.getSnapshot().hasAudio,
+      src: document.querySelector('#audio-player').getAttribute('src')
+    }))()`);
+    assert.deepEqual(deletedPlayback, { hidden: true, hasAudio: false, src: null });
+
+    const restoredSession = {
+      version: 1,
+      title: '需要重录的访谈',
+      language: 'zh-CN',
+      segments: [
+        { id: 'old-01', startMs: 65_000, endMs: 71_500, text: '这是一段旧的听写内容。', source: 'speech' },
+      ],
+      updatedAt: new Date().toISOString(),
+    };
+    await evaluate(client, `window.__SCRIBE65__.resetSession(); localStorage.setItem('scribe65.session.v1', ${JSON.stringify(JSON.stringify(restoredSession))}); location.reload()`);
+    await waitForExpression(client, `document.body.dataset.source === 'restored' && document.querySelectorAll('.segment-card').length === 1`);
+    assert.equal(await evaluate(client, `document.querySelector('#recording-clock').textContent`), '01:11');
+    assert.equal(await evaluate(client, `document.querySelector('#start-button').disabled`), true);
+    assert.equal(await evaluate(client, `document.querySelector('#restart-button').disabled`), false);
+
+    await evaluate(client, `document.querySelector('#restart-button').click()`);
+    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'listening' && document.querySelectorAll('.segment-card').length === 0`);
+    const restarted = await evaluate(client, `(() => ({
+      clock: document.querySelector('#recording-clock').textContent,
+      durationMs: window.__SCRIBE65__.getSnapshot().durationMs,
+      title: document.querySelector('#session-title').value,
+      storedSegments: JSON.parse(localStorage.getItem('scribe65.session.v1')).segments.length
+    }))()`);
+    assert.deepEqual(restarted, {
+      clock: '00:00',
+      durationMs: 0,
+      title: '需要重录的访谈',
+      storedSegments: 0,
+    });
+
+    await evaluate(client, `window.__emitMockTranscript('重新听写后的第一句。')`);
+    await waitForExpression(client, `document.querySelectorAll('.segment-card').length === 1`);
+    await evaluate(client, `document.querySelector('#stop-button').click()`);
+    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'idle' && !document.querySelector('#playback-rack').hidden`);
+    assert.equal(await evaluate(client, `window.__SCRIBE65__.getSnapshot().session.segments[0].startMs`), 0);
+    assert.equal(await evaluate(client, `document.querySelector('.segment-card time').textContent`), '00:00');
+
+    await evaluate(client, `(() => {
+      const textarea = document.querySelector('.segment-card textarea');
+      textarea.value = '这是已经校对过的重新听写内容。';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('blur', { bubbles: true }));
+      const search = document.querySelector('#search-input');
+      search.value = '校对';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    assert.equal(await evaluate(client, `[...document.querySelectorAll('.segment-card')].filter((card) => !card.hidden).length`), 1);
+    await waitForExpression(client, `JSON.parse(localStorage.getItem('scribe65.session.v1')).segments[0].text.includes('校对')`);
+
+    await evaluate(client, `document.querySelector('#new-session-button').click()`);
+    assert.equal(await evaluate(client, `document.querySelector('#reset-dialog').open`), true);
+    await evaluate(client, `document.querySelector('#confirm-reset').click()`);
+    await waitForExpression(client, `document.body.dataset.source === 'empty' && document.querySelectorAll('.segment-card').length === 0`);
+    assert.equal(await evaluate(client, `localStorage.getItem('scribe65.session.v1')`), null);
+
+    const showcaseSession = {
+      version: 1,
+      title: '产品访谈 · 现场记录',
+      language: 'zh-CN',
+      segments: [
+        { id: 'line-01', startMs: 0, endMs: 6_500, text: '欢迎来到 SCRIBE，我们从零秒开始记录这次访谈。', source: 'speech' },
+        { id: 'line-02', startMs: 8_400, endMs: 17_100, text: '每一句话都有与本轮录音一致的时间码，方便快速校对。', source: 'speech' },
+        { id: 'line-03', startMs: 20_100, endMs: 31_100, text: '需要重录时，重新听写会清空旧内容并回到零秒。', source: 'speech' },
+        { id: 'line-04', startMs: 34_500, endMs: 46_800, text: '整理完成后，可以复制全文或导出 TXT 与 SRT。', source: 'speech' },
+      ],
+      updatedAt: new Date().toISOString(),
+    };
+    await evaluate(client, `localStorage.setItem('scribe65.session.v1', ${JSON.stringify(JSON.stringify(showcaseSession))}); location.reload()`);
+    await waitForExpression(client, `document.body.dataset.source === 'restored' && document.querySelectorAll('.segment-card').length === 4`);
 
     const desktop = await evaluate(client, `(() => ({
       source: document.body.dataset.source,
@@ -169,55 +384,21 @@ async function run() {
       h1: document.querySelectorAll('h1').length,
       ready: document.body.classList.contains('ready'),
       engine: document.querySelector('#engine-label').textContent.trim(),
+      restartEnabled: !document.querySelector('#restart-button').disabled,
       exportEnabled: [...document.querySelectorAll('.export-actions button')].every((button) => !button.disabled),
+      demoButtons: document.querySelectorAll('#demo-button, #empty-demo-button').length,
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth
     }))()`);
-    assert.equal(desktop.source, 'demo');
+    assert.equal(desktop.source, 'restored');
     assert.equal(desktop.segments, 4);
-    assert.equal(desktop.title, '产品访谈 · 演示');
+    assert.equal(desktop.title, '产品访谈 · 现场记录');
     assert.equal(desktop.h1, 1);
     assert.equal(desktop.ready, true);
+    assert.equal(desktop.restartEnabled, true);
     assert.equal(desktop.exportEnabled, true);
+    assert.equal(desktop.demoButtons, 0);
     assert.equal(desktop.scrollWidth, desktop.clientWidth);
-
-    await evaluate(client, `(() => {
-      const textarea = document.querySelector('.segment-card textarea');
-      textarea.value = '这是已经校对过的第一段。';
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      textarea.dispatchEvent(new Event('blur', { bubbles: true }));
-      return true;
-    })()`);
-    await evaluate(client, `(() => {
-      const search = document.querySelector('#search-input');
-      search.value = '字幕';
-      search.dispatchEvent(new Event('input', { bubbles: true }));
-      return true;
-    })()`);
-    assert.equal(await evaluate(client, `[...document.querySelectorAll('.segment-card')].filter((card) => !card.hidden).length`), 1);
-    await evaluate(client, `(() => {
-      const search = document.querySelector('#search-input');
-      search.value = '';
-      search.dispatchEvent(new Event('input', { bubbles: true }));
-      [...document.querySelectorAll('.delete-segment')].at(-1).click();
-      return true;
-    })()`);
-    assert.equal(await evaluate(client, `document.querySelectorAll('.segment-card').length`), 3);
-    await waitForExpression(client, `JSON.parse(localStorage.getItem('scribe65.session.v1')).segments.length === 3`);
-
-    await navigate(client, baseUrl);
-    await waitForExpression(client, `document.body.dataset.source === 'restored' && document.querySelectorAll('.segment-card').length === 3`);
-    assert.equal(await evaluate(client, `document.querySelector('.segment-card textarea').value`), '这是已经校对过的第一段。');
-
-    await evaluate(client, `document.querySelector('#new-session-button').click()`);
-    assert.equal(await evaluate(client, `document.querySelector('#reset-dialog').open`), true);
-    await evaluate(client, `document.querySelector('#confirm-reset').click()`);
-    await waitForExpression(client, `document.body.dataset.source === 'empty' && document.querySelectorAll('.segment-card').length === 0`);
-    assert.equal(await evaluate(client, `localStorage.getItem('scribe65.session.v1')`), null);
-    await evaluate(client, `document.querySelector('#demo-button').click()`);
-    await waitForExpression(client, `document.body.dataset.source === 'demo' && document.querySelectorAll('.segment-card').length === 4`);
-    await sleep(3000);
-    await screenshot(client, 'app65-desktop-cdp.png');
 
     await client.send('Emulation.setDeviceMetricsOverride', {
       width: 390,
@@ -227,9 +408,8 @@ async function run() {
       screenWidth: 390,
       screenHeight: 844,
     });
-    await navigate(client, `${baseUrl}?demo=1`);
-    await evaluate(client, `window.__SCRIBE65__.resetSession(); location.reload()`);
-    await waitForExpression(client, `document.body.dataset.source === 'demo' && document.querySelectorAll('.segment-card').length === 4`);
+    await navigate(client, baseUrl);
+    await waitForExpression(client, `document.body.dataset.source === 'restored' && document.querySelectorAll('.segment-card').length === 4`);
 
     const mobile = await evaluate(client, `(() => {
       const controls = [...document.querySelectorAll('.transport-button, .file-button, .new-button, .export-actions button')].map((button) => {
@@ -241,14 +421,16 @@ async function run() {
       return {
         source: document.body.dataset.source,
         segments: document.querySelectorAll('.segment-card').length,
+        restartEnabled: !document.querySelector('#restart-button').disabled,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
         stacked: transcriptBox.top >= consoleBox.bottom - 1,
         controls
       };
     })()`);
-    assert.equal(mobile.source, 'demo');
+    assert.equal(mobile.source, 'restored');
     assert.equal(mobile.segments, 4);
+    assert.equal(mobile.restartEnabled, true);
     assert.equal(mobile.scrollWidth, 390);
     assert.equal(mobile.clientWidth, 390);
     assert.equal(mobile.stacked, true);
@@ -256,11 +438,12 @@ async function run() {
       assert.ok(box.left >= 0 && box.right <= 390, `Control outside viewport: ${JSON.stringify(box)}`);
       assert.ok(box.height >= 44, `Control too short: ${JSON.stringify(box)}`);
     });
-    await sleep(3000);
+    await evaluate(client, `document.querySelector('.transport').scrollIntoView({ block: 'center' })`);
+    await sleep(200);
     await screenshot(client, 'app65-mobile-cdp.png');
 
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ desktop, mobile, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ initial, firstStart, playback, restarted, desktop, mobile, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

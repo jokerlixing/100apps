@@ -50,7 +50,7 @@ test('app 065 is published and included in the official completion state', () =>
   const app65 = ideas[64];
 
   assert.equal(app65[0], 'AI语音转文字');
-  assert.match(app65[1], /^SCRIBE\/65/);
+  assert.equal(app65[1], 'SCRIBE/65：00:00重新听写+可删除本地录音+逐段校对+TXT/SRT导出');
   assert.equal(app65[3], 'https://jokerlixing.github.io/100apps/apps/065-ai-transcriber/');
   assert.equal(doneIds.has(65), true, 'INIT_DONE must mark app 065 as done');
 });

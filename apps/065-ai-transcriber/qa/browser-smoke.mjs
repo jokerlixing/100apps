@@ -232,6 +232,19 @@ async function run() {
       deviceScaleFactor: 1,
       mobile: false,
     });
+    await client.send('Network.setBlockedURLs', { urls: ['*transcript-core.js*', '*app.js*'] });
+    await client.send('Page.navigate', { url: `${baseUrl}?scripts-blocked=1` });
+    await waitForExpression(client, `document.readyState === 'complete'`);
+    const failOpen = await evaluate(client, `(() => {
+      const heading = document.querySelector('#page-title');
+      return {
+        bodyOpacity: getComputedStyle(document.body).opacity,
+        headingVisible: Boolean(heading && heading.getBoundingClientRect().height > 0),
+        ready: document.body.classList.contains('ready')
+      };
+    })()`);
+    assert.deepEqual(failOpen, { bodyOpacity: '1', headingVisible: true, ready: false });
+    await client.send('Network.setBlockedURLs', { urls: [] });
     await navigate(client, `${baseUrl}?demo=1`);
     await evaluate(client, `window.__SCRIBE65__.resetSession()`);
 
@@ -241,6 +254,8 @@ async function run() {
       startEnabled: !document.querySelector('#start-button').disabled,
       restartDisabled: document.querySelector('#restart-button').disabled,
       demoButtons: document.querySelectorAll('#demo-button, #empty-demo-button').length,
+      versionedAssets: [...document.querySelectorAll('link[rel="stylesheet"], script[src]')]
+        .every((asset) => new URL(asset.href || asset.src).searchParams.get('v') === '20260904-2'),
       emptyCopy: document.querySelector('#empty-state p').textContent.trim()
     }))()`);
     assert.equal(initial.source, 'empty');
@@ -248,6 +263,7 @@ async function run() {
     assert.equal(initial.startEnabled, true);
     assert.equal(initial.restartDisabled, true);
     assert.equal(initial.demoButtons, 0);
+    assert.equal(initial.versionedAssets, true);
     assert.match(initial.emptyCopy, /00:00/);
 
     const legacyDemoSession = {
@@ -443,7 +459,7 @@ async function run() {
     await screenshot(client, 'app65-mobile-cdp.png');
 
     assert.deepEqual(runtimeErrors, []);
-    console.log(JSON.stringify({ initial, firstStart, playback, restarted, desktop, mobile, runtimeErrors, outputDir }, null, 2));
+    console.log(JSON.stringify({ failOpen, initial, firstStart, playback, restarted, desktop, mobile, runtimeErrors, outputDir }, null, 2));
     await client.send('Browser.close');
   } finally {
     if (client) client.close();

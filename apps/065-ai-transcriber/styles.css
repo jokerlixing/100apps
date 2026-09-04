@@ -34,11 +34,7 @@ body {
     var(--paper);
   background-size: 100% 28px;
   font-family: var(--body);
-  opacity: 0;
-  transition: opacity .25s ease;
 }
-
-body.ready { opacity: 1; }
 
 button, input, select, textarea { font: inherit; }
 button, select, input[type="file"] { cursor: pointer; }

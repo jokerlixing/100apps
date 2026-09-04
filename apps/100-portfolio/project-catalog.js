@@ -171,7 +171,7 @@ window.PORTFOLIO_CATALOG = Object.freeze([
   ],
   [
     "汇率换算器",
-    "接入实时汇率API，多币种互转",
+    "最新参考汇率+双源容错+离线缓存",
     2,
     "https://jokerlixing.github.io/100apps/apps/025-currency-exchange/",
     "done"

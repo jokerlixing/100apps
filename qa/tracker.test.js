@@ -1098,3 +1098,14 @@ test('official completion state migrates a stale app 081 cache entry', () => {
   assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/081-live-danmaku/');
   assert.equal(context.result.didSave, true);
 });
+
+test('app 025 describes its reference-rate data accurately and remains published', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app25 = ideas[24];
+
+  assert.equal(app25[0], '汇率换算器');
+  assert.equal(app25[1], '最新参考汇率+双源容错+离线缓存');
+  assert.equal(app25[3], 'https://jokerlixing.github.io/100apps/apps/025-currency-exchange/');
+  assert.equal(doneIds.has(25), true, 'INIT_DONE must mark app 025 as done');
+});

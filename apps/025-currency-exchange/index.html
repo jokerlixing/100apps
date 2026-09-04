@@ -68,6 +68,7 @@ tr.hit td{background:rgba(229,181,103,.05)}
 
 footer{text-align:center;color:var(--dim);font-size:11px;margin-top:16px;line-height:1.8;letter-spacing:1px}
 footer b{color:var(--gold)}
+footer a{color:var(--muted);text-underline-offset:2px}
 .loading{text-align:center;padding:30px;color:var(--dim);font-size:13px}
 
 @media(max-width:480px){
@@ -82,7 +83,7 @@ footer b{color:var(--gold)}
 <div class="app">
   <header>
     <h1>汇率换算器</h1>
-    <div class="sub">实时汇率 · 多币种互转 · 离线缓存</div>
+    <div class="sub">最新参考汇率 · 多币种互转 · 离线缓存</div>
   </header>
 
   <div class="ex-card">
@@ -101,7 +102,7 @@ footer b{color:var(--gold)}
         <select class="curr-sel" id="toCur" onchange="convert()"></select>
       </div>
     </div>
-    <div class="rate-line" id="rateLine"><span id="rlMain">加载汇率中…</span><br><span style="font-size:10px;color:var(--dim)" id="rlSub">&nbsp;</span></div>
+    <div class="rate-line" id="rateLine" aria-live="polite"><span id="rlMain">加载汇率中…</span><br><span style="font-size:10px;color:var(--dim)" id="rlSub">&nbsp;</span></div>
     <div class="quick" id="quick"></div>
   </div>
 
@@ -109,28 +110,32 @@ footer b{color:var(--gold)}
     <h3>📊 汇率速查表（随左上基准币联动） <span id="updTime"></span></h3>
     <div id="rateTable"><div class="loading">加载中…</div></div>
     <div class="refresh-row">
-      <button class="btn ghost" onclick="loadRates(true)">↻ 刷新汇率</button>
+      <button class="btn ghost" type="button" onclick="loadRates(true)">↻ 获取最新汇率</button>
     </div>
   </div>
 
-  <footer>100 Apps Challenge · App #025 · <b>汇率交叉计算</b>：任两币种经基准币换算<br>数据 open.er-api.com（每日更新，免费无密钥）· 本地缓存离线可用</footer>
+  <footer>100 Apps Challenge · App #025 · <b>汇率交叉计算</b>：任两币种经基准币换算<br>数据：<a href="https://frankfurter.dev/" target="_blank" rel="noreferrer">Frankfurter</a> 多央行最新参考汇率 · <a href="https://www.exchangerate-api.com/" target="_blank" rel="noreferrer">ExchangeRate-API</a> 自动备用 · 本地缓存离线可用</footer>
 </div>
 
+<script src="./exchange-core.js"></script>
 <script>
 /* ============================================================
-   新知识点：汇率交叉计算 + 数据缓存策略
-   - API 返回以某币为基准的汇率表 rates{USD:0.14,...}
+   新知识点：汇率交叉计算 + 双源容错 + 数据缓存策略
+   - 主源 Frankfurter 聚合多家央行的每日参考汇率
+   - 备用源 ExchangeRate-API 提供每日综合中间价
    - 任两币种换算：amount × (rates[to] / rates[from])
      ——只需一份基准表即可全币种互转（交叉汇率）
-   - 缓存策略：成功数据存 localStorage（含时间戳）
-     12h 内直接用缓存；超时或首次才请求 API
+   - 缓存策略：成功数据存 localStorage（含数据时间与来源）
+     6h 内直接用缓存；超时或首次才请求 API
      → 离线也能换算（显示"缓存数据"标识）
    ============================================================ */
 const $=id=>document.getElementById(id);
-const KEY="fx_rates_v1";
-const CACHE_H=12;   /* 缓存12小时 */
+const Core=window.CurrencyExchangeCore;
+const KEY="fx_rates_v2";
+const CACHE_H=6;
+const FETCH_TIMEOUT_MS=8000;
 
-/* 币种表（open.er-api 支持的常用币） */
+/* 币种表（两个数据源共同覆盖的常用币） */
 const CURRENCIES=[
   {c:"CNY",n:"人民币",f:"🇨🇳"},
   {c:"USD",n:"美元",f:"🇺🇸"},
@@ -146,72 +151,106 @@ const CURRENCIES=[
   {c:"MYR",n:"林吉特",f:"🇲🇾"},
   {c:"CHF",n:"瑞士法郎",f:"🇨🇭"},
   {c:"RUB",n:"卢布",f:"🇷🇺"},
-  {c:"TWD",n:"新台币",f:"🇨🇳"},
+  {c:"TWD",n:"新台币",f:"🇹🇼"},
   {c:"VND",n:"越南盾",f:"🇻🇳"},
 ];
 const QUICK=[100,500,1000,5000,10000];
+const REQUIRED_CODES=CURRENCIES.map(currency=>currency.c);
+const QUOTES=REQUIRED_CODES.filter(code=>code!=="CNY").join(",");
+const PROVIDERS=[
+  {
+    url:`https://api.frankfurter.dev/v2/rates?base=CNY&quotes=${QUOTES}`,
+    parse:data=>Core.normalizeFrankfurter(data,REQUIRED_CODES),
+  },
+  {
+    url:"https://open.er-api.com/v6/latest/CNY",
+    parse:data=>Core.normalizeExchangeRateApi(data,REQUIRED_CODES),
+  },
+];
 
-let rates=null,updAt=0,fromCache=false;
+let rates=null,snapshot=null,fromCache=false,usedFallback=false,lastResultValue=0;
+
+function readCache(){
+  try{return JSON.parse(localStorage.getItem(KEY))}catch(_){return null}
+}
+function saveCache(data){
+  try{localStorage.setItem(KEY,JSON.stringify(data))}catch(_){}
+}
+async function fetchJson(url){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),FETCH_TIMEOUT_MS);
+  try{
+    const response=await fetch(url,{cache:"no-store",signal:controller.signal});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  }finally{clearTimeout(timer)}
+}
+function useSnapshot(data,{cached=false,fallback=false}={}){
+  snapshot=data;rates=data.rates;fromCache=cached;usedFallback=fallback;
+  boot();
+}
 
 /* ---------- 汇率加载（缓存优先） ---------- */
 async function loadRates(force){
-  /* 先试缓存 */
+  const cached=readCache();
   if(!force){
-    try{
-      const s=JSON.parse(localStorage.getItem(KEY));
-      if(s&&Date.now()-s.t<CACHE_H*3600000){
-        rates=s.rates;updAt=s.t;fromCache=true;
-        boot();return;
-      }
-    }catch(e){}
+    if(Core.isFreshSnapshot(cached,CACHE_H*3600000,Date.now(),REQUIRED_CODES)){
+      useSnapshot(cached,{cached:true});return;
+    }
   }
-  $("rlMain").textContent="正在获取实时汇率…";
+  $("rlMain").textContent="正在获取最新参考汇率…";
   $("rlSub").innerHTML="&nbsp;";
-  try{
-    const r=await fetch("https://open.er-api.com/v6/latest/CNY");
-    const d=await r.json();
-    if(d.result!=="success")throw new Error(d["error-type"]||"API错误");
-    rates=d.rates;
-    updAt=Date.now();
-    fromCache=false;
-    try{localStorage.setItem(KEY,JSON.stringify({t:updAt,rates}))}catch(e){}
-  }catch(e){
-    /* 失败回落：过期缓存也比没有强 */
+  for(let index=0;index<PROVIDERS.length;index++){
     try{
-      const s=JSON.parse(localStorage.getItem(KEY));
-      if(s){rates=s.rates;updAt=s.t;fromCache=true}
-      else{$("rlMain").textContent="汇率加载失败，请检查网络";return}
-    }catch(e2){$("rlMain").textContent="汇率加载失败";return}
+      const data=PROVIDERS[index].parse(await fetchJson(PROVIDERS[index].url));
+      const saved={...data,savedAt:Date.now()};
+      saveCache(saved);
+      useSnapshot(saved,{fallback:index>0});return;
+    }catch(error){console.warn("汇率数据源不可用",error)}
   }
-  boot();
+  /* 联网失败时允许使用过期缓存，但明确标记为缓存。 */
+  if(Core.isUsableSnapshot(cached,REQUIRED_CODES)){
+    useSnapshot(cached,{cached:true});return;
+  }
+  $("rlMain").textContent="汇率加载失败";
+  $("rlSub").textContent="请稍后重试，或检查网络连接";
 }
 
 /* ---------- 换算 ---------- */
 function fx(from,to,amt){
-  /* CNY 基准表：rates[X] = 1 CNY 兑 X */
-  const rFrom=from==="CNY"?1:rates[from];
-  const rTo=to==="CNY"?1:rates[to];
-  return amt/rFrom*rTo;
+  return Core.convertAmount(rates,from,to,amt);
 }
 function convert(){
   if(!rates)return;
-  const amt=parseFloat($("amount").value)||0;
+  const parsed=Number($("amount").value.replace(/[,\s]/g,""));
+  const amt=Number.isFinite(parsed)?parsed:0;
   const from=$("fromCur").value,to=$("toCur").value;
   const out=fx(from,to,amt);
-  /* 大数缩写 */
+  lastResultValue=out;
   $("result").value=fmtNum(out);
   const unit=fx(from,to,1);
   /* 定点更新两个 span，结构永不变 */
-  $("rlMain").innerHTML=`1 <b>${from}</b> = <b>${unit.toFixed(4)}</b> ${to}`;
-  $("rlSub").textContent=(fromCache?"📦 缓存数据":"🟢 实时")+" · 更新于 "+new Date(updAt).toLocaleString("zh-CN");
+  $("rlMain").innerHTML=`1 <b>${from}</b> = <b>${fmtRate(unit)}</b> ${to}`;
+  const dataTime=snapshot.precision==="date"
+    ?`数据日期 ${snapshot.dataDate}`
+    :`更新于 ${new Date(snapshot.dataAt).toLocaleString("zh-CN",{hour12:false})}`;
+  const state=fromCache?"📦 缓存":usedFallback?"🟡 备用源":"🟢 已联网";
+  $("rlSub").textContent=`${state} · ${dataTime} · ${snapshot.source.name}`;
   renderQuickActive();
   renderTable(from);
 }
 function fmtNum(n){
-  if(n>=1e8)return (n/1e8).toFixed(2)+" 亿";
-  if(n>=1e4)return (n/1e4).toFixed(2)+" 万";
-  if(n>=1)return n.toLocaleString("zh-CN",{maximumFractionDigits:2});
-  return n.toFixed(4);
+  const abs=Math.abs(n);
+  const digits=abs>=1000?2:abs>=1?4:8;
+  return n.toLocaleString("zh-CN",{maximumFractionDigits:digits});
+}
+function fmtRate(n){
+  const abs=Math.abs(n);
+  const digits=abs>=100?2:abs>=1?4:abs>=.01?6:8;
+  return n.toLocaleString("zh-CN",{maximumFractionDigits:digits});
+}
+function fmtInput(n){
+  return n.toLocaleString("en-US",{useGrouping:false,maximumFractionDigits:8});
 }
 
 /* ---------- 渲染 ---------- */
@@ -239,15 +278,15 @@ function renderQuickActive(){
 function swap(){
   const f=$("fromCur").value,t=$("toCur").value;
   $("fromCur").value=t;$("toCur").value=f;
-  /* 金额和结果也交换 */
-  const r=$("result").value.replace(/[ 万亿]/g,"");
-  if(r&&!isNaN(+r))$("amount").value=r;
+  /* 使用未缩写、未舍入的原始结果，避免“万/亿”或千分位导致换回金额失真。 */
+  if(Number.isFinite(lastResultValue))$("amount").value=fmtInput(lastResultValue);
   convert();
 }
 const RATE_LIST=["USD","EUR","JPY","HKD","GBP","KRW","SGD","AUD"];
 let tableDomInited=false;
 function renderTable(base){
-  $("updTime").textContent="基准 "+base+" · "+(fromCache?"缓存":"实时");
+  const state=fromCache?"缓存":usedFallback?"备用源":"最新";
+  $("updTime").textContent=`基准 ${base} · ${state} · ${snapshot.source.name}`;
   if(!tableDomInited){
     /* 骨架只建一次：固定行结构 + 独立 id，之后仅更新文本 */
     $("rateTable").innerHTML=`<table>`+RATE_LIST.map((c,i)=>{
@@ -267,8 +306,8 @@ function renderTable(base){
     const valEl=document.getElementById("rt-val-"+i);
     const revEl=document.getElementById("rt-rev-"+i);
     /* 定宽占位防数字变化引起的列宽跳动 */
-    valEl.textContent=v.toFixed(v<1?4:2);
-    revEl.textContent=`1 ${c} = ${rev.toFixed(rev<1?4:2)} ${base}`;
+    valEl.textContent=fmtRate(v);
+    revEl.textContent=`1 ${c} = ${fmtRate(rev)} ${base}`;
     document.getElementById("rt-row-"+i).className=base===c?"hit":"";
   });
 }

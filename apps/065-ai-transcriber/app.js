@@ -70,6 +70,7 @@
     waveformFrame: 0,
     activeStartedAt: 0,
     pendingSegmentStart: 0,
+    currentTakeLastEndMs: 0,
     audioUrl: '',
     audioIsRecording: false,
     generation: 0,
@@ -312,6 +313,7 @@
     if (!record) return;
     state.session.segments = Core.normalizeSegments([...state.session.segments, record]);
     state.pendingSegmentStart = record.endMs;
+    state.currentTakeLastEndMs = record.endMs;
     renderSegments();
     renderMetrics();
     schedulePersist();
@@ -334,7 +336,7 @@
         if (result.isFinal) {
           const end = currentElapsedMs();
           const estimatedDuration = Math.max(700, Math.min(8000, phrase.length * 180));
-          const previousEnd = state.session.segments.at(-1)?.endMs || 0;
+          const previousEnd = state.currentTakeLastEndMs;
           const start = Math.max(previousEnd, Math.min(state.pendingSegmentStart, end - estimatedDuration));
           appendFinalPhrase(phrase, 'speech', Math.max(0, start), end);
         } else {
@@ -442,7 +444,7 @@
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
         video: false,
       });
-      if (fresh) clearCurrentTake();
+      if (fresh) clearCurrentTake({ preserveSegments: true });
       state.generation += 1;
       state.stream = stream;
       state.mode = 'listening';
@@ -651,16 +653,18 @@
 
   function clearCurrentTake(options = {}) {
     state.generation += 1;
+    const segments = options.preserveSegments ? state.session.segments : [];
     state.session = options.resetMetadata
       ? Core.sanitizeSession(null)
       : Core.sanitizeSession({
         title: state.session.title,
         language: state.session.language,
-        segments: [],
+        segments,
         updatedAt: new Date().toISOString(),
       });
     state.durationMs = 0;
     state.pendingSegmentStart = 0;
+    state.currentTakeLastEndMs = 0;
     state.activeStartedAt = 0;
     state.recorder = null;
     state.recorderChunks = [];
@@ -677,7 +681,7 @@
     renderSegments();
     renderMetrics();
     updateClock();
-    document.body.dataset.source = 'empty';
+    document.body.dataset.source = state.session.segments.length > 0 ? 'restored' : 'empty';
     if (options.removeStoredSession) {
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
     } else {

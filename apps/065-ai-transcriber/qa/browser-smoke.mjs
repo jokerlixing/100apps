@@ -255,7 +255,7 @@ async function run() {
       restartDisabled: document.querySelector('#restart-button').disabled,
       demoButtons: document.querySelectorAll('#demo-button, #empty-demo-button').length,
       versionedAssets: [...document.querySelectorAll('link[rel="stylesheet"], script[src]')]
-        .every((asset) => new URL(asset.href || asset.src).searchParams.get('v') === '20260904-2'),
+        .every((asset) => new URL(asset.href || asset.src).searchParams.get('v') === '20260904-3'),
       emptyCopy: document.querySelector('#empty-state p').textContent.trim()
     }))()`);
     assert.equal(initial.source, 'empty');
@@ -338,25 +338,30 @@ async function run() {
     assert.equal(await evaluate(client, `document.querySelector('#restart-button').disabled`), false);
 
     await evaluate(client, `document.querySelector('#restart-button').click()`);
-    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'listening' && document.querySelectorAll('.segment-card').length === 0`);
+    await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'listening' && document.querySelectorAll('.segment-card').length === 1`);
     const restarted = await evaluate(client, `(() => ({
       clock: document.querySelector('#recording-clock').textContent,
       durationMs: window.__SCRIBE65__.getSnapshot().durationMs,
       title: document.querySelector('#session-title').value,
-      storedSegments: JSON.parse(localStorage.getItem('scribe65.session.v1')).segments.length
+      storedSegments: JSON.parse(localStorage.getItem('scribe65.session.v1')).segments.length,
+      preservedText: window.__SCRIBE65__.getSnapshot().session.segments[0].text
     }))()`);
     assert.deepEqual(restarted, {
       clock: '00:00',
       durationMs: 0,
       title: '需要重录的访谈',
-      storedSegments: 0,
+      storedSegments: 1,
+      preservedText: '这是一段旧的听写内容。',
     });
 
     await evaluate(client, `window.__emitMockTranscript('重新听写后的第一句。')`);
-    await waitForExpression(client, `document.querySelectorAll('.segment-card').length === 1`);
+    await waitForExpression(client, `document.querySelectorAll('.segment-card').length === 2`);
     await evaluate(client, `document.querySelector('#stop-button').click()`);
     await waitForExpression(client, `window.__SCRIBE65__.getSnapshot().mode === 'idle' && !document.querySelector('#playback-rack').hidden`);
-    assert.equal(await evaluate(client, `window.__SCRIBE65__.getSnapshot().session.segments[0].startMs`), 0);
+    const restartedSegments = await evaluate(client, `window.__SCRIBE65__.getSnapshot().session.segments`);
+    assert.equal(restartedSegments.length, 2);
+    assert.equal(restartedSegments.some((segment) => segment.text === '这是一段旧的听写内容。'), true);
+    assert.equal(restartedSegments.find((segment) => segment.text === '重新听写后的第一句。').startMs, 0);
     assert.equal(await evaluate(client, `document.querySelector('.segment-card time').textContent`), '00:00');
 
     await evaluate(client, `(() => {
@@ -385,7 +390,7 @@ async function run() {
       segments: [
         { id: 'line-01', startMs: 0, endMs: 6_500, text: '欢迎来到 SCRIBE，我们从零秒开始记录这次访谈。', source: 'speech' },
         { id: 'line-02', startMs: 8_400, endMs: 17_100, text: '每一句话都有与本轮录音一致的时间码，方便快速校对。', source: 'speech' },
-        { id: 'line-03', startMs: 20_100, endMs: 31_100, text: '需要重录时，重新听写会清空旧内容并回到零秒。', source: 'speech' },
+        { id: 'line-03', startMs: 20_100, endMs: 31_100, text: '需要重录时，重新听写会保留稿纸并把新录音回到零秒。', source: 'speech' },
         { id: 'line-04', startMs: 34_500, endMs: 46_800, text: '整理完成后，可以复制全文或导出 TXT 与 SRT。', source: 'speech' },
       ],
       updatedAt: new Date().toISOString(),

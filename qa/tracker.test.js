@@ -18,6 +18,17 @@ function extractOfficialDoneIds() {
   return new Set([...match[1].matchAll(/(\d+):"done"/g)].map((entry) => Number(entry[1])));
 }
 
+test('app 047 describes its reference preview and remains published', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app47 = ideas[46];
+
+  assert.equal(app47[0], '拼图小游戏');
+  assert.equal(app47[1], 'SHIFT/47：全图拖拽交换+本地图片+计时纪录+棋盘下方按住对照');
+  assert.equal(app47[3], 'https://jokerlixing.github.io/100apps/apps/047-sliding-puzzle/');
+  assert.equal(doneIds.has(47), true, 'INIT_DONE must mark app 047 as done');
+});
+
 test('published apps 061 and 063 are included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

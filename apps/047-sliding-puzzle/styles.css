@@ -552,8 +552,19 @@ legend,
 }
 
 .preview-button {
+  display: block;
+  width: min(100%, 670px);
+  margin: 14px auto 0;
   background: var(--lcd);
   color: var(--ink);
+  touch-action: none;
+}
+
+.preview-button,
+.preview-button * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .preview-button span {

@@ -555,11 +555,20 @@
   });
 
   elements.previewButton.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
     event.preventDefault();
+    elements.previewButton.setPointerCapture?.(event.pointerId);
     setPreview(true);
   });
+  elements.previewButton.addEventListener("contextmenu", event => event.preventDefault());
+  elements.previewButton.addEventListener("selectstart", event => event.preventDefault());
+  elements.previewButton.addEventListener("lostpointercapture", () => setPreview(false));
   window.addEventListener("pointerup", () => setPreview(false));
   window.addEventListener("pointercancel", () => setPreview(false));
+  window.addEventListener("blur", () => setPreview(false));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) setPreview(false);
+  });
   elements.previewButton.addEventListener("keydown", event => {
     if (event.key !== " " && event.key !== "Enter") return;
     event.preventDefault();

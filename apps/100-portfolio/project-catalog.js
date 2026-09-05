@@ -325,7 +325,7 @@ window.PORTFOLIO_CATALOG = Object.freeze([
   ],
   [
     "拼图小游戏",
-    "SHIFT/47：全图拖拽交换+本地图片+计时纪录+棋盘下方按住对照",
+    "SHIFT/47：轻量图片快速加载+拖拽交换+本地图片+计时纪录+按住对照",
     3,
     "https://jokerlixing.github.io/100apps/apps/047-sliding-puzzle/",
     "done"

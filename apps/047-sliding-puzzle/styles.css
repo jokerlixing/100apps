@@ -257,6 +257,7 @@ a:focus-visible {
   border: 0;
   border-radius: 2px;
   background-color: var(--lcd);
+  background-image: var(--puzzle-image);
   background-repeat: no-repeat;
   cursor: grab;
   transition:
@@ -350,6 +351,7 @@ a:focus-visible {
   inset: 0;
   pointer-events: none;
   background-color: var(--lcd);
+  background-image: var(--puzzle-image);
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;

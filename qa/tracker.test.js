@@ -24,7 +24,7 @@ test('app 047 describes its reference preview and remains published', () => {
   const app47 = ideas[46];
 
   assert.equal(app47[0], '拼图小游戏');
-  assert.equal(app47[1], 'SHIFT/47：全图拖拽交换+本地图片+计时纪录+棋盘下方按住对照');
+  assert.equal(app47[1], 'SHIFT/47：轻量图片快速加载+拖拽交换+本地图片+计时纪录+按住对照');
   assert.equal(app47[3], 'https://jokerlixing.github.io/100apps/apps/047-sliding-puzzle/');
   assert.equal(doneIds.has(47), true, 'INIT_DONE must mark app 047 as done');
 });

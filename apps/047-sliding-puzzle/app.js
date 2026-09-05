@@ -2,7 +2,7 @@
   "use strict";
 
   const Core = window.PuzzleCore;
-  const DEFAULT_IMAGE = "assets/colorful-desk-puzzle.png";
+  const DEFAULT_IMAGE = "assets/colorful-desk-puzzle.webp";
   const STORAGE_KEY = "shift47.records.v1";
   const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
@@ -56,6 +56,7 @@
     noticeTimer: 0,
     helpTimer: 0
   };
+  let renderedImageUrl = null;
 
   function readRecords() {
     try {
@@ -122,47 +123,61 @@
   }
 
   function renderBoard() {
-    elements.puzzleGrid.replaceChildren();
-    elements.puzzleGrid.style.setProperty("--size", state.dimension);
-    elements.puzzleGrid.setAttribute(
-      "aria-label",
-      `${state.dimension} 乘 ${state.dimension} 全图交换拼图，拖拽或依次选择两块进行交换`
-    );
+    // Keep the same cells while playing so a selection or swap does not rebuild the image.
+    if (elements.puzzleGrid.children.length !== state.board.length) {
+      const fragment = document.createDocumentFragment();
+      state.board.forEach((_, index) => {
+        const tileButton = document.createElement("button");
+        tileButton.type = "button";
+        tileButton.className = "puzzle-tile";
+        tileButton.dataset.index = String(index);
+        tileButton.setAttribute("role", "gridcell");
+        tileButton.style.backgroundSize = `${state.dimension * 100}% ${state.dimension * 100}%`;
+        positionStyle(tileButton, index);
+
+        const number = document.createElement("span");
+        number.className = "tile-number";
+        number.setAttribute("aria-hidden", "true");
+        tileButton.append(number);
+        fragment.append(tileButton);
+      });
+      elements.puzzleGrid.replaceChildren(fragment);
+      elements.puzzleGrid.style.setProperty("--size", state.dimension);
+      elements.puzzleGrid.setAttribute(
+        "aria-label",
+        `${state.dimension} 乘 ${state.dimension} 全图交换拼图，拖拽或依次选择两块进行交换`
+      );
+    }
+
+    // Share one short image URL with every tile and the preview.
+    if (renderedImageUrl !== state.imageUrl) {
+      elements.puzzleFrame.style.setProperty("--puzzle-image", `url("${state.imageUrl}")`);
+      renderedImageUrl = state.imageUrl;
+    }
 
     state.board.forEach((tile, index) => {
-      const targetIndex = tile - 1;
-      const targetRow = Math.floor(targetIndex / state.dimension);
-      const targetColumn = targetIndex % state.dimension;
-      const tileButton = document.createElement("button");
-      tileButton.type = "button";
-      tileButton.className = "puzzle-tile";
-      tileButton.dataset.index = String(index);
-      tileButton.setAttribute("role", "gridcell");
-      tileButton.setAttribute(
-        "aria-label",
-        `图片块 ${tile}，当前位置第 ${Math.floor(index / state.dimension) + 1} 行第 ${index % state.dimension + 1} 列，目标第 ${targetRow + 1} 行第 ${targetColumn + 1} 列`
-      );
+      const tileButton = elements.puzzleGrid.children[index];
+      if (tileButton.dataset.tile !== String(tile)) {
+        const targetIndex = tile - 1;
+        const targetRow = Math.floor(targetIndex / state.dimension);
+        const targetColumn = targetIndex % state.dimension;
+        tileButton.dataset.tile = String(tile);
+        tileButton.setAttribute(
+          "aria-label",
+          `图片块 ${tile}，当前位置第 ${Math.floor(index / state.dimension) + 1} 行第 ${index % state.dimension + 1} 列，目标第 ${targetRow + 1} 行第 ${targetColumn + 1} 列`
+        );
+        const x = targetColumn * 100 / (state.dimension - 1);
+        const y = targetRow * 100 / (state.dimension - 1);
+        tileButton.style.backgroundPosition = `${x}% ${y}%`;
+        tileButton.firstElementChild.textContent = String(tile).padStart(2, "0");
+      }
       tileButton.setAttribute("aria-pressed", state.selectedIndex === index ? "true" : "false");
       tileButton.tabIndex = index === state.focusIndex ? 0 : -1;
       tileButton.classList.toggle("is-selected", state.selectedIndex === index);
       tileButton.classList.toggle("is-drag-source", state.dragSourceIndex === index);
       tileButton.classList.toggle("is-drop-target", state.dragTargetIndex === index);
-      tileButton.style.backgroundImage = `url("${state.imageUrl}")`;
-      tileButton.style.backgroundSize = `${state.dimension * 100}% ${state.dimension * 100}%`;
-      const x = targetColumn * 100 / (state.dimension - 1);
-      const y = targetRow * 100 / (state.dimension - 1);
-      tileButton.style.backgroundPosition = `${x}% ${y}%`;
-      positionStyle(tileButton, index);
-
-      const number = document.createElement("span");
-      number.className = "tile-number";
-      number.setAttribute("aria-hidden", "true");
-      number.textContent = String(tile).padStart(2, "0");
-      tileButton.append(number);
-      elements.puzzleGrid.append(tileButton);
     });
 
-    elements.previewLayer.style.backgroundImage = `url("${state.imageUrl}")`;
     elements.previewLayer.classList.toggle("is-complete", state.status === "complete");
     elements.puzzleGrid.classList.toggle("has-selection", state.selectedIndex !== null);
     updateRunState();
@@ -374,30 +389,36 @@
     focusTile(next);
   }
 
-  function squareImage(dataUrl, mimeType) {
+  function squareImage(imageUrl) {
     return new Promise((resolve, reject) => {
       const image = new Image();
       image.onload = () => {
-        const side = Math.min(image.naturalWidth, image.naturalHeight);
-        const sourceX = (image.naturalWidth - side) / 2;
-        const sourceY = (image.naturalHeight - side) / 2;
-        const outputSize = Math.min(1200, side);
-        const canvas = document.createElement("canvas");
-        canvas.width = outputSize;
-        canvas.height = outputSize;
-        const context = canvas.getContext("2d");
-        context.fillStyle = "#d8e0d0";
-        context.fillRect(0, 0, outputSize, outputSize);
-        context.drawImage(image, sourceX, sourceY, side, side, 0, 0, outputSize, outputSize);
-        const outputType = mimeType === "image/png" ? "image/png" : "image/jpeg";
-        resolve(canvas.toDataURL(outputType, .9));
+        try {
+          const side = Math.min(image.naturalWidth, image.naturalHeight);
+          const sourceX = (image.naturalWidth - side) / 2;
+          const sourceY = (image.naturalHeight - side) / 2;
+          const outputSize = Math.min(1024, side);
+          const canvas = document.createElement("canvas");
+          canvas.width = outputSize;
+          canvas.height = outputSize;
+          const context = canvas.getContext("2d");
+          context.fillStyle = "#d8e0d0";
+          context.fillRect(0, 0, outputSize, outputSize);
+          context.drawImage(image, sourceX, sourceY, side, side, 0, 0, outputSize, outputSize);
+          canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error("图片转换失败"));
+          }, "image/webp", .86);
+        } catch (error) {
+          reject(error);
+        }
       };
       image.onerror = () => reject(new Error("图片内容无法读取"));
-      image.src = dataUrl;
+      image.src = imageUrl;
     });
   }
 
-  function loadImageFile(file) {
+  async function loadImageFile(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       showNotice("请选择 JPG、PNG、WebP 等图片文件。", true);
@@ -410,28 +431,25 @@
       return;
     }
 
-    const reader = new FileReader();
-    reader.onerror = () => {
+    let sourceUrl;
+    try {
+      sourceUrl = URL.createObjectURL(file);
+      const imageBlob = await squareImage(sourceUrl);
+      requestAction("换图会结束当前进度，继续使用这张图片吗？", () => {
+        const previousImageUrl = state.imageUrl;
+        state.imageUrl = URL.createObjectURL(imageBlob);
+        state.imageKey = "local";
+        state.imageName = file.name.length > 22 ? `${file.name.slice(0, 20)}…` : file.name;
+        elements.defaultImageButton.classList.remove("is-active");
+        startNewGame("本地图片已载入并裁成正方形。文件不会上传。" );
+        if (previousImageUrl.startsWith("blob:")) URL.revokeObjectURL(previousImageUrl);
+      });
+    } catch {
+      showNotice("图片内容无法识别，请换一张常见格式的图片。", true);
+    } finally {
+      if (sourceUrl) URL.revokeObjectURL(sourceUrl);
       elements.imageInput.value = "";
-      showNotice("图片读取失败，请换一张图片重试。", true);
-    };
-    reader.onload = async () => {
-      try {
-        const imageUrl = await squareImage(String(reader.result), file.type);
-        requestAction("换图会结束当前进度，继续使用这张图片吗？", () => {
-          state.imageUrl = imageUrl;
-          state.imageKey = "local";
-          state.imageName = file.name.length > 22 ? `${file.name.slice(0, 20)}…` : file.name;
-          elements.defaultImageButton.classList.remove("is-active");
-          startNewGame("本地图片已载入并裁成正方形。文件不会上传。" );
-        });
-      } catch {
-        showNotice("图片内容无法识别，请换一张常见格式的图片。", true);
-      } finally {
-        elements.imageInput.value = "";
-      }
-    };
-    reader.readAsDataURL(file);
+    }
   }
 
   function tileFromPoint(clientX, clientY) {
@@ -489,10 +507,12 @@
     if (!session.dragging && distance < 10) return;
     session.dragging = true;
     event.preventDefault();
-    state.dragSourceIndex = session.sourceIndex;
     const target = tileFromPoint(event.clientX, event.clientY);
     const targetIndex = target ? Number(target.dataset.index) : null;
-    state.dragTargetIndex = targetIndex !== session.sourceIndex ? targetIndex : null;
+    const nextTargetIndex = targetIndex !== session.sourceIndex ? targetIndex : null;
+    if (state.dragSourceIndex === session.sourceIndex && state.dragTargetIndex === nextTargetIndex) return;
+    state.dragSourceIndex = session.sourceIndex;
+    state.dragTargetIndex = nextTargetIndex;
     updateDragClasses();
   });
 
@@ -530,11 +550,13 @@
   elements.defaultImageButton.addEventListener("click", () => {
     if (state.imageKey === "desk") return;
     requestAction("恢复内置图会结束当前进度，继续吗？", () => {
+      const previousImageUrl = state.imageUrl;
       state.imageUrl = DEFAULT_IMAGE;
       state.imageKey = "desk";
       state.imageName = "彩色创意桌面";
       elements.defaultImageButton.classList.add("is-active");
       startNewGame("已恢复彩色创意桌面图片。" );
+      if (previousImageUrl.startsWith("blob:")) URL.revokeObjectURL(previousImageUrl);
     });
   });
 

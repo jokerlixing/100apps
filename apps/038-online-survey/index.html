@@ -435,7 +435,7 @@
                 </div>
               </div>
             </fieldset>
-            <div class="generator-actions"><button id="generateButton" class="primary" type="submit">生成完整问卷 →</button><button id="cancelGeneration" class="secondary" type="button" hidden>取消生成</button><span class="generator-note">先预览，应用后可撤销。</span></div>
+            <div class="generator-actions"><button id="generateButton" class="primary" type="submit">生成完整问卷 →</button><button id="resetGenerator" class="secondary" type="button" title="清空生成输入并恢复默认设置">重置默认问卷</button><button id="cancelGeneration" class="secondary" type="button" hidden>取消生成</button><span class="generator-note">先预览，应用后可撤销。重置会清空生成输入，恢复默认设置。</span></div>
             <p id="generatorStatus" class="generator-status" role="status" aria-live="polite"></p>
           </form>
           <aside class="generator-guide">
@@ -788,6 +788,16 @@
         generationRequest += 1;
         setGenerationBusy(false);
         generatorStatus("已取消生成，原问卷未修改。");
+      }
+
+      function resetGenerator() {
+        cancelGeneration();
+        const form = $("#generatorForm");
+        form.reset();
+        handleGeneratorInput({ target: form });
+        generatorStatus("生成输入已清空，已恢复默认设置：8 题、本地生成、自动匹配题型。");
+        persistGeneratorBrief();
+        $("#generatorTopic").focus();
       }
 
       function resetSurveySession() {
@@ -1236,6 +1246,7 @@
       $("#generatorForm").addEventListener("input", handleGeneratorInput);
       $("#generatorForm").addEventListener("change", handleGeneratorInput);
       $("#cancelGeneration").addEventListener("click", cancelGeneration);
+      $("#resetGenerator").addEventListener("click", resetGenerator);
       $("#undoGeneration").addEventListener("click", undoGeneratedSurvey);
       window.addEventListener("hashchange", routeFromHash);
       window.addEventListener("pagehide", () => { if (generatorSaveTimer !== null) persistGeneratorBrief(); });

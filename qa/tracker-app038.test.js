@@ -32,6 +32,7 @@ test('app 038 questionnaire generation is published and officially complete', ()
   assert.match(app38[1], /文本与提示词生成问卷/);
   assert.match(app38[1], /4–30题/);
   assert.match(app38[1], /按内容自动匹配题型/);
+  assert.match(app38[1], /重置生成输入/);
   assert.match(app38[1], /可选AI/);
   assert.match(app38[1], /移动端/);
   assert.match(app38[1], /分享与本地统计/);
@@ -67,6 +68,7 @@ test('official completion migrates an old app 038 entry while preserving custom 
   assert.equal(app38.desc, ideas[37][1]);
   assert.match(app38.desc, /4–30题/);
   assert.match(app38.desc, /按内容自动匹配题型/);
+  assert.match(app38.desc, /重置生成输入/);
   assert.equal(app38.lv, 3);
   assert.equal(app38.st, 'done');
   assert.equal(app38.link, publishedUrl);

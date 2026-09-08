@@ -220,6 +220,86 @@ async function configureAI(page) {
   await page.locator('#generatorKey').fill('test-secret-never-persist');
 }
 
+test('reset defaults clears every generator input and preview, persists immediately and preserves the saved survey at 320px', async () => {
+  const { context, page, errors } = await setup({ width: 320, height: 844 });
+  const emptyFields = ['generatorTopic', 'generatorAudience', 'generatorSource', 'generatorPrompt', 'generatorEndpoint', 'generatorModel', 'generatorKey'];
+  const assertDefaults = async () => {
+    for (const id of emptyFields) assert.equal(await page.locator(`#${id}`).inputValue(), '', id);
+    assert.equal(await page.locator('#generatorCount').inputValue(), '8');
+    assert.equal(await page.locator('#generatorMethod').inputValue(), 'local');
+    assert.equal(await page.locator('#generatorTypeMode').inputValue(), 'auto');
+    assert.equal(await page.locator('[name="generatorType"]:checked').count(), 4);
+    assert.equal(await page.locator('#generatorTypes').isVisible(), false);
+    assert.equal(await page.locator('#aiSettings').isVisible(), false);
+    assert.equal(await page.locator('#generatedDraft').isVisible(), false);
+    assert.match(await page.locator('#generatorPromptLength').innerText(), /已输入 0 字/);
+  };
+  try {
+    await generateExample(page);
+    await page.locator('[data-action="apply-generated"]').click();
+    const before = await saved(page);
+    await configureAI(page);
+    await page.locator('#generatorAudience').fill('最近一个月使用过产品的用户');
+    await page.locator('#generatorPrompt').fill('生成30题，了解使用频率、常用功能和整体满意度。');
+    await page.locator('#generatorCount').fill('30');
+    await page.locator('#generatorTypeMode').selectOption('manual');
+    for (const type of ['multiple', 'rating', 'text']) await page.locator(`[name="generatorType"][value="${type}"]`).uncheck();
+    await page.locator('#generatorMethod').selectOption('local');
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('.generated-questions > li').count(), 30);
+    const button = page.getByRole('button', { name: '重置默认问卷', exact: true });
+    const bounds = await button.boundingBox();
+    assert.ok(bounds.width >= 100 && bounds.height >= 44);
+    await button.click();
+    await assertDefaults();
+    assert.equal(await page.locator('#generatorTopic').evaluate(el => el === document.activeElement), true);
+    assert.deepEqual(await saved(page), before);
+    const brief = await page.evaluate(() => JSON.parse(localStorage.getItem('pulse38-generator-v1')));
+    assert.deepEqual([brief.topic, brief.audience, brief.source, brief.prompt], ['', '', '', '']);
+    assert.equal(brief.count, 8);
+    assert.equal(brief.typeMode, 'auto');
+    await page.reload();
+    await assertDefaults();
+    assert.deepEqual(await saved(page), before);
+    await assertNoOverflow(page, 'reset generator defaults');
+    await page.locator('#generateButton').click();
+    assert.match(await page.locator('#generatorStatus').innerText(), /至少输入/);
+    await generateExample(page);
+    assert.equal(await page.locator('.generated-questions > li').count(), 8);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('reset defaults cancels an in-flight AI request and ignores its late response', async () => {
+  const { context, page, errors } = await setup();
+  try {
+    await configureAI(page);
+    await page.evaluate(() => {
+      window.fetch = (_url, options) => new Promise(resolve => {
+        options.signal.addEventListener('abort', () => { window.resetAbortedRequest = true; });
+        window.finishResetRequest = () => resolve(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+          title: '过期的 AI 问卷', description: '这份结果应被忽略',
+          questions: Array.from({ length: 8 }, (_, i) => ({ type: 'text', title: `过期问题 ${i + 1}`, options: [], required: true }))
+        }) } }] }), { headers: { 'Content-Type': 'application/json' } }));
+      });
+    });
+    await page.locator('#generateButton').click();
+    await page.waitForFunction(() => typeof window.finishResetRequest === 'function');
+    await page.locator('#resetGenerator').click();
+    assert.equal(await page.evaluate(() => window.resetAbortedRequest), true);
+    assert.equal(await page.locator('#generatorForm').getAttribute('aria-busy'), 'false');
+    assert.equal(await page.locator('#cancelGeneration').isVisible(), false);
+    assert.equal(await page.locator('#generateButton').isEnabled(), true);
+    await generateExample(page);
+    const currentPreview = await page.locator('#generatedDraft').innerText();
+    await page.evaluate(async () => { window.finishResetRequest(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.equal(await page.locator('#generatedDraft').innerText(), currentPreview);
+    assert.doesNotMatch(currentPreview, /过期/);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
 test('AI uses only the brief, validates output, and keeps connection credentials out of storage and sharing', async () => {
   const { context, page, errors } = await setup();
   try {

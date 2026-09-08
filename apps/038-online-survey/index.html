@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#29264f">
-  <meta name="description" content="PULSE/38 在线问卷系统：创建、分享、填写并统计一份本地问卷。">
+  <meta name="description" content="PULSE/38 在线问卷系统：根据主题、参考文本和提示词生成完整问卷，编辑、分享、填写并查看本地统计。">
   <title>PULSE/38 · 在线问卷系统</title>
   <style>
     :root {
@@ -114,7 +114,7 @@
     .form-grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 24px; border-bottom: 2px dashed var(--line); }
     label.field { display: grid; gap: 7px; font-weight: 900; }
     .field small { color: var(--muted); font-weight: 600; }
-    input[type="text"], textarea, select, .share-url {
+    input[type="text"], input[type="url"], input[type="password"], textarea, select, .share-url {
       width: 100%;
       border: 2px solid var(--ink);
       border-radius: 12px;
@@ -199,7 +199,7 @@
     .receipt p { max-width: 560px; margin: 12px auto 24px; color: var(--muted); }
     .button-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 
-    .results-head { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; margin-bottom: 22px; }
+    .results-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; margin-bottom: 22px; overflow-wrap: anywhere; }
     .results-head h2 { margin: 0; font-family: var(--display); font-size: clamp(2rem, 5vw, 4rem); line-height: 1; letter-spacing: -.06em; }
     .results-head p { margin: 10px 0 0; color: var(--muted); }
     .result-actions { display: flex; gap: 8px; }
@@ -244,12 +244,52 @@
     .toast { position: fixed; z-index: 50; right: 22px; bottom: 22px; max-width: min(390px, calc(100% - 44px)); padding: 13px 17px; color: var(--white); background: var(--ink); border: 2px solid var(--white); border-radius: 12px; box-shadow: 5px 5px 0 var(--orange); transform: translateY(150%); opacity: 0; transition: .22s ease; }
     .toast[data-show="true"] { transform: translateY(0); opacity: 1; }
 
+    .generator { margin-bottom: 28px; overflow: hidden; }
+    .generator .panel-head { background: var(--yellow); }
+    .generator-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; padding: 24px; }
+    .generator-fields { display: grid; gap: 16px; min-width: 0; }
+    .generator-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .generator-types { display: flex; flex-wrap: wrap; gap: 10px; }
+    .generator-types legend { margin-bottom: 8px; font-weight: 900; }
+    .generator-types label { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 7px 12px; border: 2px solid var(--line); border-radius: 10px; font-weight: 800; }
+    .generator-types input { width: 20px; height: 20px; accent-color: var(--orange); }
+    .generator-guide { align-self: start; padding: 20px; border: 2px solid var(--ink); border-radius: 16px; background: var(--paper); }
+    .generator-guide h3 { margin: 0 0 10px; }
+    .generator-guide p, .generator-note { color: var(--muted); font-size: .88rem; }
+    .generator-examples { display: grid; gap: 10px; margin: 16px 0; }
+    .generator-examples button { text-align: left; }
+    .generator-examples small { display: block; color: var(--muted); font-weight: 500; }
+    .generator-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+    .generator-status { margin: 14px 0 0; min-height: 1.6em; font-weight: 800; overflow-wrap: anywhere; }
+    .generator-status[data-error="true"] { color: #a42e12; }
+    .generator-note { margin: 0; }
+    .ai-settings { display: grid; gap: 14px; padding: 18px; border: 2px dashed var(--ink); border-radius: 14px; background: var(--paper); }
+    .ai-settings p { margin: 0; font-size: .87rem; }
+    .generated-draft { border-top: 3px solid var(--ink); padding: 24px; background: #fbfffd; }
+    .generated-draft h3 { margin: 8px 0; font-size: 1.6rem; line-height: 1.3; }
+    .generated-draft p { white-space: pre-wrap; }
+    .generated-meta { font-family: var(--mono); font-size: .83rem; font-weight: 900; color: var(--muted); }
+    .generated-questions { max-height: 520px; overflow: auto; overscroll-behavior: contain; padding: 0 8px 0 28px; margin-bottom: 20px; }
+    .generated-questions > li { padding: 16px 0; border-bottom: 1px dashed var(--line); }
+    .generated-questions small { display: block; color: var(--muted); margin: 5px 0; }
+    .generated-questions ul { padding-left: 20px; }
+    .undo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 22px; padding: 14px 18px; border: 2px solid var(--ink); border-radius: 14px; background: var(--yellow); }
+    .undo-row p { flex: 1; margin: 0; min-width: 180px; }
+    .field, .question-row > *, .workspace > *, .generator-pair > * { min-width: 0; }
+    input, textarea, select { max-width: 100%; min-width: 0; }
+    .preview-body, .fill-cover, .result-card, .generated-draft, .choice, .quote { overflow-wrap: anywhere; }
+    button:disabled { cursor: not-allowed; opacity: .55; transform: none !important; }
+    .rating-option input:focus-visible + span { outline: 4px solid var(--yellow); outline-offset: 3px; }
+    .rating-scale { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
+    .question-card, .generator, .generated-draft, .undo-row { scroll-margin-top: 150px; }
+
     @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(255, 120, 72, 0); } }
     @media (max-width: 980px) {
       .workspace, .fill-layout { grid-template-columns: 1fr; }
       .preview-panel { position: static; }
       .hero { grid-template-columns: 1fr 260px; }
       .result-grid { grid-template-columns: 1fr; }
+      .generator-layout { grid-template-columns: minmax(0, 1fr) 240px; }
     }
     @media (max-width: 760px) {
       .topbar { grid-template-columns: auto auto; gap: 10px; padding-inline: 16px; }
@@ -260,9 +300,17 @@
       .orbit { width: 150px; }
       .pulse-strip { grid-template-columns: 1fr; }
       .type-grid { grid-template-columns: repeat(2, 1fr); }
-      .results-head { grid-template-columns: 1fr; }
+      .results-head { grid-template-columns: minmax(0, 1fr); }
       .pulse-ribbon { grid-template-columns: 1fr; }
       .ribbon-track { min-height: 80px; }
+      .generator-layout { grid-template-columns: 1fr; }
+      .generator-examples { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .preview-panel { max-height: 600px; overflow-y: auto; }
+      .icon-btn, .close-dialog { width: 44px; height: 44px; }
+      .option-edit { grid-template-columns: 24px minmax(0, 1fr) 44px; }
+      .mini-btn, .mode-btn { min-height: 44px; }
+      .rating-option span { min-height: 44px; aspect-ratio: auto; padding-block: 9px; }
+      dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
     }
     @media (max-width: 540px) {
       .shell { width: min(100% - 24px, 1220px); padding-top: 22px; }
@@ -277,13 +325,38 @@
       .q-index { grid-column: 1 / -1; }
       .question-row { grid-template-columns: 1fr; }
       .question-tools { flex-wrap: wrap; justify-content: flex-end; }
-      .option-edit { grid-template-columns: 20px minmax(0, 1fr) 34px; }
+      .option-edit { grid-template-columns: 20px minmax(0, 1fr) 44px; }
       .section-title { align-items: flex-start; flex-direction: column; }
       .fill-cover { padding-inline: 22px; }
       .fill-form { padding-inline: 20px; }
       .submit-row { align-items: stretch; flex-direction: column; }
       .result-actions { align-items: stretch; flex-direction: column; }
       .dialog-body { padding: 18px; }
+      .generator-layout, .generated-draft { padding: 18px 16px; }
+      .generator-pair, .generator-examples { grid-template-columns: 1fr; }
+      .generator .panel-head { flex-direction: column; }
+      .generator-actions { align-items: stretch; flex-direction: column; }
+      .generator-actions button { width: 100%; }
+      .generator-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .generator-types label { padding-inline: 8px; }
+      input, textarea, select { font-size: 16px !important; }
+      .question-tools { gap: 4px; }
+      .question-top { gap: 8px; }
+      .panel-head { gap: 10px; flex-wrap: wrap; }
+      .hero-art { display: none; }
+      .hero { min-height: 0; }
+      .pulse-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .stat { padding: 12px 8px; }
+      .stat-signal { display: none; }
+      .stat span { font-size: .65rem; }
+      .topbar { padding-inline: 12px; gap: 8px; }
+      .top-action { justify-self: end; min-height: 44px; }
+      .fill-form { padding-inline: 14px; }
+      .result-card { padding: 16px; }
+      .result-card-head { flex-wrap: wrap; }
+      .rating-row { gap: 4px; }
+      .undo-row p { min-width: 0; flex-basis: 100%; }
+      .generated-questions { max-height: 440px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
@@ -309,7 +382,7 @@
       <div class="hero-copy">
         <p class="eyebrow"><span class="live-dot"></span> RESEARCH SIGNAL 038</p>
         <h1 id="hero-title">把一个问题，变成一组看得见的答案。</h1>
-        <p>从题目设计到结果脉冲，在一个页面里完成。没有账号，没有后端，先让好问题流动起来。</p>
+        <p>写下调查主题，粘贴参考文本，再用提示词补充要求。生成一份完整问卷，继续编辑、分享，让答案成为下一步行动。</p>
       </div>
       <div class="hero-art" aria-hidden="true">
         <div class="orbit"><i class="orbit-dot"></i><i class="orbit-dot"></i><i class="orbit-dot"></i></div>
@@ -324,6 +397,57 @@
     </section>
 
     <section id="buildView" class="section-view" aria-labelledby="builder-title">
+      <section class="panel generator" aria-labelledby="generatorTitle">
+        <div class="panel-head">
+          <div><h2 id="generatorTitle">从想法，生成整份问卷。</h2><p>输入主题、参考文本或提示词，至少填写一项。</p></div>
+          <span class="step-chip">START / GENERATE</span>
+        </div>
+        <div class="generator-layout">
+          <form id="generatorForm" novalidate>
+            <fieldset id="generatorFields" class="generator-fields">
+              <div class="generator-pair">
+                <label class="field">调查主题<input id="generatorTopic" type="text" maxlength="80" placeholder="例如：社区食堂用餐体验" autocomplete="off"></label>
+                <label class="field">调查对象 <small>选填</small><input id="generatorAudience" type="text" maxlength="80" placeholder="例如：最近一个月就餐的居民" autocomplete="off"></label>
+              </div>
+              <label class="field">参考文本 <small>选填 · 可粘贴背景、需求或已有题目</small><textarea id="generatorSource" maxlength="6000" rows="4" placeholder="例如：社区食堂提供堂食和外带，想了解居民对菜品、价格、排队时间的感受，收集下个月的改进建议。"></textarea></label>
+              <label class="field">生成提示词 <small>选填 · 说明题数、题型和关注点</small><textarea id="generatorPrompt" maxlength="1200" rows="3" placeholder="例如：生成 8 道题，重点关注价格、菜品口味、服务体验，最后加一道建议题。"></textarea></label>
+              <div class="generator-pair">
+                <label class="field">题目数量<select id="generatorCount"><option value="4">4 题 · 快速反馈</option><option value="6">6 题 · 简短调查</option><option value="8" selected>8 题 · 标准问卷</option><option value="10">10 题 · 深入了解</option><option value="12">12 题</option><option value="15">15 题</option><option value="20">20 题</option></select></label>
+                <label class="field">生成方式<select id="generatorMethod"><option value="local">本地生成 · 无需配置</option><option value="ai">AI 生成 · 使用自己的服务</option></select></label>
+              </div>
+              <fieldset class="generator-types"><legend>可用题型 <small>至少选择一种</small></legend>
+                <label><input type="checkbox" name="generatorType" value="single" checked>单选题</label>
+                <label><input type="checkbox" name="generatorType" value="multiple" checked>多选题</label>
+                <label><input type="checkbox" name="generatorType" value="rating" checked>评分题</label>
+                <label><input type="checkbox" name="generatorType" value="text" checked>文本题</label>
+              </fieldset>
+              <p id="generatorMethodNote" class="generator-note">本地模式按主题模板与文本规则生成，支持常见题数、题型要求，无法完整理解所有自然语言。复杂要求可选择 AI 生成。提示词中的明确题数和题型优先。</p>
+              <div id="aiSettings" class="ai-settings" hidden>
+                <p>输入支持 Chat Completions 的服务地址。点击生成后，主题、参考文本和提示词会发送至该地址；请使用你信任的服务。API Key 仅在本页内存使用，刷新即清除。</p>
+                <label class="field">完整接口地址<input id="generatorEndpoint" type="url" maxlength="500" placeholder="https://your-service.example/v1/chat/completions" autocomplete="off" spellcheck="false"><small>需支持浏览器跨域访问；本地服务可使用 HTTP localhost。</small></label>
+                <div class="generator-pair">
+                  <label class="field">模型名称<input id="generatorModel" type="text" maxlength="120" placeholder="服务提供的模型 ID" autocomplete="off" spellcheck="false"></label>
+                  <label class="field">API Key<input id="generatorKey" type="password" maxlength="500" placeholder="输入服务密钥" autocomplete="off" spellcheck="false"></label>
+                </div>
+              </div>
+            </fieldset>
+            <div class="generator-actions"><button id="generateButton" class="primary" type="submit">生成完整问卷 →</button><button id="cancelGeneration" class="secondary" type="button" hidden>取消生成</button><span class="generator-note">先预览，应用后可撤销。</span></div>
+            <p id="generatorStatus" class="generator-status" role="status" aria-live="polite"></p>
+          </form>
+          <aside class="generator-guide">
+            <p class="eyebrow">A LITTLE INSPIRATION</p><h3>没有头绪？试试这些</h3>
+            <div class="generator-examples">
+              <button class="secondary" type="button" data-generator-example="product">产品体验<small>使用频率 · 核心需求 · 改进</small></button>
+              <button class="secondary" type="button" data-generator-example="course">课程反馈<small>内容 · 节奏 · 学习收获</small></button>
+              <button class="secondary" type="button" data-generator-example="food">食堂调查<small>口味 · 价格 · 服务体验</small></button>
+            </div>
+            <p>生成内容包括标题、开场说明、完整题目、选项和必答设置。已有题目可按“1. 问题 [单选]”与“A. 选项”逐行粘贴。</p>
+            <p>生成后请检查措辞与选项，再应用到设计台。</p>
+          </aside>
+        </div>
+        <div id="generatedDraft" class="generated-draft" tabindex="-1" hidden></div>
+      </section>
+      <div id="undoGenerationRow" class="undo-row" hidden><p>已应用生成问卷。可恢复应用前的问卷及其本地统计。</p><button id="undoGeneration" class="secondary" type="button">撤销上次应用</button></div>
       <div class="workspace">
         <div class="panel">
           <div class="panel-head">
@@ -387,6 +511,7 @@
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="generator.js"></script>
   <script>
     (() => {
       "use strict";
@@ -402,11 +527,11 @@
       const uid = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
       const truncate = (value, max) => String(value ?? "").trim().slice(0, max);
 
-      function normalizeQuestion(raw, index = 0) {
+      function normalizeQuestion(raw, index = 0, preserveDraft = false) {
         const type = TYPES.includes(raw?.type) ? raw.type : "single";
         const needsOptions = type === "single" || type === "multiple";
         let options = needsOptions && Array.isArray(raw?.options)
-          ? raw.options.map(option => truncate(option, 60)).filter(Boolean).slice(0, 10)
+          ? raw.options.map(option => truncate(option, 60)).filter(option => preserveDraft || Boolean(option)).slice(0, 10)
           : [];
         if (needsOptions && options.length < 2) options = ["选项 A", "选项 B"];
         return {
@@ -418,8 +543,8 @@
         };
       }
 
-      function normalizeSurvey(raw) {
-        const questions = Array.isArray(raw?.questions) ? raw.questions.slice(0, 20).map(normalizeQuestion) : [];
+      function normalizeSurvey(raw, preserveDraft = false) {
+        const questions = Array.isArray(raw?.questions) ? raw.questions.slice(0, 20).map((question, index) => normalizeQuestion(question, index, preserveDraft)) : [];
         return {
           id: /^[a-zA-Z0-9_-]{1,80}$/.test(String(raw?.id || "")) ? String(raw.id) : uid("survey"),
           title: truncate(raw?.title, 80) || "未命名问卷",
@@ -456,7 +581,7 @@
         try {
           const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
           if (!saved || !saved.survey || !Array.isArray(saved.responses)) return defaultState();
-          return { survey: normalizeSurvey(saved.survey), responses: saved.responses.filter(item => item && typeof item.answers === "object").slice(-500) };
+          return { survey: normalizeSurvey(saved.survey, true), responses: saved.responses.filter(item => item && typeof item.answers === "object").slice(-500), undoSurvey: saved.undoSurvey ? normalizeSurvey(saved.undoSurvey, true) : null };
         } catch { return defaultState(); }
       }
 
@@ -466,13 +591,217 @@
       let answers = {};
       let validationErrors = [];
       let submitted = false;
+      let responsePersisted = true;
       let deleteArmed = null;
       let clearArmed = false;
       let toastTimer = null;
+      let storageWarningShown = false;
+      let generatedSurvey = null;
+      let generationController = null;
+      let generationRequest = 0;
+      const pendingResponses = new Map();
+      const pendingResponseClears = new Set();
+      const GENERATOR_STORAGE_KEY = "pulse38-generator-v1";
 
       const activeSurvey = () => sharedSurvey || state.survey;
       const matchingResponses = survey => state.responses.filter(response => response.surveyId === survey.id);
-      const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      function save({ response = null, clearSurveyId = null } = {}) {
+        if (response) pendingResponses.set(response.id, response);
+        if (clearSurveyId) {
+          pendingResponseClears.add(clearSurveyId);
+          for (const [id, item] of pendingResponses) if (item.surveyId === clearSurveyId) pendingResponses.delete(id);
+        }
+        try {
+          let latest = null;
+          try { latest = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { /* Replace a damaged cache with the current state. */ }
+          if (latest && Array.isArray(latest.responses)) {
+            // Responses from a shared tab must survive edits or applying a generated survey.
+            state.responses = latest.responses.filter(item => item && typeof item.answers === "object");
+            // Submitting/clearing a response must not overwrite a newer questionnaire draft in another tab.
+            if ((response || clearSurveyId) && latest.survey) {
+              state.survey = normalizeSurvey(latest.survey, true);
+              state.undoSurvey = latest.undoSurvey ? normalizeSurvey(latest.undoSurvey, true) : null;
+            }
+          }
+          const responseMap = new Map(state.responses.filter(item => !pendingResponseClears.has(item.surveyId)).map(item => [item.id, item]));
+          for (const [id, item] of pendingResponses) responseMap.set(id, item);
+          state.responses = [...responseMap.values()].slice(-500);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          pendingResponses.clear(); pendingResponseClears.clear();
+          return true;
+        }
+        catch {
+          if (!storageWarningShown) toast("浏览器存储不可用或已满，修改仅在本次页面保留。可复制分享链接保存问卷。");
+          storageWarningShown = true;
+          return false;
+        }
+      }
+
+      function generatorConfig() {
+        return {
+          topic: $("#generatorTopic").value.trim(),
+          audience: $("#generatorAudience").value.trim(),
+          source: $("#generatorSource").value.trim(),
+          prompt: $("#generatorPrompt").value.trim(),
+          count: Number($("#generatorCount").value),
+          types: $$("input[name='generatorType']:checked").map(input => input.value)
+        };
+      }
+
+      function restoreGenerator() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(GENERATOR_STORAGE_KEY));
+          if (!saved || typeof saved !== "object") return;
+          for (const [key, id, max] of [["topic", "generatorTopic", 80], ["audience", "generatorAudience", 80], ["source", "generatorSource", 6000], ["prompt", "generatorPrompt", 1200]]) {
+            if (typeof saved[key] === "string") $(`#${id}`).value = saved[key].slice(0, max);
+          }
+          if ([4, 6, 8, 10, 12, 15, 20].includes(saved.count)) $("#generatorCount").value = String(saved.count);
+          if (Array.isArray(saved.types) && saved.types.some(type => TYPES.includes(type))) {
+            $$("input[name='generatorType']").forEach(input => { input.checked = saved.types.includes(input.value); });
+          }
+        } catch { /* An invalid generator draft must not affect the saved questionnaire. */ }
+      }
+
+      function generatorStatus(message, error = false) {
+        $("#generatorStatus").textContent = message;
+        $("#generatorStatus").dataset.error = String(error);
+      }
+
+      function invalidateGeneratedDraft() {
+        generatedSurvey = null;
+        $("#generatedDraft").hidden = true;
+        $("#generatedDraft").innerHTML = "";
+      }
+
+      function handleGeneratorInput(event) {
+        invalidateGeneratedDraft();
+        generatorStatus("");
+        const isAI = $("#generatorMethod").value === "ai";
+        $("#aiSettings").hidden = !isAI;
+        $("#generatorMethodNote").textContent = isAI
+          ? "AI 会根据完整材料与要求生成内容。请检查生成结果；提示词中的明确题数和题型优先，生成失败时可重试或切换本地模式。"
+          : "本地模式按主题模板与文本规则生成，支持常见题数、题型要求，无法完整理解所有自然语言。复杂要求可选择 AI 生成。提示词中的明确题数和题型优先。";
+        // Only the questionnaire brief is persisted. Connection fields and credentials stay in memory.
+        if (!["generatorEndpoint", "generatorModel", "generatorKey", "generatorMethod"].includes(event.target.id)) {
+          try { localStorage.setItem(GENERATOR_STORAGE_KEY, JSON.stringify(generatorConfig())); }
+          catch { generatorStatus("输入仅在本次页面保留：浏览器存储不可用或已满。"); }
+        }
+      }
+
+      function renderGeneratedDraft(method) {
+        const survey = generatedSurvey;
+        const count = survey.questions.length;
+        const typeSummary = TYPES.filter(type => survey.questions.some(question => question.type === type))
+          .map(type => `${TYPE_LABELS[type]} ${survey.questions.filter(question => question.type === type).length} 题`).join(" · ");
+        const draft = $("#generatedDraft");
+        draft.innerHTML = `<span class="eyebrow">${method === "ai" ? "AI" : "LOCAL"} / 待应用的问卷</span><h3>${escapeHTML(survey.title)}</h3><p>${escapeHTML(survey.description)}</p><p class="generated-meta">${count} 题 · ${typeSummary}</p><ol class="generated-questions" tabindex="0" aria-label="生成的完整题目">${survey.questions.map(question => `<li><strong>${escapeHTML(question.title)}</strong><small>${TYPE_LABELS[question.type]} · ${question.required ? "必答" : "选答"}</small>${question.options.length ? `<ul>${question.options.map(option => `<li>${escapeHTML(option)}</li>`).join("")}</ul>` : `<span class="generator-note">${question.type === "rating" ? "1—5 分：由低到高" : "由受访者填写文字回答"}</span>`}</li>`).join("")}</ol><p class="generator-note">应用会替换设计台中的标题、说明和题目，并创建独立问卷。现有答卷保留，可撤销应用恢复上一份问卷。</p><div class="generator-actions"><button class="primary" type="button" data-action="apply-generated">应用到设计台</button><button class="secondary" type="button" data-action="discard-generated">放弃此草稿</button></div>`;
+        draft.hidden = false;
+        draft.focus({ preventScroll: true });
+        draft.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function setGenerationBusy(busy) {
+        $("#generatorFields").disabled = busy;
+        $("#generateButton").disabled = busy;
+        $("#generateButton").textContent = busy ? "正在生成…" : "生成完整问卷 →";
+        $("#cancelGeneration").hidden = !busy;
+        $("#generatorForm").setAttribute("aria-busy", String(busy));
+        $$("[data-generator-example]").forEach(button => { button.disabled = busy; });
+      }
+
+      async function generateQuestionnaire(event) {
+        event.preventDefault();
+        if (generationController) return;
+        const config = generatorConfig();
+        if (!config.topic && !config.source && !config.prompt) {
+          generatorStatus("请至少输入调查主题、参考文本或生成提示词中的一项。", true);
+          $("#generatorTopic").focus(); return;
+        }
+        if (!config.types.length) {
+          generatorStatus("请至少选择一种可用题型。", true);
+          $("input[name='generatorType']").focus(); return;
+        }
+        if (!window.Pulse38Generator) { generatorStatus("生成模块未能加载，请刷新页面后重试。", true); return; }
+        const method = $("#generatorMethod").value;
+        const controller = new AbortController();
+        generationController = controller;
+        const request = ++generationRequest;
+        let timedOut = false;
+        const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+        invalidateGeneratedDraft();
+        setGenerationBusy(true);
+        generatorStatus(method === "ai" ? "正在根据材料与提示词生成问卷，请稍候…" : "正在整理主题、题目与选项…");
+        try {
+          const draft = method === "ai"
+            ? await window.Pulse38Generator.generateAI(config, {
+              endpoint: $("#generatorEndpoint").value.trim(), model: $("#generatorModel").value.trim(),
+              apiKey: $("#generatorKey").value.trim(), signal: controller.signal
+            })
+            : window.Pulse38Generator.generateLocal(config);
+          if (request !== generationRequest || controller.signal.aborted) return;
+          generatedSurvey = normalizeSurvey({ ...draft, id: uid("survey"), questions: draft.questions.map(question => ({ ...question, id: uid("q") })) });
+          renderGeneratedDraft(method);
+          generatorStatus(`已生成 ${generatedSurvey.questions.length} 道题。检查下方完整预览后，点击“应用到设计台”。`);
+        } catch (error) {
+          if (request === generationRequest) generatorStatus(timedOut ? "生成超时（45 秒），请重试或切换本地生成。" : controller.signal.aborted ? "已取消生成，原问卷未修改。" : error.message || "生成失败，请检查输入后重试。", !controller.signal.aborted || timedOut);
+        } finally {
+          clearTimeout(timer);
+          if (request === generationRequest) { generationController = null; setGenerationBusy(false); }
+        }
+      }
+
+      function cancelGeneration() {
+        if (!generationController) return;
+        generationController.abort();
+        generationController = null;
+        generationRequest += 1;
+        setGenerationBusy(false);
+        generatorStatus("已取消生成，原问卷未修改。");
+      }
+
+      function resetSurveySession() {
+        answers = {}; validationErrors = []; submitted = false; deleteArmed = null; clearArmed = false;
+      }
+
+      function applyGeneratedSurvey() {
+        if (!generatedSurvey) return;
+        state.undoSurvey = structuredClone(state.survey);
+        state.survey = generatedSurvey;
+        resetSurveySession();
+        const persisted = save();
+        invalidateGeneratedDraft();
+        renderBuilder();
+        generatorStatus(persisted ? "问卷已应用并保存，可继续编辑或分享。需要恢复时点击“撤销上次应用”。" : "问卷已应用，但本地存储不可用。请复制分享链接保存，刷新会丢失本次修改。", !persisted);
+        $("#surveyTitle").focus({ preventScroll: true });
+        $("#undoGenerationRow").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function undoGeneratedSurvey() {
+        if (!state.undoSurvey) return;
+        state.survey = state.undoSurvey;
+        state.undoSurvey = null;
+        resetSurveySession();
+        const persisted = save();
+        renderBuilder();
+        generatorStatus(persisted ? "已恢复应用前的问卷及其本地统计。" : "已恢复原问卷，但浏览器存储不可用，刷新后可能无法保留。", !persisted);
+        $("#surveyTitle").focus({ preventScroll: true });
+      }
+
+      function useGeneratorExample(name) {
+        const examples = {
+          product: { topic: "待办清单 App 使用体验", audience: "最近一个月使用过产品的用户", source: "产品支持任务分类、到期提醒和多设备同步。希望了解用户的使用场景、遇到的困难以及后续改进方向。", prompt: "生成 8 道题，重点关注任务分类、到期提醒、多设备同步，最后加一道建议题。" },
+          course: { topic: "摄影入门课程反馈", audience: "完成本期课程的学员", source: "课程包含摄影基础、构图练习和作品点评。希望了解课程是否帮助学员提升拍摄能力，以及教学安排有哪些改进空间。", prompt: "生成 8 道题，重点关注教学内容、课程节奏、实践练习，最后加一道建议题。" },
+          food: { topic: "社区食堂用餐体验", audience: "最近一个月就餐的居民", source: "社区食堂提供堂食与外带服务，计划根据居民反馈调整菜单与服务。", prompt: "生成 8 道题，重点关注菜品口味、价格、排队时间、服务体验，最后加一道建议题。" }
+        };
+        const example = examples[name];
+        if (!example) return;
+        for (const [key, id] of [["topic", "generatorTopic"], ["audience", "generatorAudience"], ["source", "generatorSource"], ["prompt", "generatorPrompt"]]) $(`#${id}`).value = example[key];
+        $("#generatorCount").value = "8";
+        $$("input[name='generatorType']").forEach(input => { input.checked = true; });
+        handleGeneratorInput({ target: $("#generatorTopic") });
+        generatorStatus("示例已填入，可修改要求后生成问卷。");
+        $("#generatorTopic").focus();
+      }
 
       function encodeSurvey(survey) {
         const json = JSON.stringify(normalizeSurvey(survey));
@@ -597,6 +926,7 @@
         $("#surveyDescription").value = state.survey.description;
         renderQuestions();
         renderPreview();
+        $("#undoGenerationRow").hidden = !state.undoSurvey;
       }
 
       function answeredCount(survey) { return survey.questions.filter(question => hasAnswer(question, answers[question.id])).length; }
@@ -606,7 +936,7 @@
         $("#fillModeHint").textContent = sharedSurvey ? "你正在填写一份通过链接收到的问卷。" : "现在以受访者视角检查自己的问卷。";
         $("#returnBuilder").textContent = sharedSurvey ? "← 回到我的设计台" : "← 返回设计台";
         if (submitted) {
-          $("#fillCard").innerHTML = `<div class="receipt"><div class="receipt-mark">✓</div><p class="eyebrow">PULSE RECEIVED</p><h2>你的回答已被记录。</h2><p>这份答卷已经保存在当前浏览器。感谢你让问题获得了新的形状。</p><div class="button-row"><button class="primary" type="button" data-action="answer-again">再填一份</button><button class="secondary" type="button" data-mode="results">查看本机统计</button></div></div>`;
+          $("#fillCard").innerHTML = `<div class="receipt"><div class="receipt-mark">✓</div><p class="eyebrow">PULSE RECEIVED</p><h2>${responsePersisted ? "你的回答已被记录。" : "回答仅保留在本次页面。"}</h2><p>${responsePersisted ? "这份答卷已经保存在当前浏览器。感谢你让问题获得了新的形状。" : "浏览器存储不可用或已满，刷新或关闭页面会丢失本次回答。"}</p><div class="button-row"><button class="primary" type="button" data-action="answer-again">再填一份</button><button class="secondary" type="button" data-mode="results">查看本机统计</button></div></div>`;
           renderStats();
           return;
         }
@@ -673,7 +1003,7 @@
         const question = state.survey.questions.find(item => item.id === id);
         if (!question) return;
         updater(question);
-        state.survey = normalizeSurvey(state.survey);
+        state.survey = normalizeSurvey(state.survey, true);
         save();
       }
 
@@ -769,12 +1099,15 @@
           toast(`还有 ${validationErrors.length} 道必答题没有完成。`);
           return;
         }
-        state.responses.push({ id: uid("response"), surveyId: survey.id, submittedAt: new Date().toISOString(), answers: structuredClone(answers) });
-        state.responses = state.responses.slice(-500);
-        save(); submitted = true; renderFill();
+        const response = { id: uid("response"), surveyId: survey.id, submittedAt: new Date().toISOString(), answers: structuredClone(answers) };
+        responsePersisted = save({ response }); submitted = true; renderFill();
       }
 
       function openShare() {
+        const survey = activeSurvey();
+        if (!survey.questions.length) { toast("请先添加或生成题目，再分享问卷。"); return; }
+        const invalid = survey.questions.find(question => !question.title.trim() || ((question.type === "single" || question.type === "multiple") && (question.options.some(option => !option.trim()) || new Set(question.options.map(option => option.trim())).size !== question.options.length)));
+        if (invalid) { toast("请补全题目，并确保选项不为空、不重复后再分享。"); return; }
         const url = shareLink(activeSurvey());
         $("#shareUrl").value = url;
         const dialog = $("#shareDialog");
@@ -797,8 +1130,9 @@
           setTimeout(() => { if (clearArmed) { clearArmed = false; renderResults(); } }, 4000);
           return;
         }
-        state.responses = state.responses.filter(response => response.surveyId !== survey.id);
-        clearArmed = false; save(); renderResults(); toast("当前问卷的本地答卷已清空。");
+        clearArmed = false;
+        const persisted = save({ clearSurveyId: survey.id });
+        renderResults(); toast(persisted ? "当前问卷的本地答卷已清空。" : "仅清除了本页答卷，浏览器存储暂不可用。");
       }
 
       function routeFromHash() {
@@ -820,6 +1154,8 @@
       }
 
       document.addEventListener("click", event => {
+        const exampleButton = event.target.closest("[data-generator-example]");
+        if (exampleButton) { useGeneratorExample(exampleButton.dataset.generatorExample); return; }
         const modeButton = event.target.closest("[data-mode]");
         if (modeButton) { setMode(modeButton.dataset.mode); return; }
         const button = event.target.closest("[data-action]");
@@ -833,6 +1169,8 @@
         if (action === "open-shared") window.open($("#shareUrl").value, "_blank", "noopener");
         if (action === "answer-again") { answers = {}; validationErrors = []; submitted = false; renderFill(); }
         if (action === "clear-responses") clearResponses();
+        if (action === "apply-generated") applyGeneratedSurvey();
+        if (action === "discard-generated") { invalidateGeneratedDraft(); generatorStatus("已放弃生成草稿，原问卷未修改。"); $("#generateButton").focus(); }
       });
 
       $("#buildView").addEventListener("input", handleBuilderInput);
@@ -841,9 +1179,27 @@
       $("#fillCard").addEventListener("change", handleFillInput);
       $("#fillCard").addEventListener("submit", submitResponse);
       $("#shareDialog").addEventListener("click", event => { if (event.target === $("#shareDialog")) $("#shareDialog").close(); });
+      $("#generatorForm").addEventListener("submit", generateQuestionnaire);
+      $("#generatorForm").addEventListener("input", handleGeneratorInput);
+      $("#generatorForm").addEventListener("change", handleGeneratorInput);
+      $("#cancelGeneration").addEventListener("click", cancelGeneration);
+      $("#undoGeneration").addEventListener("click", undoGeneratedSurvey);
       window.addEventListener("hashchange", routeFromHash);
+      window.addEventListener("storage", event => {
+        if (event.key !== STORAGE_KEY || !event.newValue) return;
+        try {
+          const latest = JSON.parse(event.newValue);
+          if (!Array.isArray(latest.responses)) return;
+          const responseMap = new Map(latest.responses.filter(item => item && typeof item.answers === "object" && !pendingResponseClears.has(item.surveyId)).map(item => [item.id, item]));
+          for (const [id, item] of pendingResponses) responseMap.set(id, item);
+          state.responses = [...responseMap.values()].slice(-500);
+          if (mode === "results") renderResults();
+          else renderStats();
+        } catch { /* Ignore malformed changes from another tab. */ }
+      });
 
       window.pulse38 = { escapeHTML, normalizeQuestion, normalizeSurvey, encodeSurvey, decodeSurvey, validateAnswers, aggregateSurvey, hasAnswer };
+      restoreGenerator();
       renderBuilder();
       if (!routeFromHash()) setMode("build");
     })();

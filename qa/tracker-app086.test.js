@@ -28,7 +28,7 @@ test('app 086 is published as the first L5 project and officially complete', () 
   assert.equal(app86[0], 'CLI 天气工具');
   assert.match(app86[1], /^SKY\/86/);
   assert.equal(app86[2], '5');
-  assert.equal(app86[3], 'https://github.com/jokerlixing/100apps/tree/main/apps/086-cli-weather');
+  assert.equal(app86[3], 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
   assert.equal(doneIds.has(86), true, 'INIT_DONE must mark app 086 as done');
 });
 
@@ -57,6 +57,6 @@ test('official completion state migrates a stale app 086 cache entry', () => {
   assert.equal(context.result.apps[0].lv, 5);
   assert.equal(context.result.apps[0].st, 'done');
   assert.match(context.result.apps[0].desc, /^SKY\/86/);
-  assert.equal(context.result.apps[0].link, 'https://github.com/jokerlixing/100apps/tree/main/apps/086-cli-weather');
+  assert.equal(context.result.apps[0].link, 'https://jokerlixing.github.io/100apps/apps/086-cli-weather/');
   assert.equal(context.result.didSave, true);
 });

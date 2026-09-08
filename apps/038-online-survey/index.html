@@ -114,7 +114,7 @@
     .form-grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 24px; border-bottom: 2px dashed var(--line); }
     label.field { display: grid; gap: 7px; font-weight: 900; }
     .field small { color: var(--muted); font-weight: 600; }
-    input[type="text"], input[type="url"], input[type="password"], textarea, select, .share-url {
+    input[type="text"], input[type="url"], input[type="password"], input[type="number"], textarea, select, .share-url {
       width: 100%;
       border: 2px solid var(--ink);
       border-radius: 12px;
@@ -132,6 +132,9 @@
     .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 9px; background: var(--white); font-weight: 900; }
     .icon-btn:hover:not(:disabled) { background: var(--yellow); transform: translate(-1px, -1px); }
     .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .question-tools .icon-btn { width: 44px; height: 44px; }
+    .question-tools .delete-question-btn { width: auto; min-width: 108px; min-height: 48px; padding: 8px 12px; font-size: 18px; line-height: 1.4; white-space: nowrap; }
+    .question-tools .delete-question-btn[data-confirm="true"] { color: var(--white); background: #a83c54; border-color: #7d263a; box-shadow: 2px 2px 0 var(--ink); }
     .question-body { display: grid; gap: 13px; padding: 16px 16px 18px 22px; }
     .question-row { display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
     .required-toggle { display: flex; align-items: center; gap: 8px; width: max-content; font-weight: 800; }
@@ -321,8 +324,8 @@
       h1 { font-size: clamp(2.4rem, 14vw, 3.65rem); }
       .panel-head, .question-list, .form-grid { padding-inline: 16px; }
       .add-zone { padding-inline: 16px; }
-      .question-top { grid-template-columns: 1fr auto; padding-left: 18px; }
-      .q-index { grid-column: 1 / -1; }
+      .question-top { grid-template-columns: auto minmax(0, 1fr); padding-left: 18px; }
+      .question-tools { grid-column: 1 / -1; }
       .question-row { grid-template-columns: 1fr; }
       .question-tools { flex-wrap: wrap; justify-content: flex-end; }
       .option-edit { grid-template-columns: 20px minmax(0, 1fr) 44px; }
@@ -409,10 +412,10 @@
                 <label class="field">调查主题<input id="generatorTopic" type="text" maxlength="80" placeholder="例如：社区食堂用餐体验" autocomplete="off"></label>
                 <label class="field">调查对象 <small>选填</small><input id="generatorAudience" type="text" maxlength="80" placeholder="例如：最近一个月就餐的居民" autocomplete="off"></label>
               </div>
-              <label class="field">参考文本 <small>选填 · 可粘贴背景、需求或已有题目</small><textarea id="generatorSource" maxlength="6000" rows="4" placeholder="例如：社区食堂提供堂食和外带，想了解居民对菜品、价格、排队时间的感受，收集下个月的改进建议。"></textarea></label>
-              <label class="field">生成提示词 <small>选填 · 说明题数、题型和关注点</small><textarea id="generatorPrompt" maxlength="1200" rows="3" placeholder="例如：生成 8 道题，重点关注价格、菜品口味、服务体验，最后加一道建议题。"></textarea></label>
+              <label class="field">参考文本 <small>选填 · 可粘贴背景、需求或已有题目，不截断长文本</small><textarea id="generatorSource" rows="4" placeholder="例如：社区食堂提供堂食和外带，想了解居民对菜品、价格、排队时间的感受，收集下个月的改进建议。"></textarea></label>
+              <label class="field">生成提示词 <small>选填 · 说明题数、题型、关注点，或直接粘贴题目和选项</small><textarea id="generatorPrompt" rows="5" aria-describedby="generatorPromptLength" placeholder="例如：生成 30 道题，重点关注价格、菜品口味、服务体验，最后加一道建议题。也可直接粘贴完整的题目要求。"></textarea><small id="generatorPromptLength">已输入 0 字 · 长提示词将完整用于生成</small></label>
               <div class="generator-pair">
-                <label class="field">题目数量<select id="generatorCount"><option value="4">4 题 · 快速反馈</option><option value="6">6 题 · 简短调查</option><option value="8" selected>8 题 · 标准问卷</option><option value="10">10 题 · 深入了解</option><option value="12">12 题</option><option value="15">15 题</option><option value="20">20 题</option></select></label>
+                <label class="field">题目数量<input id="generatorCount" type="number" min="4" max="30" step="1" value="8" inputmode="numeric"><small>4–30 题；提示词中的明确题数优先。</small></label>
                 <label class="field">生成方式<select id="generatorMethod"><option value="local">本地生成 · 无需配置</option><option value="ai">AI 生成 · 使用自己的服务</option></select></label>
               </div>
               <fieldset class="generator-types"><legend>可用题型 <small>至少选择一种</small></legend>
@@ -460,7 +463,7 @@
           </div>
           <div id="questionList" class="question-list" aria-live="polite"></div>
           <div class="add-zone">
-            <p>+ ADD A QUESTION / 最多 20 题</p>
+            <p>+ ADD A QUESTION / 最多 30 题</p>
             <div class="type-grid">
               <button class="type-btn" type="button" data-action="add-question" data-type="single"><span>◉</span>单选题</button>
               <button class="type-btn" type="button" data-action="add-question" data-type="multiple"><span>◎</span>多选题</button>
@@ -517,6 +520,7 @@
       "use strict";
 
       const STORAGE_KEY = "pulse38-state-v3";
+      const MAX_QUESTIONS = 30;
       const TYPES = ["single", "multiple", "text", "rating"];
       const TYPE_LABELS = { single: "单选", multiple: "多选", text: "短文本", rating: "1—5 评分" };
       const TYPE_COLORS = { single: "#48c7c4", multiple: "#9b77d4", text: "#ffe16b", rating: "#ff7848" };
@@ -544,7 +548,7 @@
       }
 
       function normalizeSurvey(raw, preserveDraft = false) {
-        const questions = Array.isArray(raw?.questions) ? raw.questions.slice(0, 20).map((question, index) => normalizeQuestion(question, index, preserveDraft)) : [];
+        const questions = Array.isArray(raw?.questions) ? raw.questions.slice(0, MAX_QUESTIONS).map((question, index) => normalizeQuestion(question, index, preserveDraft)) : [];
         return {
           id: /^[a-zA-Z0-9_-]{1,80}$/.test(String(raw?.id || "")) ? String(raw.id) : uid("survey"),
           title: truncate(raw?.title, 80) || "未命名问卷",
@@ -593,12 +597,14 @@
       let submitted = false;
       let responsePersisted = true;
       let deleteArmed = null;
+      let deleteTimer = null;
       let clearArmed = false;
       let toastTimer = null;
       let storageWarningShown = false;
       let generatedSurvey = null;
       let generationController = null;
       let generationRequest = 0;
+      let generatorSaveTimer = null;
       const pendingResponses = new Map();
       const pendingResponseClears = new Set();
       const GENERATOR_STORAGE_KEY = "pulse38-generator-v1";
@@ -652,10 +658,10 @@
         try {
           const saved = JSON.parse(localStorage.getItem(GENERATOR_STORAGE_KEY));
           if (!saved || typeof saved !== "object") return;
-          for (const [key, id, max] of [["topic", "generatorTopic", 80], ["audience", "generatorAudience", 80], ["source", "generatorSource", 6000], ["prompt", "generatorPrompt", 1200]]) {
+          for (const [key, id, max] of [["topic", "generatorTopic", 80], ["audience", "generatorAudience", 80], ["source", "generatorSource", Infinity], ["prompt", "generatorPrompt", Infinity]]) {
             if (typeof saved[key] === "string") $(`#${id}`).value = saved[key].slice(0, max);
           }
-          if ([4, 6, 8, 10, 12, 15, 20].includes(saved.count)) $("#generatorCount").value = String(saved.count);
+          if (Number.isInteger(saved.count) && saved.count >= 4 && saved.count <= MAX_QUESTIONS) $("#generatorCount").value = String(saved.count);
           if (Array.isArray(saved.types) && saved.types.some(type => TYPES.includes(type))) {
             $$("input[name='generatorType']").forEach(input => { input.checked = saved.types.includes(input.value); });
           }
@@ -674,6 +680,7 @@
       }
 
       function handleGeneratorInput(event) {
+        updatePromptLength();
         invalidateGeneratedDraft();
         generatorStatus("");
         const isAI = $("#generatorMethod").value === "ai";
@@ -683,9 +690,19 @@
           : "本地模式按主题模板与文本规则生成，支持常见题数、题型要求，无法完整理解所有自然语言。复杂要求可选择 AI 生成。提示词中的明确题数和题型优先。";
         // Only the questionnaire brief is persisted. Connection fields and credentials stay in memory.
         if (!["generatorEndpoint", "generatorModel", "generatorKey", "generatorMethod"].includes(event.target.id)) {
-          try { localStorage.setItem(GENERATOR_STORAGE_KEY, JSON.stringify(generatorConfig())); }
-          catch { generatorStatus("输入仅在本次页面保留：浏览器存储不可用或已满。"); }
+          clearTimeout(generatorSaveTimer);
+          generatorSaveTimer = setTimeout(persistGeneratorBrief, 250);
         }
+      }
+
+      function persistGeneratorBrief() {
+        clearTimeout(generatorSaveTimer); generatorSaveTimer = null;
+        try { localStorage.setItem(GENERATOR_STORAGE_KEY, JSON.stringify(generatorConfig())); }
+        catch { generatorStatus("输入仅在本次页面保留：浏览器存储不可用或已满。"); }
+      }
+
+      function updatePromptLength() {
+        $("#generatorPromptLength").textContent = `已输入 ${$("#generatorPrompt").value.length.toLocaleString("zh-CN")} 字 · 长提示词将完整用于生成`;
       }
 
       function renderGeneratedDraft(method) {
@@ -712,6 +729,7 @@
       async function generateQuestionnaire(event) {
         event.preventDefault();
         if (generationController) return;
+        persistGeneratorBrief();
         const config = generatorConfig();
         if (!config.topic && !config.source && !config.prompt) {
           generatorStatus("请至少输入调查主题、参考文本或生成提示词中的一项。", true);
@@ -727,7 +745,8 @@
         generationController = controller;
         const request = ++generationRequest;
         let timedOut = false;
-        const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+        const timeoutMs = method === "ai" ? 180000 : 45000;
+        const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
         invalidateGeneratedDraft();
         setGenerationBusy(true);
         generatorStatus(method === "ai" ? "正在根据材料与提示词生成问卷，请稍候…" : "正在整理主题、题目与选项…");
@@ -743,7 +762,7 @@
           renderGeneratedDraft(method);
           generatorStatus(`已生成 ${generatedSurvey.questions.length} 道题。检查下方完整预览后，点击“应用到设计台”。`);
         } catch (error) {
-          if (request === generationRequest) generatorStatus(timedOut ? "生成超时（45 秒），请重试或切换本地生成。" : controller.signal.aborted ? "已取消生成，原问卷未修改。" : error.message || "生成失败，请检查输入后重试。", !controller.signal.aborted || timedOut);
+          if (request === generationRequest) generatorStatus(timedOut ? `生成超时（${timeoutMs / 1000} 秒），请重试或切换本地生成。` : controller.signal.aborted ? "已取消生成，原问卷未修改。" : error.message || "生成失败，请检查输入后重试。", !controller.signal.aborted || timedOut);
         } finally {
           clearTimeout(timer);
           if (request === generationRequest) { generationController = null; setGenerationBusy(false); }
@@ -760,7 +779,7 @@
       }
 
       function resetSurveySession() {
-        answers = {}; validationErrors = []; submitted = false; deleteArmed = null; clearArmed = false;
+        answers = {}; validationErrors = []; submitted = false; clearDeleteConfirmation(); clearArmed = false;
       }
 
       function applyGeneratedSurvey() {
@@ -883,12 +902,12 @@
         list.innerHTML = state.survey.questions.map((question, index) => {
           const hasOptions = question.type === "single" || question.type === "multiple";
           const options = hasOptions ? `<div class="options-editor"><strong>选项</strong>${question.options.map((option, optionIndex) => `<label class="option-edit"><span class="option-bubble" aria-hidden="true"></span><input type="text" value="${escapeHTML(option)}" maxlength="60" data-field="option" data-id="${question.id}" data-option-index="${optionIndex}" aria-label="题目 ${index + 1} 选项 ${optionIndex + 1}"><button class="icon-btn" type="button" data-action="remove-option" data-id="${question.id}" data-option-index="${optionIndex}" aria-label="删除选项 ${optionIndex + 1}" ${question.options.length <= 2 ? "disabled" : ""}>×</button></label>`).join("")}<button class="mini-btn" type="button" data-action="add-option" data-id="${question.id}" ${question.options.length >= 10 ? "disabled" : ""}>＋ 添加选项</button></div>` : "";
-          const deleteText = deleteArmed === question.id ? "确定" : "×";
+          const deleteText = deleteArmed === question.id ? "确认删除" : "删除题目";
           return `<article class="question-card" style="--card-accent:${TYPE_COLORS[question.type]}">
             <div class="question-top"><span class="q-index">Q${String(index + 1).padStart(2, "0")}</span><strong>${TYPE_LABELS[question.type]}</strong><div class="question-tools">
               <button class="icon-btn" type="button" data-action="move-up" data-id="${question.id}" aria-label="上移题目 ${index + 1}" ${index === 0 ? "disabled" : ""}>↑</button>
               <button class="icon-btn" type="button" data-action="move-down" data-id="${question.id}" aria-label="下移题目 ${index + 1}" ${index === state.survey.questions.length - 1 ? "disabled" : ""}>↓</button>
-              <button class="icon-btn" type="button" data-action="delete-question" data-id="${question.id}" aria-label="${deleteArmed === question.id ? "再次点击确认删除" : "删除题目"}">${deleteText}</button>
+              <button class="icon-btn delete-question-btn" type="button" data-action="delete-question" data-id="${question.id}" data-confirm="${deleteArmed === question.id}" aria-label="${deleteArmed === question.id ? "确认删除" : "删除"}题目 ${index + 1}">${deleteText}</button>
             </div></div>
             <div class="question-body">
               <div class="question-row"><label class="field">问题<input type="text" value="${escapeHTML(question.title)}" maxlength="140" data-field="title" data-id="${question.id}"></label><label class="field">回答方式<select data-field="type" data-id="${question.id}">${typeOptions(question.type)}</select></label></div>
@@ -981,6 +1000,7 @@
 
       function setMode(nextMode) {
         if (!['build', 'fill', 'results'].includes(nextMode)) return;
+        clearDeleteConfirmation();
         if (nextMode === "build" && sharedSurvey) {
           sharedSurvey = null;
           history.replaceState(null, "", location.href.split("#")[0]);
@@ -1008,6 +1028,7 @@
       }
 
       function handleBuilderInput(event) {
+        if (deleteArmed) clearDeleteConfirmation();
         if (event.target.id === "surveyTitle") {
           state.survey.title = truncate(event.target.value, 80);
           save(); renderPreview(); return;
@@ -1038,7 +1059,7 @@
       }
 
       function addQuestion(type) {
-        if (state.survey.questions.length >= 20) { toast("一份问卷最多 20 道题。 "); return; }
+        if (state.survey.questions.length >= MAX_QUESTIONS) { toast(`一份问卷最多 ${MAX_QUESTIONS} 道题。`); return; }
         const number = state.survey.questions.length + 1;
         state.survey.questions.push(normalizeQuestion({ id: uid("q"), type, title: `第 ${number} 个问题`, required: false, options: ["选项 A", "选项 B"] }, number - 1));
         save(); renderQuestions(); renderPreview();
@@ -1055,6 +1076,7 @@
 
       function handleQuestionAction(action, button) {
         const id = button.dataset.id;
+        if (action !== "delete-question") clearDeleteConfirmation();
         if (action === "move-up") moveQuestion(id, -1);
         if (action === "move-down") moveQuestion(id, 1);
         if (action === "add-option") {
@@ -1067,13 +1089,31 @@
         }
         if (action === "delete-question") {
           if (deleteArmed !== id) {
-            deleteArmed = id; renderQuestions(); toast("再点一次“确定”删除这道题。");
-            setTimeout(() => { if (deleteArmed === id) { deleteArmed = null; renderQuestions(); } }, 3500);
+            clearTimeout(deleteTimer);
+            deleteArmed = id; syncDeleteButtons(); toast("再点一次“确认删除”删除这道题，10 秒后自动取消。");
+            deleteTimer = setTimeout(clearDeleteConfirmation, 10000);
           } else {
+            const index = state.survey.questions.findIndex(question => question.id === id);
             state.survey.questions = state.survey.questions.filter(question => question.id !== id);
-            deleteArmed = null; save(); renderQuestions(); renderPreview(); toast("题目已删除。");
+            clearDeleteConfirmation(); save(); renderQuestions(); renderPreview(); toast("题目已删除。");
+            const buttons = $$("#questionList [data-action='delete-question']");
+            (buttons[Math.min(index, buttons.length - 1)] || $("[data-action='add-question']")).focus({ preventScroll: true });
           }
         }
+      }
+
+      function syncDeleteButtons() {
+        $$("#questionList [data-action='delete-question']").forEach((button, index) => {
+          const armed = button.dataset.id === deleteArmed;
+          button.dataset.confirm = String(armed);
+          button.textContent = armed ? "确认删除" : "删除题目";
+          button.setAttribute("aria-label", `${armed ? "确认删除" : "删除"}题目 ${index + 1}`);
+        });
+      }
+
+      function clearDeleteConfirmation() {
+        clearTimeout(deleteTimer); deleteTimer = null; deleteArmed = null;
+        syncDeleteButtons();
       }
 
       function handleFillInput(event) {
@@ -1185,6 +1225,7 @@
       $("#cancelGeneration").addEventListener("click", cancelGeneration);
       $("#undoGeneration").addEventListener("click", undoGeneratedSurvey);
       window.addEventListener("hashchange", routeFromHash);
+      window.addEventListener("pagehide", () => { if (generatorSaveTimer !== null) persistGeneratorBrief(); });
       window.addEventListener("storage", event => {
         if (event.key !== STORAGE_KEY || !event.newValue) return;
         try {
@@ -1200,6 +1241,7 @@
 
       window.pulse38 = { escapeHTML, normalizeQuestion, normalizeSurvey, encodeSurvey, decodeSurvey, validateAnswers, aggregateSurvey, hasAnswer };
       restoreGenerator();
+      updatePromptLength();
       renderBuilder();
       if (!routeFromHash()) setMode("build");
     })();

@@ -30,6 +30,7 @@ test('app 038 questionnaire generation is published and officially complete', ()
   assert.equal(app38[0], '在线问卷系统');
   assert.match(app38[1], /^PULSE\/38：/);
   assert.match(app38[1], /文本与提示词生成问卷/);
+  assert.match(app38[1], /4–30题/);
   assert.match(app38[1], /可选AI/);
   assert.match(app38[1], /移动端/);
   assert.match(app38[1], /分享与本地统计/);
@@ -50,7 +51,7 @@ test('official completion migrates an old app 038 entry while preserving custom 
   const custom = { id: 101, name: '用户自定义问卷', desc: '保留我的内容', lv: 2, st: 'doing', custom: true, link: 'https://example.com/custom' };
   const context = {};
   vm.runInNewContext(`
-    let apps=[{id:38,name:"旧问卷",desc:"手动设计",lv:2,st:"todo",custom:false,link:""},${JSON.stringify(custom)}];
+    let apps=[{id:38,name:"旧问卷",desc:"生成4–20题问卷",lv:2,st:"todo",custom:false,link:""},${JSON.stringify(custom)}];
     const IDEAS=${JSON.stringify(ideas)};
     ${html.slice(initStart, initEnd)}
     let didSave=false;
@@ -63,6 +64,7 @@ test('official completion migrates an old app 038 entry while preserving custom 
   const app38 = context.result.apps[0];
   assert.equal(app38.name, ideas[37][0]);
   assert.equal(app38.desc, ideas[37][1]);
+  assert.match(app38.desc, /4–30题/);
   assert.equal(app38.lv, 3);
   assert.equal(app38.st, 'done');
   assert.equal(app38.link, publishedUrl);

@@ -323,3 +323,97 @@ test('a response survives repeated quota failures in memory and persists when st
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
 });
+
+test('long prompts survive immediate reload and generate all 30 questions through editing, sharing and filling', async () => {
+  const { context, page, errors } = await setup({ width: 390, height: 844 });
+  try {
+    const source = '本次调查用于了解居民就餐体验。\n'.repeat(500);
+    const prompt = '请根据居民的真实体验设计清晰、中立的问题。\n'.repeat(700) +
+      '主题：社区食堂用餐体验。\n生成三十道题，只要单选题，全部选答，重点关注价格、菜品口味。\n' +
+      '1. 您更希望增加哪种早餐？ [单选]\nA. 粥类\nB. 面食\nC. 豆浆';
+    await page.locator('#generatorSource').fill(source);
+    await page.locator('#generatorPrompt').fill(prompt);
+    await page.locator('#generatorCount').fill('25');
+    assert.equal(await page.locator('#generatorPrompt').getAttribute('maxlength'), null);
+    assert.equal(await page.locator('#generatorSource').getAttribute('maxlength'), null);
+    assert.equal(await page.locator('#generatorPrompt').inputValue(), prompt);
+    await page.reload();
+    assert.equal(await page.locator('#generatorPrompt').inputValue(), prompt);
+    assert.equal(await page.locator('#generatorSource').inputValue(), source.trim());
+    assert.equal(await page.locator('#generatorCount').inputValue(), '25');
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('.generated-questions > li').count(), 30);
+    assert.match(await page.locator('.generated-questions > li').first().innerText(), /您更希望增加哪种早餐/);
+    await page.locator('[data-action="apply-generated"]').click();
+    let survey = (await saved(page)).survey;
+    assert.equal(survey.questions.length, 30);
+    assert.ok(survey.questions.every(q => q.type === 'single' && !q.required));
+    await page.locator('[data-action="add-question"][data-type="single"]').click();
+    assert.equal(await page.locator('.question-card').count(), 30);
+    assert.match(await page.locator('#toast').innerText(), /最多 30/);
+    await page.locator('#questionList [data-field="title"]').last().fill('最后一题：您希望增加哪些用餐时段？');
+    await page.locator('#questionList [data-field="required"]').last().check();
+    await page.reload();
+    survey = (await saved(page)).survey;
+    assert.equal(survey.questions.length, 30);
+    assert.match(survey.questions[29].title, /最后一题/);
+    await page.locator('.top-action').click();
+    const shareUrl = await page.locator('#shareUrl').inputValue();
+    const sharedPage = await context.newPage();
+    await sharedPage.goto(shareUrl);
+    assert.equal(await sharedPage.locator('.fill-question').count(), 30);
+    await sharedPage.locator('#responseForm button[type="submit"]').click();
+    assert.equal(await sharedPage.locator('.error-text').count(), 1);
+    const last = sharedPage.locator(`#fillCard [data-question-id="${survey.questions[29].id}"]`);
+    assert.equal(await last.getAttribute('data-invalid'), 'true');
+    await last.locator('input').first().check();
+    await sharedPage.locator('#responseForm button[type="submit"]').click();
+    await sharedPage.locator('.receipt').waitFor();
+    assert.equal((await saved(sharedPage)).responses.filter(r => r.surveyId === survey.id).length, 1);
+    await page.locator('[data-action="close-share"]').click();
+    const lastDelete = page.locator('[data-action="delete-question"]').last();
+    await lastDelete.click();
+    await assertNoOverflow(page, '30-question mobile delete confirmation');
+    await lastDelete.click();
+    assert.equal(await page.locator('.question-card').count(), 29);
+    await page.locator('[data-action="add-question"][data-type="text"]').click();
+    assert.equal(await page.locator('.question-card').count(), 30);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+for (const width of [320, 1440]) {
+  test(`delete confirmation is legible, keeps focus and respects the newest timer at ${width}px`, async () => {
+    const { context, page, errors } = await setup({ width, height: 900 });
+    try {
+      await page.clock.install();
+      const first = page.locator('[data-action="delete-question"]').first();
+      const second = page.locator('[data-action="delete-question"]').nth(1);
+      await first.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await first.innerText(), '确认删除');
+      assert.equal(await first.evaluate(el => el === document.activeElement), true);
+      const size = await first.evaluate(el => ({ width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height, fontSize: parseFloat(getComputedStyle(el).fontSize), clipped: el.scrollWidth > el.clientWidth }));
+      assert.ok(size.width >= 108 && size.height >= 48 && size.fontSize >= 18 && !size.clipped, JSON.stringify(size));
+      await assertNoOverflow(page, `${width} armed confirmation`);
+      await page.clock.fastForward(4000);
+      await second.click();
+      await page.clock.fastForward(3000);
+      await first.click();
+      await page.clock.fastForward(4000);
+      assert.equal(await first.innerText(), '确认删除');
+      // Expiration updates only the button; a separate edit control keeps its focus.
+      const title = page.locator('#questionList [data-field="title"]').last();
+      await title.focus();
+      await page.clock.fastForward(7000);
+      assert.equal(await first.innerText(), '删除题目');
+      assert.equal(await title.evaluate(el => el === document.activeElement), true);
+      await first.focus();
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('.question-card').count(), 3);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+}

@@ -24,10 +24,10 @@ test("local generation is deterministic, complete and covers every default type"
   assert.ok(first.questions.some(question => question.title.includes("功能实用性")));
 });
 
-test("all combinations of allowed types produce valid nonduplicate surveys from 4 through 20 questions", () => {
+test("all combinations of allowed types produce valid nonduplicate surveys from 4 through 30 questions", () => {
   for (let mask = 1; mask < 16; mask++) {
     const types = SUPPORTED_TYPES.filter((_, index) => mask & (1 << index));
-    for (let count = 4; count <= 20; count++) {
+    for (let count = 4; count <= 30; count++) {
       const survey = generateLocal({ topic: "社区食堂", count, types });
       assert.equal(survey.questions.length, count, `${types} ${count}`);
       assert.equal(new Set(survey.questions.map(question => question.title)).size, count);
@@ -59,12 +59,12 @@ test("topic, source and prompt can each be used as the only input", () => {
 });
 
 test("Chinese and Arabic prompt question counts take precedence over the selected count", () => {
-  for (const [prompt, count] of [["生成六道题", 6], ["请设计二十个问题", 20], ["需要十题", 10], ["共十五道题", 15], ["十二题，重点关注价格", 12], ["请生成 7 道题", 7]]) {
+  for (const [prompt, count] of [["生成六道题", 6], ["请设计二十个问题", 20], ["生成二十一道题", 21], ["生成二十五题", 25], ["总共三十道题", 30], ["需要十题", 10], ["共十五道题", 15], ["十二题，重点关注价格", 12], ["请生成 7 道题", 7]]) {
     assert.equal(resolveConfig({ ...base, prompt }).count, count, prompt);
   }
   assert.equal(resolveConfig({ ...base, prompt: "最后加一道建议题" }).count, 8);
-  assert.throws(() => generateLocal({ ...base, prompt: "生成三道题" }), /4–20/);
-  assert.throws(() => generateLocal({ ...base, prompt: "生成二十一题" }), /4–20/);
+  assert.throws(() => generateLocal({ ...base, prompt: "生成三道题" }), /4–30/);
+  assert.throws(() => generateLocal({ ...base, prompt: "生成三十一题" }), /4–30/);
 });
 
 test("prompt type restrictions, exclusions and optional synonyms are honored", () => {
@@ -129,13 +129,151 @@ test("invalid and oversized inputs are rejected without coercing objects to text
   assert.throws(() => generateLocal({ topic: " " }), /至少填写/);
   assert.throws(() => generateLocal({ topic: { dangerous: true } }), /必须是文本/);
   assert.throws(() => generateLocal({ topic: "x".repeat(81) }), /80/);
-  assert.throws(() => generateLocal({ source: "x".repeat(6001) }), /6000/);
-  assert.throws(() => generateLocal({ prompt: "x".repeat(1201) }), /1200/);
+  assert.equal(generateLocal({ source: "参考背景。".repeat(1600) }).questions.length, 8);
+  assert.equal(generateLocal({ prompt: "参考背景。".repeat(1600) }).questions.length, 8);
   assert.throws(() => generateLocal({ ...base, count: 8.5 }), /整数/);
   assert.throws(() => generateLocal({ ...base, types: [] }), /至少保留/);
   assert.throws(() => generateLocal({ ...base, types: ["matrix"] }), /仅支持/);
   assert.throws(() => generateLocal({ ...base, required: "false" }), /布尔/);
   assert.throws(() => generateLocal({ topic: "恶意\u0000文本" }), /控制字符/);
+});
+
+test("long prompt and source stay intact and their tail requirements are interpreted", () => {
+  const prompt = `先生成 8 题。\n${"背景说明可用于了解调查目标。".repeat(700)}\n最终生成三十道题，只要单选题，全部选答，重点关注便携重量、续航表现。\n1. 您最喜欢哪款设备？ [单选]\nA. 手机\nB. 平板\nC. 电脑`;
+  const source = `${"产品调查参考材料。".repeat(1000)}\n2. 您最常使用什么设备？ [单选]\nA. 台式电脑\nB. 笔记本电脑\nC. 手机`;
+  const config = resolveConfig({ topic: "设备调研", prompt, source });
+  assert.equal(config.prompt, prompt);
+  assert.equal(config.source, source);
+  assert.ok(config.prompt.length > 6000);
+  assert.ok(config.source.length > 6000);
+  assert.equal(config.count, 30);
+  const survey = generateLocal({ topic: "设备调研", prompt, source });
+  assert.equal(survey.questions.length, 30);
+  assert.equal(survey.questions[0].title, "您最喜欢哪款设备？");
+  assert.deepEqual(survey.questions[0].options, ["手机", "平板", "电脑"]);
+  assert.equal(survey.questions[1].title, "您最常使用什么设备？");
+  assert.ok(survey.questions.every(question => question.type === "single" && !question.required));
+  assert.ok(survey.questions.some(question => question.title.includes("便携重量")));
+  assert.ok(survey.questions.some(question => question.title.includes("续航表现")));
+});
+
+test("prompt-only pasted questions and options are preserved ahead of templates", () => {
+  const prompt = "生成4题。\n1. 您的主要通勤方式是？ [单选]\nA. 公交\nB. 地铁\nC. 自行车\n2. 您希望改善哪些服务？ [多选] A. 班次 B. 接驳 C. 指引\n3. 您对候车环境的评分？ [评分]\n4. 您有什么通勤建议？ [文本]";
+  const survey = generateLocal({ prompt });
+  assert.deepEqual(survey.questions.map(question => question.title), ["您的主要通勤方式是？", "您希望改善哪些服务？", "您对候车环境的评分？", "您有什么通勤建议？"]);
+  assert.deepEqual(survey.questions[0].options, ["公交", "地铁", "自行车"]);
+  assert.deepEqual(survey.questions[1].options, ["班次", "接驳", "指引"]);
+});
+
+test("polite generation requests are not imported as respondent questions", () => {
+  for (const prompt of ["请生成30题，可以吗？", "能否根据这些资料帮我设计8题？"]) {
+    const survey = generateLocal({ topic: "社区食堂", prompt });
+    assert.ok(!survey.questions.some(question => question.title === prompt));
+  }
+  const survey = generateLocal({ topic: "AI 工具", prompt: "生成4题。\n1. 请描述您如何使用问卷生成工具？ [文本]" });
+  assert.equal(survey.questions[0].title, "请描述您如何使用问卷生成工具？");
+  assert.equal(generateLocal({ prompt: "请问您对服务有什么建议？", count: 4 }).questions[0].title, "请问您对服务有什么建议？");
+});
+
+test("source and prompt overlap once while distinct pasted questions survive", () => {
+  const source = "1. 您满意吗？ [单选] A. 满意 B. 不满意\n2. 您希望改善什么？ [文本]";
+  const prompt = "生成4题。\n1. 您满意吗？\n2. 您愿意再次参与吗？ [单选] A. 愿意 B. 不愿意";
+  const survey = generateLocal({ topic: "参与体验", source, prompt });
+  assert.equal(survey.questions.filter(question => question.title === "您满意吗？").length, 1);
+  assert.deepEqual(survey.questions[0].options, ["满意", "不满意"]);
+  assert.equal(survey.questions[1].title, "您愿意再次参与吗？");
+  assert.equal(survey.questions[2].title, "您希望改善什么？");
+});
+
+test("pasting an existing closing suggestion does not leave the survey one question short", () => {
+  for (const count of [4, 8, 30]) {
+    const survey = generateLocal({ topic: "社区图书馆", prompt: `生成${count}题\n1. 对于“社区图书馆”，您还有哪些补充意见或建议？ [文本]` });
+    assert.equal(survey.questions.length, count);
+    assert.equal(survey.questions.filter(question => question.title === "对于“社区图书馆”，您还有哪些补充意见或建议？").length, 1);
+  }
+});
+
+test("30 explicit prompt questions are preserved without truncation and overflow is reported", () => {
+  const questions = Array.from({ length: 30 }, (_, index) => `${index + 1}. 您对第${index + 1}项服务有什么看法？ [文本]`).join("\n");
+  const survey = generateLocal({ topic: "服务逐项意见", prompt: `生成30道题。\n${questions}` });
+  assert.equal(survey.questions.length, 30);
+  assert.equal(survey.questions.at(-1).title, "您对第30项服务有什么看法？");
+  assert.throws(() => generateLocal({ topic: "服务逐项意见", prompt: questions, count: 8 }), /已粘贴 30/);
+  assert.throws(() => generateLocal({ ...base, count: 31 }), /4–30/);
+  const tooMany = { ...survey, questions: [...survey.questions, { ...survey.questions[0], title: "额外题目" }] };
+  assert.throws(() => validateSurvey(tooMany), /4–30/);
+});
+
+test("numbered prompt outlines become relevant dimensions while supplied topic remains authoritative", () => {
+  const survey = generateLocal({ topic: "社区配送体验", prompt: "生成8题，最后加一道建议题。\n1. 配送及时性\n2. 包装完整性\n3. 运费透明度" });
+  assert.equal(survey.title, "社区配送体验调查问卷");
+  for (const dimension of ["配送及时性", "包装完整性", "运费透明度"]) assert.ok(survey.questions.some(question => question.title.includes(dimension)), dimension);
+  assert.equal(generateLocal({ source: "主题：旧产品体验", prompt: "主题：新产品体验，生成8题" }).title, "新产品体验调查问卷");
+});
+
+test("per-type quantities accept the common classifier shorthand without a trailing 题", () => {
+  const prompt = "共12题，6道单选、4道评分、2道文本";
+  const survey = generateLocal({ topic: "客户需求", prompt });
+  assert.equal(survey.questions.length, 12);
+  assert.deepEqual(resolveConfig({ topic: "客户需求", prompt }).typeCounts, { single: 6, rating: 4, text: 2 });
+  assert.equal(survey.questions.filter(question => question.type === "single").length, 6);
+  assert.equal(survey.questions.filter(question => question.type === "rating").length, 4);
+  assert.equal(survey.questions.filter(question => question.type === "text").length, 2);
+  assert.equal(generateLocal({ prompt }).title, "体验反馈调查问卷");
+  for (const instruction of ["生成30题，全部选答", "请生成30题，可以吗？", "能否根据这些资料帮我设计8题？"]) {
+    assert.equal(generateLocal({ prompt: instruction }).title, "体验反馈调查问卷");
+  }
+});
+
+test("exact per-type quantities determine the total without mistaking them for a total count", () => {
+  const cases = [
+    ["10道单选题、10道多选题、5道评分题、5道文本题", { single: 10, multiple: 10, rating: 5, text: 5 }],
+    ["生成30题，15道单选题，15道评分题", { single: 15, rating: 15 }],
+    ["生成30题，10道单选题，10道多选题，10道文本题", { single: 10, multiple: 10, text: 10 }],
+    ["十二道单选题、八道多选题、五道评分题、五道文本题", { single: 12, multiple: 8, rating: 5, text: 5 }],
+    ["30道文本题", { text: 30 }],
+    ["30道单选题，0道文本题", { single: 30, text: 0 }]
+  ];
+  for (const [prompt, expected] of cases) {
+    const config = resolveConfig({ ...base, prompt });
+    assert.equal(config.count, 30, prompt);
+    assert.deepEqual(config.typeCounts, expected);
+    const survey = generateLocal({ ...base, prompt });
+    for (const [type, count] of Object.entries(expected)) assert.equal(survey.questions.filter(question => question.type === type).length, count, `${prompt} ${type}`);
+  }
+});
+
+test("partial per-type quantities preserve the explicit total and reject contradictory requirements", () => {
+  const survey = generateLocal({ ...base, prompt: "生成30题，其中10道单选题，其余使用其他题型。" });
+  assert.equal(survey.questions.length, 30);
+  assert.equal(survey.questions.filter(question => question.type === "single").length, 10);
+  const noRatings = generateLocal({ ...base, prompt: "生成30题，0道评分题" });
+  assert.ok(noRatings.questions.every(question => question.type !== "rating"));
+  assert.throws(() => generateLocal({ ...base, prompt: "生成8题，10道单选题" }), /数量之和/);
+  assert.throws(() => generateLocal({ ...base, prompt: "只要评分题，10道单选题" }), /冲突/);
+  assert.throws(() => generateLocal({ ...base, prompt: "生成30题，只要单选题，10道单选题" }), /少于总题数/);
+  const pasted = "生成4题，其中1道单选题、3道文本题。\n1. 您满意吗？ [单选] A. 是 B. 否\n2. 您愿意再参加吗？ [单选] A. 是 B. 否";
+  assert.throws(() => generateLocal({ ...base, prompt: pasted }), /超过提示词配比/);
+});
+
+test("AI receives the entire long input and validates thirty-question quantity constraints", async t => {
+  const prompt = `${"详细的问卷设计背景。".repeat(1000)}\n10道单选题、10道多选题、5道评分题、5道文本题。重点关注产品耐用性。`;
+  const source = `${"供参考的产品背景信息。".repeat(1000)}\n资料尾部：产品用于户外场景。`;
+  const survey = generateLocal({ topic: "户外产品", prompt, source });
+  let sent;
+  const mocked = t.mock.method(globalThis, "fetch", async (_, options) => { sent = JSON.parse(options.body); return response(survey); });
+  assert.deepEqual(await generateAI({ topic: "户外产品", prompt, source }, settings), survey);
+  const userContent = JSON.parse(sent.messages[1].content);
+  assert.equal(userContent.prompt, prompt);
+  assert.equal(userContent.source, source);
+  assert.equal(userContent.questionCount, 30);
+  assert.deepEqual(userContent.typeCounts, { single: 10, multiple: 10, rating: 5, text: 5 });
+  assert.ok(sent.max_tokens >= 10000);
+  const invalid = structuredClone(survey);
+  const index = invalid.questions.findIndex(question => question.type === "single");
+  invalid.questions[index].type = "multiple";
+  mocked.mock.mockImplementation(async () => response(invalid));
+  await assert.rejects(generateAI({ topic: "户外产品", prompt, source }, settings), /各题型数量/);
 });
 
 test("hostile strings stay literal text and cannot add fields to generated objects", () => {

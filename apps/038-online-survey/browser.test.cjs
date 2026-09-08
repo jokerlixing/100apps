@@ -48,6 +48,7 @@ test('empty briefs and absent types report errors without replacing the saved qu
     await page.locator('#generateButton').click();
     assert.match(await page.locator('#generatorStatus').innerText(), /至少输入/);
     await page.locator('#generatorTopic').fill('社区图书馆服务');
+    await page.locator('#generatorTypeMode').selectOption('manual');
     for (const checkbox of await page.locator('[name="generatorType"]').all()) await checkbox.uncheck();
     await page.locator('#generateButton').click();
     assert.match(await page.locator('#generatorStatus').innerText(), /至少选择/);
@@ -417,3 +418,82 @@ for (const width of [320, 1440]) {
     } finally { await context.close(); }
   });
 }
+
+test('automatic local generation chooses types from unlabelled prompt fields and keeps them in the shared form', async () => {
+  const { context, page, errors } = await setup({ width: 390, height: 844 });
+  try {
+    const remoteRequests = [];
+    page.on('request', request => { if (!request.url().startsWith(new globalThis.URL(URL).origin)) remoteRequests.push(request.url()); });
+    assert.equal(await page.locator('#generatorTypeMode').inputValue(), 'auto');
+    assert.equal(await page.locator('#generatorTypes').isVisible(), false);
+    await page.locator('#generatorTopic').fill('产品使用体验');
+    await page.locator('#generatorPrompt').fill('生成4题。\n1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议');
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    await page.locator('[data-action="apply-generated"]').click();
+    const survey = (await saved(page)).survey;
+    assert.deepEqual(survey.questions.map(q => q.type), ['single', 'multiple', 'rating', 'text']);
+    for (const [index, text] of ['年龄', '功能', '满意', '建议'].entries()) assert.ok(survey.questions[index].title.includes(text));
+    assert.ok(survey.questions[0].options.length >= 2);
+    assert.ok(survey.questions[1].options.length >= 2);
+    assert.deepEqual(survey.questions[2].options, []);
+    assert.deepEqual(survey.questions[3].options, []);
+    await assertNoOverflow(page, 'automatic semantic types on mobile');
+    await page.locator('.top-action').click();
+    const sharedPage = await context.newPage();
+    await sharedPage.goto(await page.locator('#shareUrl').inputValue());
+    const controls = id => sharedPage.locator(`#fillCard [data-answer-id="${id}"]`);
+    assert.equal(await controls(survey.questions[0].id).first().getAttribute('type'), 'radio');
+    assert.equal(await controls(survey.questions[1].id).first().getAttribute('type'), 'checkbox');
+    assert.equal(await controls(survey.questions[2].id).count(), 5);
+    assert.equal(await controls(survey.questions[3].id).evaluate(el => el.tagName), 'TEXTAREA');
+    await controls(survey.questions[0].id).first().check();
+    await controls(survey.questions[1].id).first().check();
+    await controls(survey.questions[1].id).nth(1).check();
+    await controls(survey.questions[2].id).last().check();
+    await controls(survey.questions[3].id).fill('希望增加批量提醒。');
+    await sharedPage.locator('#responseForm button[type="submit"]').click();
+    await sharedPage.locator('.receipt').waitFor();
+    assert.deepEqual(remoteRequests, []);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('a prose brief produces the requested fields with matching types without type annotations', async () => {
+  const { context, page, errors } = await setup();
+  try {
+    await page.locator('#generatorTopic').fill('产品需求调研');
+    await page.locator('#generatorPrompt').fill('生成8题，了解年龄、职业、使用频率、使用场景、常用功能、整体满意度、推荐意愿和改进建议。');
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    await page.locator('[data-action="apply-generated"]').click();
+    const questions = (await saved(page)).survey.questions;
+    assert.deepEqual(questions.map(q => q.type), ['single', 'single', 'single', 'multiple', 'multiple', 'rating', 'rating', 'text']);
+    for (const [index, text] of ['年龄', '职业', '频率', '场景', '功能', '满意', '推荐', '建议'].entries()) assert.ok(questions[index].title.includes(text));
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});
+
+test('manual type restrictions can be restored or switched back to automatic matching', async () => {
+  const { context, page, errors } = await setup();
+  try {
+    await page.locator('#generatorPrompt').fill('生成4题。\n1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议');
+    await page.locator('#generatorTypeMode').selectOption('manual');
+    for (const type of ['single', 'multiple', 'rating']) await page.locator(`[name="generatorType"][value="${type}"]`).uncheck();
+    await page.reload();
+    assert.equal(await page.locator('#generatorTypeMode').inputValue(), 'manual');
+    assert.equal(await page.locator('#generatorTypes').isVisible(), true);
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    await page.locator('[data-action="apply-generated"]').click();
+    assert.ok((await saved(page)).survey.questions.every(q => q.type === 'text'));
+    await page.locator('#generatorTypeMode').selectOption('auto');
+    await page.locator('#generateButton').click();
+    await page.locator('#generatedDraft').waitFor({ state: 'visible' });
+    await page.locator('[data-action="apply-generated"]').click();
+    assert.deepEqual((await saved(page)).survey.questions.map(q => q.type), ['single', 'multiple', 'rating', 'text']);
+    await page.reload();
+    assert.equal(await page.locator('#generatorTypeMode').inputValue(), 'auto');
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+});

@@ -8,10 +8,10 @@
 
   const SUPPORTED_TYPES = Object.freeze(["single", "multiple", "rating", "text"]);
   const TYPE_PATTERNS = {
-    single: /单选(?:题)?/,
-    multiple: /多选(?:题)?/,
+    single: /单选(?:题)?|单项选择(?:题)?|判断(?:题)?/,
+    multiple: /多选(?:题)?|多项选择(?:题)?/,
     rating: /评分(?:题)?|量表(?:题)?|打分(?:题)?/,
-    text: /文本(?:题)?|开放(?:式)?(?:问题|题)?|问答(?:题)?|简答(?:题)?|建议题/
+    text: /文本(?:题)?|开放(?:式)?(?:问题|题)?|问答(?:题)?|简答(?:题)?|建议题|填空(?:题)?/
   };
   const LEVELS = ["非常满意", "比较满意", "一般", "不太满意", "非常不满意", "尚未体验 / 不适用"];
   const LIMITS = { topic: 80, audience: 80, source: Infinity, prompt: Infinity };
@@ -60,7 +60,7 @@
       || [...config.prompt.matchAll(/(?:^|[，,。；;\s])([零一二两三四五六七八九十\d]+)\s*(?:道题|个问题|道问题|个题目|题)(?!型)/g)].at(-1);
     if (countMatch) config.count = chineseNumber(countMatch[1]);
     const typeCounts = {};
-    const quantityPattern = /([零一二两三四五六七八九十\d]+)\s*(?:道|个)?\s*(单选|多选|评分|量表|打分|文本|开放式|开放|问答|简答)(?:题|问题)?/g;
+    const quantityPattern = /([零一二两三四五六七八九十\d]+)\s*(?:道|个)?\s*(单选|单项选择|判断|多选|多项选择|评分|量表|打分|文本|开放式|开放|问答|简答|填空)(?:题|问题)?/g;
     for (const match of config.prompt.matchAll(quantityPattern)) typeCounts[mentionedTypes(match[2])[0]] = chineseNumber(match[1]);
     const quantityTypes = Object.keys(typeCounts);
     const quantityTotal = Object.values(typeCounts).reduce((sum, value) => sum + value, 0);
@@ -142,22 +142,113 @@
     dimensions.push(...domain.dims);
     return [...new Set(dimensions)].slice(0, 30);
   }
+  function semanticField(raw, config) {
+    const label = raw.trim().replace(/^(?:了解|调查|询问|收集)/, "").replace(/^(?:用户|受访者|参与者)的?/, "");
+    const direct = /[？?]|^(?:您|你|请问|请描述|请说明|是否|有没有)/.test(label);
+    const context = `${config.topic} ${config.source} ${config.prompt}`;
+    const domain = DOMAINS.find(item => item.match.test(context));
+    const subject = config.topic ? `“${shortText(config.topic, 36)}”` : "相关产品或服务";
+    let features = /待办|任务管理/.test(context) ? ["任务创建", "分类标签", "到期提醒", "日历查看", "数据同步", "导出与分享", "其他"] : ["搜索与浏览", "记录与管理", "提醒与通知", "数据分析", "导出与分享", "其他"];
+    const featureList = config.source.match(/(?:提供|包含|支持)(?:了)?([^。；;\n]{2,180}?)功能/);
+    if (featureList) {
+      const supplied = [...new Set(featureList[1].split(/[、，,]|以及|和/).map(value => value.trim()).filter(value => value.length >= 2 && value.length <= 30))];
+      if (supplied.length >= 2 && supplied.length <= 9) features = [...supplied, "其他"];
+    }
+    let kind = "general", type = "text", options = [], title = direct ? label : `关于“${label}”，请说明您的具体需求或体验。`;
+    const set = (key, preferred, question, choices = []) => { kind = key; type = preferred; title = direct ? label : question; options = choices; };
+    if (/是否(?:愿意|同意|可以|能够)?(?:提供|填写|留下)|愿意(?:提供|填写|留下).*吗/.test(label)) set("yesno", "single", label, ["愿意", "不愿意", "尚不确定"]);
+    else if (/姓名|昵称|联系方式|联系电话|手机号|手机号码|电子邮箱|邮箱地址|联系邮箱|联系地址/.test(label)) set("personalText", "text", `请填写您的${label}。`);
+    else if (/建议|意见|原因|理由|为什么|为何|请描述|请说明|看法|经历|补充说明|反馈内容/.test(label)) set("explanation", "text", /建议|意见/.test(label) ? `您有哪些${label}？` : `请说明${label}。`);
+    else if (/年龄|岁数/.test(label)) set("age", "single", "您的年龄段是？", ["18 岁以下", "18–24 岁", "25–34 岁", "35–44 岁", "45–59 岁", "60 岁及以上", "不愿透露"]);
+    else if (/性别/.test(label)) set("gender", "single", "您的性别是？", ["女性", "男性", "非二元 / 其他", "不愿透露"]);
+    else if (/职业|从事.*工作|工作类型|就业状态/.test(label)) set("occupation", "single", "您目前的职业或身份是？", ["学生", "企业职员", "自由职业", "个体经营", "机关或事业单位工作人员", "退休", "其他", "不愿透露"]);
+    else if (/学历|教育程度|受教育/.test(label)) set("education", "single", "您的最高学历是？", ["初中及以下", "高中 / 中专", "大专", "本科", "硕士及以上", "不愿透露"]);
+    else if (/使用时长|每天.*多久|每日.*时长/.test(label)) set("duration", "single", "您每天使用的时长通常是？", ["少于 15 分钟", "15–29 分钟", "30–59 分钟", "1–2 小时", "超过 2 小时", "尚未使用"]);
+    else if (/频率|多久.*次|每周.*几次|多长时间.*次|使用次数|购买次数/.test(label)) set("frequency", "single", `您的${label}是？`, /每周/.test(label) ? ["0 次", "1 次", "2–3 次", "4–6 次", "7 次及以上", "不确定"] : ["每天", "每周数次", "每周一次", "每月数次", "少于每月一次", "尚未使用或参与"]);
+    else if (/满意|推荐意愿|推荐程度|愿意.*推荐|评分|打分|评价|整体感受|重要程度|便利程度/.test(label)) set("evaluation", "rating", /推荐/.test(label) ? `您向有相似需求的人推荐${subject}的意愿有多强？` : /满意/.test(label) ? `您对${label.replace(/(?:整体|总体)?满意(?:度|程度)?$/, "") || subject}的整体满意度如何？` : `您对“${label}”的评价如何？`);
+    else if (/是否|有没有|愿不愿|愿意.*吗|参加过.*吗|使用过.*吗|购买过.*吗/.test(label)) set("yesno", "single", `关于“${label}”，您的情况是？`, /愿/.test(label) ? ["愿意", "不愿意", "尚不确定"] : ["是", "否", "不确定", "不适用"]);
+    else if (/通勤|交通方式|出行方式/.test(label)) set("transport", /哪些|多种|多选/.test(label) ? "multiple" : "single", "您最常使用哪种出行方式？", ["步行", "自行车", "公交车", "地铁", "私家车", "网约车", "其他"]);
+    else if (/功能/.test(label)) set("features", /哪个|哪项|哪一|最常|最喜欢|首选|单一|只选/.test(label) && !/哪些|多选/.test(label) ? "single" : "multiple", /希望|增加|改进/.test(label) ? "您希望增加或改进哪些功能？（可多选）" : "您常用哪些功能？（可多选）", features);
+    else if (/渠道|途径|从哪里|通过什么方式/.test(label)) set("channels", /主要|哪个|哪种|首选|最常/.test(label) && !/哪些|多选/.test(label) ? "single" : "multiple", `您通过哪些渠道了解相关信息？（可多选）`, ["搜索引擎", "社交媒体", "亲友或同事推荐", "线下门店或活动", "官方渠道", "其他"]);
+    else if (/场景|场合|什么时候.*使用|什么情况.*使用/.test(label)) set("scenarios", /主要|哪个|哪种|首选/.test(label) && !/哪些|多选/.test(label) ? "single" : "multiple", `您的${label}包括哪些？（可多选）`, ["工作办公", "学习提升", "家庭生活", "出行途中", "休闲娱乐", "其他"]);
+    else if (/兴趣|爱好/.test(label)) set("interests", "multiple", `您有哪些${label}？（可多选）`, ["科技与数码", "阅读与学习", "运动健康", "旅行户外", "文化艺术", "生活美食", "其他"]);
+    else if (/哪些|多选|多个|多项/.test(label)) set("preferences", "multiple", `关于“${label}”，您关注哪些方面？（可多选）`, /目标|目的/.test(label) ? domain.goals : domain.dims);
+    else if (/最喜欢|最看重|首选|偏好|哪个|哪种|哪一/.test(label)) set("preferences", "single", `关于“${label}”，您最看重哪一项？`, domain.dims);
+    else if (/价格|口味|速度|效率|质量|稳定性|及时性|透明度|完整性|便捷性|易用性|实用性|清晰度|安全性|隐私|售后|服务|续航|重量|环境|内容|节奏|体验|工作安排|沟通|支持|成长/.test(label)) set("evaluation", "rating", `您对“${label}”的满意度如何？`);
+    return { kind, type, title, options, label, direct, recognized: kind !== "general" };
+  }
+  function adaptField(spec, type, config) {
+    let title = spec.title, options = spec.options;
+    if (type === "text") {
+      if (spec.type !== "text") title = spec.direct ? spec.label : `请填写或说明您的${spec.label}。`;
+      return { type, title, options: [] };
+    }
+    if (type === "rating") {
+      if (["personalText", "age", "gender", "occupation", "education", "frequency", "duration", "yesno"].includes(spec.kind)) throw new Error(`“${shortText(spec.label, 24)}”不适合评分题，请允许单选或文本题。`);
+      title = spec.type === "rating" ? title : `您认为“${shortText(spec.label, 42)}”对自己的重要程度如何？`;
+      if (!/1\s*[–—\-~至到]?\s*5|1\s*分/.test(title)) title += "（1 分很低，5 分很高）";
+      return { type, title, options: [] };
+    }
+    if (spec.kind === "personalText") throw new Error(`“${shortText(spec.label, 24)}”需要文本题，请允许文本题或移除此字段。`);
+    if (spec.type === "rating") {
+      options = LEVELS;
+      title = spec.direct ? spec.label : `您对“${spec.label}”的评价是？`;
+    } else if (spec.type === "text") {
+      const domain = DOMAINS.find(item => item.match.test(`${config.topic} ${config.source} ${config.prompt}`));
+      options = /原因|理由|为什么|为何/.test(spec.label) ? ["效果未达预期", "过程不够便捷", "成本较高", "信息不清楚", "支持不及时", "其他"] : [...domain.dims, "其他"];
+      title = /原因|理由|为什么|为何/.test(spec.label) ? `对于“${shortText(spec.label, 42)}”，您认为${type === "single" ? "主要原因是哪一项" : "可能有哪些原因"}？` : `关于“${shortText(spec.label, 42)}”，您最希望改进${type === "single" ? "哪一项" : "哪些方面"}？`;
+    }
+    if (type === "single") title = title.replace(/（可多选）|\(可多选\)/g, "").replace(/哪些/g, "哪一项").replace(/多选/g, "单选");
+    else if (["age", "gender", "occupation", "education", "frequency", "duration", "yesno", "evaluation"].includes(spec.kind)) throw new Error(`“${shortText(spec.label, 24)}”需要单一回答，请允许单选、评分或文本题。`);
+    else {
+      title = title.replace(/哪一项|哪个|哪种/g, "哪些").replace(/最常|最喜欢|首选/g, "通常");
+      if (!/可多选/.test(title)) title += "（可多选）";
+    }
+    return { type, title, options };
+  }
+  function adaptInferred(question, allowedTypes, config) {
+    if (question._locked) {
+      if (!allowedTypes.includes(question.type)) throw new Error(`题目“${shortText(question.title, 24)}”的明确题型或选项与允许题型、数量配比冲突，请调整设置。`);
+      return question;
+    }
+    const spec = question._spec;
+    const order = [...new Set([spec.type, "text", "single", "multiple", "rating"])].filter(type => allowedTypes.includes(type));
+    let lastError;
+    for (const type of order) {
+      try { return { ...question, ...adaptField(spec, type, config) }; } catch (error) { lastError = error; }
+    }
+    throw lastError || new Error(`题目“${shortText(question.title, 24)}”与题型配比冲突，请增加合适题型的数量。`);
+  }
   function extractQuestions(source, config, fromPrompt = false) {
     const questions = [];
+    const negativePattern = /(?:请)?(?:不要|不需要|不收集|不用|无需|禁止|避免|不询问|不涉及)[^，,。；;\n]*/g;
+    const excludedText = [...config.prompt.matchAll(negativePattern)].map(match => match[0]).join(" ");
+    const excludedAliases = [["姓名", "名字"], ["手机号", "手机号码", "联系电话", "电话号码"], ["邮箱", "电子邮件"], ["性别"], ["年龄", "岁数"], ["职业"], ["学历"], ["联系地址", "家庭住址"]];
+    const blockedTerms = excludedAliases.filter(group => group.some(term => excludedText.includes(term))).flat();
     let current = null;
     const flush = () => {
       if (!current) return;
+      if (blockedTerms.some(term => current.title.includes(term))) { current = null; return; }
       current.options = [...new Set(current.options.map(value => value.trim()).filter(Boolean))];
       if (current.options.length && current.options.length < 2) throw new Error(`参考题目“${shortText(current.title, 20)}”至少需要两个不同选项。`);
-      if (!current.type) current.type = current.options.length ? "single" : "text";
+      const spec = semanticField(current.title, config);
+      const suppliedOptions = current.options.length > 0;
+      const explicitType = current.type;
+      current._spec = spec;
+      current._sourceKey = identity(current.title);
+      current._locked = Boolean(explicitType || suppliedOptions);
+      current._isField = !spec.direct;
+      current._optional = current.optional && config.requiredPolicy !== "required";
+      if (!current.type) current.type = suppliedOptions ? (spec.type === "multiple" ? "multiple" : "single") : spec.type;
+      if (!suppliedOptions && (!explicitType || spec.recognized)) {
+        const inferred = adaptField(spec, current.type, config);
+        current.title = explicitType && spec.direct ? current.title : inferred.title;
+        current.options = inferred.options;
+      }
       if ((current.type === "single" || current.type === "multiple") && current.options.length < 2) {
         throw new Error(`参考题目“${shortText(current.title, 20)}”缺少选项，请补充至少两个选项或改为文本题。`);
       }
-      if (!config.types.includes(current.type)) {
-        if (current.options.length && config.types.some(type => type === "single" || type === "multiple")) current.type = config.types.find(type => type === "single" || type === "multiple");
-        else if (config.types.includes("text")) { current.type = "text"; current.options = []; }
-        else throw new Error(`参考题目“${shortText(current.title, 20)}”与所选题型不兼容，请修改题型或参考文本。`);
-      }
+      current = adaptInferred(current, config.types, config);
       if (current.type === "text" || current.type === "rating") current.options = [];
       current.required = config.required && !((current.optional && config.requiredPolicy !== "required") || (current.type === "text" && config.textOptional));
       delete current.optional;
@@ -169,26 +260,56 @@
       if (matches.length) { current.options.push(...matches.map(match => match[2].trim())); return true; }
       return false;
     };
-    for (const rawLine of source.split(/\r?\n/)) {
+    for (const rawLine of source.replace(/([？?])\s*(?=(?:您|你|请问|是否|有没有))/g, "$1\n").split(/\r?\n/)) {
       const line = rawLine.trim();
       if (!line) continue;
+      if (/^(?:(?:\d+[.、．)）:：]|[-*•·])\s*)?(?:请)?(?:不要|不用|不需要|不收集|无需|禁止|避免)/.test(line)) continue;
       if (current && /^[A-Ja-j][.、．)）:：]/.test(line) && appendOptions(line)) continue;
       if (current && /^选项\s*[：:]/.test(line)) {
         current.options.push(...line.replace(/^选项\s*[：:]/, "").split(/[、|；;]/));
         continue;
       }
-      const numbered = line.match(/^(?:Q\s*)?[0-9一二三四五六七八九十]+[.、．)）:：]\s*(.+)$/i);
+      const numbered = line.match(/^(?:(?:Q\s*)?[0-9一二三四五六七八九十]+[.、．)）:：]|[-*•·])\s*(.+)$/i);
       const body = numbered ? numbered[1] : line;
+      if (fromPrompt && !numbered) {
+        const fields = [];
+        const requests = /(?:了解|询问|收集|调查|关注|包含|包括|涵盖|字段[：:]|问题[：:])(?:用户的?|受访者的?|参与者的?)?\s*([^。；;\n]+)/g;
+        const requestedBody = body.replace(negativePattern, "").replace(/(?:生成|设计|共|需要)?\s*[零一二两三四五六七八九十\d]+\s*(?:道题|题)\s*[：:]/g, "了解");
+        for (const match of requestedBody.matchAll(requests)) {
+          for (const part of match[1].split(/[、，,]|以及|和|及|与/)) {
+            const field = part.trim().replace(/^(?:一下|用户的?|受访者的?|参与者的?)/, "");
+            if (field.length < 2 || field.length > 45 || /[？?]|生成|设计|制作|题数|题型|必填|选填|不要|不收集|无需|禁止|只要|最后|全部|所有/.test(field)) continue;
+            if (semanticField(field, config).recognized) fields.push(field);
+          }
+        }
+        if (!fields.length && !/[？?]|生成|设计|制作|必填|选填|题数|题型|只要|不需要|不要|不收集|背景|说明|已经|目前|计划|最后|末尾|结尾/.test(requestedBody)) {
+          const bareFields = requestedBody.split(/[、，,]|以及|和|及|与/).map(part => part.trim());
+          if (bareFields.every(field => field.length >= 2 && field.length <= 35 && semanticField(field, config).recognized)) fields.push(...bareFields);
+        }
+        if (fields.length) {
+          flush();
+          for (const field of fields) {
+            const typeHint = field.match(/(?:用|采用|设为|使用|设置为|[：:])\s*(单选|单项选择|判断|多选|多项选择|评分|量表|打分|文本|开放式|开放|问答|简答|填空)(?:题)?$/);
+            current = { type: typeHint ? mentionedTypes(typeHint[1])[0] : null, title: typeHint ? field.slice(0, typeHint.index).trim() : field, required: config.required, options: [], optional: false };
+            flush();
+          }
+          continue;
+        }
+      }
       if (fromPrompt && !numbered && /^(?:请|能否|可以|帮我|麻烦|你能|根据|按照|基于|我想|我需要|生成|设计|制作)/.test(body) && /生成|设计|制作/.test(body) && /题|问卷|调查/.test(body)) continue;
       if (!numbered && !/[？?]/.test(body)) continue;
-      if (numbered && !/[？?]|[您你请哪是否如何多少怎样]|[\[【（(](?:单选|多选|评分|文本|开放|简答)/.test(body)) continue;
+      if (numbered && !/[？?]|^(?:您|你|请|是否|如何|多少|怎样)|[\[【（(](?:单选|多选|评分|文本|开放|简答)/.test(body)) {
+        if (body.length > 45 || /背景|说明|备注|已经|目前|计划|预计|提供|推出|上线|成立|覆盖|公司有|团队有|用户有|\d+\s*(?:人|家|个|年|月|日|%)/.test(body) || (!fromPrompt && !semanticField(body, config).recognized)) continue;
+      }
       flush();
       const optionAt = body.search(/\s+[A-Ja-j][.、．)）:：]/);
       let title = optionAt >= 0 ? body.slice(0, optionAt) : body;
       const marker = title.match(/[\[【（(]([^\]】）)]+)[\]】）)]/g) || [];
-      const type = mentionedTypes(marker.join(" "))[0] || null;
+      const fieldType = title.match(/(?:用|采用|设为|使用|设置为|[：:])\s*(单选|单项选择|判断|多选|多项选择|评分|量表|打分|文本|开放式|开放|问答|简答|填空)(?:题)?$/);
+      const type = mentionedTypes(marker.join(" "))[0] || (fieldType ? mentionedTypes(fieldType[1])[0] : null);
       const optional = marker.some(value => /选填|非必填/.test(value));
-      title = title.replace(/[\[【（(](?:单选题?|多选题?|评分题?|文本题?|开放题?|简答题?|必填|选填|非必填)[\]】）)]/g, "").trim();
+      title = title.replace(/[\[【（(](?:单选题?|单项选择题?|判断题?|多选题?|多项选择题?|评分题?|文本题?|开放题?|简答题?|填空题?|必填|选填|非必填)[\]】）)]/g, "").trim();
+      if (fieldType) title = title.slice(0, fieldType.index).trim();
       current = { type, title, required: config.required, options: [], optional };
       if (optionAt >= 0) appendOptions(body.slice(optionAt).trim());
     }
@@ -216,16 +337,22 @@
       seen.add(key); questions.push(question); usedTypes[question.type]++;
     };
     const pasted = new Map();
-    for (const question of [...extractQuestions(config.prompt, config, true), ...extractQuestions(config.source, config)]) {
-      const key = identity(question.title);
-      if (!pasted.has(key)) pasted.set(key, question);
-      else if (!pasted.get(key).options.length && question.options.length) {
-        pasted.get(key).options = question.options;
-        pasted.get(key).type = question.type;
-      }
+    const extracted = [...extractQuestions(config.prompt, config, true), ...extractQuestions(config.source, config)].sort((a, b) => Number(a._isField) - Number(b._isField));
+    for (const question of extracted) {
+      const key = question._sourceKey || identity(question.title);
+      const existingKey = pasted.has(key) ? key : [...pasted.entries()].find(([, prior]) => identity(prior.title) === identity(question.title))?.[0];
+      if (existingKey === undefined) pasted.set(key, question);
+      else if (!pasted.get(existingKey)._locked && question._locked) pasted.set(existingKey, question);
     }
     if (pasted.size > config.count) throw new Error(`已粘贴 ${pasted.size} 道不同题目，超过设定的 ${config.count} 题，请提高题数或精简题目。`);
-    pasted.forEach(add);
+    const remainingLocked = Object.fromEntries(SUPPORTED_TYPES.map(type => [type, [...pasted.values()].filter(question => question._locked && question.type === type).length]));
+    pasted.forEach(question => {
+      if (question._locked) remainingLocked[question.type]--;
+      const allowed = config.types.filter(type => usedTypes[type] + (question._locked ? 0 : remainingLocked[type]) < quota(type));
+      const adapted = adaptInferred(question, allowed, config);
+      adapted.required = config.required && !(adapted._optional || (adapted.type === "text" && config.textOptional));
+      add(adapted);
+    });
     const closingTitle = `对于“${entity}”，您还有哪些补充意见或建议？`;
     const reserveText = config.types.includes("text") && usedTypes.text < quota("text") && questions.length < config.count && !seen.has(identity(closingTitle));
     const bodyCount = config.count - (reserveText ? 1 : 0);

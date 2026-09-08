@@ -24,6 +24,126 @@ test("local generation is deterministic, complete and covers every default type"
   assert.ok(first.questions.some(question => question.title.includes("功能实用性")));
 });
 
+test("numbered and bulleted fields infer single, multiple, rating and text without tags", () => {
+  for (const fields of ["1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议", "- 年龄\n- 常用功能\n- 满意度\n- 改进建议"]) {
+    const survey = generateLocal({ topic: "待办应用", prompt: `生成4题\n${fields}` });
+    assert.deepEqual(survey.questions.map(question => question.type), ["single", "multiple", "rating", "text"]);
+    assert.deepEqual(survey.questions[0].options.slice(0, 4), ["18 岁以下", "18–24 岁", "25–34 岁", "35–44 岁"]);
+    assert.ok(survey.questions[1].options.includes("到期提醒"));
+    assert.match(survey.questions[2].title, /待办应用.*满意度.*1 分.*5 分/);
+    assert.match(survey.questions[3].title, /改进建议/);
+    survey.questions.forEach(question => assert.deepEqual(Object.keys(question), ["type", "title", "required", "options"]));
+  }
+});
+
+test("natural requested fields retain order and infer all eight meaningful questions", () => {
+  const prompt = "生成8题，了解用户年龄、职业、使用频率、使用场景、常用功能、整体满意度、推荐意愿和改进建议。";
+  const survey = generateLocal({ topic: "新产品", prompt });
+  assert.deepEqual(survey.questions.map(question => question.type), ["single", "single", "single", "multiple", "multiple", "rating", "rating", "text"]);
+  assert.ok(survey.questions[1].options.includes("学生"));
+  assert.ok(survey.questions[2].options.includes("每天"));
+  assert.ok(survey.questions[3].options.includes("工作办公"));
+  assert.match(survey.questions[6].title, /推荐.*新产品.*意愿/);
+});
+
+test("explicitly listed product features provide the inferred multiple-choice options", () => {
+  const survey = generateLocal({ topic: "视频播放器体验", source: "播放器提供视频播放、字幕选择、倍速播放和离线下载功能。", prompt: "生成4题，调查使用频率、常用功能、满意度和改进建议" });
+  const features = survey.questions.find(question => question.type === "multiple");
+  assert.deepEqual(features.options, ["视频播放", "字幕选择", "倍速播放", "离线下载", "其他"]);
+});
+
+test("colon and bare field lists are also interpreted without a special instruction word", () => {
+  for (const prompt of ["生成4题：年龄、常用功能、满意度、改进建议", "年龄、常用功能、满意度、改进建议", "年龄\n常用功能\n满意度\n改进建议", "调查年龄、常用功能、满意度和改进建议"]) {
+    assert.deepEqual(generateLocal({ topic: "产品", prompt, count: 4 }).questions.map(question => question.type), ["single", "multiple", "rating", "text"]);
+  }
+});
+
+test("direct respondent questions infer concrete choices while reasons outrank sentiment words", () => {
+  const prompt = "生成8题\n1. 您的性别是？\n2. 您每周使用几次？\n3. 您最常使用哪个功能？\n4. 您常用哪些功能？\n5. 您对整体体验满意吗？\n6. 您为什么不满意？\n7. 您是否参加过类似活动？\n8. 您有什么改进建议？";
+  const survey = generateLocal({ topic: "工具体验", prompt });
+  assert.deepEqual(survey.questions.map(question => question.type), ["single", "single", "single", "multiple", "rating", "text", "single", "text"]);
+  assert.ok(survey.questions[1].options.includes("2–3 次"));
+  assert.ok(survey.questions[2].options.includes("搜索与浏览"));
+  assert.deepEqual(survey.questions[6].options, ["是", "否", "不确定", "不适用"]);
+  assert.equal(survey.questions[5].title, "您为什么不满意？");
+});
+
+test("name and contact content is text while asking permission to provide it is single choice", () => {
+  const survey = generateLocal({ prompt: "生成4题\n1. 姓名\n2. 手机号\n3. 联系邮箱\n4. 您是否愿意提供手机号？" });
+  const permission = survey.questions.find(question => question.title === "您是否愿意提供手机号？");
+  assert.equal(permission.type, "single");
+  assert.deepEqual(permission.options, ["愿意", "不愿意", "尚不确定"]);
+  assert.equal(survey.questions.filter(question => question.type === "text").length, 3);
+});
+
+test("explicit field wording, tags and common question-type synonyms override inference", () => {
+  const survey = generateLocal({ topic: "产品", prompt: "生成4题\n1. 年龄 [单项选择]\n2. 满意度 [填空题]\n3. 常用功能用单选题\n4. 您是否参加过活动？ [判断题]" });
+  assert.equal(survey.questions.find(question => /年龄/.test(question.title)).type, "single");
+  assert.equal(survey.questions.find(question => /满意/.test(question.title)).type, "text");
+  const features = survey.questions.find(question => /功能/.test(question.title));
+  assert.equal(features.type, "single");
+  assert.doesNotMatch(features.title, /哪些|可多选/);
+  assert.equal(survey.questions.find(question => /是否参加/.test(question.title)).type, "single");
+  assert.deepEqual(resolveConfig({ ...base, prompt: "只要多项选择题" }).types, ["multiple"]);
+  assert.deepEqual(resolveConfig({ ...base, prompt: "只要填空题" }).types, ["text"]);
+});
+
+test("manual restrictions adapt inferred fields without leaving misleading choice wording", () => {
+  const prompt = "生成4题\n1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议";
+  const asText = generateLocal({ topic: "产品", prompt, types: ["text"] });
+  assert.ok(asText.questions.every(question => question.type === "text" && question.options.length === 0));
+  const asSingle = generateLocal({ topic: "产品", prompt, types: ["single"] });
+  assert.ok(asSingle.questions.every(question => question.type === "single" && question.options.length >= 2));
+  assert.ok(asSingle.questions.every(question => !/哪些|可多选/.test(question.title)));
+  assert.throws(() => generateLocal({ topic: "产品", prompt: "生成4题\n1. 满意度 [文本]", types: ["single"] }), /明确题型.*冲突/);
+  assert.throws(() => generateLocal({ topic: "产品", prompt: "生成4题\n1. 姓名", types: ["single"] }), /需要文本题/);
+});
+
+test("inferred fields honor quotas while leaving room for later explicit questions", () => {
+  const prompt = "生成4题，1道单选题、1道多选题、1道评分题、1道文本题\n1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议";
+  const survey = generateLocal({ topic: "产品", prompt });
+  assert.deepEqual(survey.questions.map(question => question.type), ["single", "multiple", "rating", "text"]);
+  const adapted = generateLocal({ topic: "产品", prompt: "生成4题，2道单选题、2道文本题\n1. 年龄\n2. 常用功能\n3. 满意度\n4. 改进建议" });
+  assert.equal(adapted.questions.filter(question => question.type === "single").length, 2);
+  assert.equal(adapted.questions.filter(question => question.type === "text").length, 2);
+});
+
+test("explicit source options replace a matching inferred field before checking total count", () => {
+  const survey = generateLocal({ topic: "产品", prompt: "生成4题，了解年龄、性别、满意度和改进建议", source: "1. 您的年龄段是？\nA. 18岁以下\nB. 18岁及以上" });
+  assert.equal(survey.questions.length, 4);
+  assert.deepEqual(survey.questions[0].options, ["18岁以下", "18岁及以上"]);
+  assert.equal(survey.questions.filter(question => /年龄/.test(question.title)).length, 1);
+});
+
+test("negated collection requirements keep their scope across lists and never become questions", () => {
+  const prompts = [
+    "生成4题，了解年龄、性别，不要收集手机号和姓名",
+    "生成4题\n1. 请不要收集姓名和手机号\n2. 不用问年龄\n3. 不需要性别信息\n4. 了解满意程度",
+    "生成4题，了解姓名、性别和满意度，不收集姓名"
+  ];
+  for (const prompt of prompts) {
+    const survey = generateLocal({ topic: "服务体验", prompt });
+    assert.ok(survey.questions.every(question => !/姓名|手机号|不需要|不用问|请不要/.test(question.title)));
+  }
+  const survey = generateLocal({ topic: "服务", prompt: prompts[1] });
+  assert.ok(survey.questions.every(question => !/年龄|性别/.test(question.title)));
+});
+
+test("numbered background facts and polite generation requests are not treated as fields", () => {
+  const survey = generateLocal({ topic: "服务体验", prompt: "请生成4题，可以吗？\n1. 目前项目已经上线\n2. 员工100人\n3. 背景说明是内部调查\n4. 满意度" });
+  assert.ok(survey.questions.every(question => !/已经上线|员工100人|背景说明|可以吗/.test(question.title)));
+  assert.match(survey.questions[0].title, /满意度/);
+});
+
+test("thirty semantic fields produce thirty distinct questions without leaking inference metadata", () => {
+  const fields = ["年龄", "性别", "职业", "学历", "使用频率", "使用场景", "常用功能", "获知渠道", "兴趣爱好", "整体满意度", "推荐意愿", "改进建议", "姓名", "联系方式", "联系邮箱", "使用时长", "通勤方式", "界面清晰度", "配送速度", "包装完整性", "运费透明度", "信息安全性", "价格", "售后服务", "环境", "课程内容", "课程节奏", "操作便捷性", "稳定性", "不满意原因"];
+  const survey = generateLocal({ topic: "综合用户调查", prompt: `生成30题\n${fields.map((field, index) => `${index + 1}. ${field}`).join("\n")}` });
+  assert.equal(survey.questions.length, 30);
+  assert.equal(new Set(survey.questions.map(question => question.title)).size, 30);
+  assert.deepEqual(survey.questions.slice(0, 4).map(question => question.type), ["single", "single", "single", "single"]);
+  assert.doesNotMatch(JSON.stringify(survey), /_spec|_locked|_sourceKey|_isField/);
+});
+
 test("all combinations of allowed types produce valid nonduplicate surveys from 4 through 30 questions", () => {
   for (let mask = 1; mask < 16; mask++) {
     const types = SUPPORTED_TYPES.filter((_, index) => mask & (1 << index));
@@ -117,10 +237,11 @@ test("pasted plain questions, explicit option labels and duplicate questions are
   assert.equal(survey.questions[1].title, "请描述您最需要的帮助？");
 });
 
-test("conflicting or incomplete pasted choice questions produce an actionable error", () => {
-  assert.throws(() => generateLocal({ source: "1. 您满意吗？[单选]" }), /缺少选项/);
+test("known fields supply meaningful options while incomplete literal choices remain errors", () => {
+  assert.equal(generateLocal({ source: "1. 您满意吗？[单选]" }).questions[0].options[0], "非常满意");
   assert.throws(() => generateLocal({ source: "1. 您满意吗？\nA. 满意" }), /至少需要两个/);
-  assert.throws(() => generateLocal({ source: "1. 您有哪些建议？", types: ["single"] }), /不兼容/);
+  assert.equal(generateLocal({ source: "1. 您有哪些建议？", types: ["single"] }).questions[0].type, "single");
+  assert.throws(() => generateLocal({ source: "1. 您有哪些建议？ [文本]", types: ["single"] }), /冲突/);
 });
 
 test("invalid and oversized inputs are rejected without coercing objects to text", () => {
@@ -253,7 +374,7 @@ test("partial per-type quantities preserve the explicit total and reject contrad
   assert.throws(() => generateLocal({ ...base, prompt: "只要评分题，10道单选题" }), /冲突/);
   assert.throws(() => generateLocal({ ...base, prompt: "生成30题，只要单选题，10道单选题" }), /少于总题数/);
   const pasted = "生成4题，其中1道单选题、3道文本题。\n1. 您满意吗？ [单选] A. 是 B. 否\n2. 您愿意再参加吗？ [单选] A. 是 B. 否";
-  assert.throws(() => generateLocal({ ...base, prompt: pasted }), /超过提示词配比/);
+  assert.throws(() => generateLocal({ ...base, prompt: pasted }), /数量配比冲突/);
 });
 
 test("AI receives the entire long input and validates thirty-question quantity constraints", async t => {

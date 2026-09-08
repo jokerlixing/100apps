@@ -418,13 +418,14 @@
                 <label class="field">题目数量<input id="generatorCount" type="number" min="4" max="30" step="1" value="8" inputmode="numeric"><small>4–30 题；提示词中的明确题数优先。</small></label>
                 <label class="field">生成方式<select id="generatorMethod"><option value="local">本地生成 · 无需配置</option><option value="ai">AI 生成 · 使用自己的服务</option></select></label>
               </div>
-              <fieldset class="generator-types"><legend>可用题型 <small>至少选择一种</small></legend>
+              <label class="field">题型生成方式<select id="generatorTypeMode" aria-describedby="generatorTypeHint"><option value="auto">按提示词内容自动匹配题型</option><option value="manual">手动限定可用题型</option></select><small id="generatorTypeHint">无需标注题型：年龄 → 单选，常用功能 → 多选，满意度 → 评分，建议 → 文本。</small></label>
+              <fieldset id="generatorTypes" class="generator-types" hidden><legend>可用题型 <small>至少选择一种</small></legend>
                 <label><input type="checkbox" name="generatorType" value="single" checked>单选题</label>
                 <label><input type="checkbox" name="generatorType" value="multiple" checked>多选题</label>
                 <label><input type="checkbox" name="generatorType" value="rating" checked>评分题</label>
                 <label><input type="checkbox" name="generatorType" value="text" checked>文本题</label>
               </fieldset>
-              <p id="generatorMethodNote" class="generator-note">本地模式按主题模板与文本规则生成，支持常见题数、题型要求，无法完整理解所有自然语言。复杂要求可选择 AI 生成。提示词中的明确题数和题型优先。</p>
+              <p id="generatorMethodNote" class="generator-note">本地模式按问题内容匹配题型并补全题干和选项。提示词中的明确题型、数量和已有选项优先；复杂要求请校对生成结果。</p>
               <div id="aiSettings" class="ai-settings" hidden>
                 <p>输入支持 Chat Completions 的服务地址。点击生成后，主题、参考文本和提示词会发送至该地址；请使用你信任的服务。API Key 仅在本页内存使用，刷新即清除。</p>
                 <label class="field">完整接口地址<input id="generatorEndpoint" type="url" maxlength="500" placeholder="https://your-service.example/v1/chat/completions" autocomplete="off" spellcheck="false"><small>需支持浏览器跨域访问；本地服务可使用 HTTP localhost。</small></label>
@@ -650,7 +651,8 @@
           source: $("#generatorSource").value.trim(),
           prompt: $("#generatorPrompt").value.trim(),
           count: Number($("#generatorCount").value),
-          types: $$("input[name='generatorType']:checked").map(input => input.value)
+          typeMode: $("#generatorTypeMode").value,
+          types: $("#generatorTypeMode").value === "auto" ? [...TYPES] : $$("input[name='generatorType']:checked").map(input => input.value)
         };
       }
 
@@ -662,6 +664,7 @@
             if (typeof saved[key] === "string") $(`#${id}`).value = saved[key].slice(0, max);
           }
           if (Number.isInteger(saved.count) && saved.count >= 4 && saved.count <= MAX_QUESTIONS) $("#generatorCount").value = String(saved.count);
+          if (saved.typeMode === "manual") $("#generatorTypeMode").value = "manual";
           if (Array.isArray(saved.types) && saved.types.some(type => TYPES.includes(type))) {
             $$("input[name='generatorType']").forEach(input => { input.checked = saved.types.includes(input.value); });
           }
@@ -681,13 +684,14 @@
 
       function handleGeneratorInput(event) {
         updatePromptLength();
+        updateGeneratorTypeMode();
         invalidateGeneratedDraft();
         generatorStatus("");
         const isAI = $("#generatorMethod").value === "ai";
         $("#aiSettings").hidden = !isAI;
         $("#generatorMethodNote").textContent = isAI
           ? "AI 会根据完整材料与要求生成内容。请检查生成结果；提示词中的明确题数和题型优先，生成失败时可重试或切换本地模式。"
-          : "本地模式按主题模板与文本规则生成，支持常见题数、题型要求，无法完整理解所有自然语言。复杂要求可选择 AI 生成。提示词中的明确题数和题型优先。";
+          : "本地模式按问题内容匹配题型并补全题干和选项。提示词中的明确题型、数量和已有选项优先；复杂要求请校对生成结果。";
         // Only the questionnaire brief is persisted. Connection fields and credentials stay in memory.
         if (!["generatorEndpoint", "generatorModel", "generatorKey", "generatorMethod"].includes(event.target.id)) {
           clearTimeout(generatorSaveTimer);
@@ -703,6 +707,14 @@
 
       function updatePromptLength() {
         $("#generatorPromptLength").textContent = `已输入 ${$("#generatorPrompt").value.length.toLocaleString("zh-CN")} 字 · 长提示词将完整用于生成`;
+      }
+
+      function updateGeneratorTypeMode() {
+        const automatic = $("#generatorTypeMode").value === "auto";
+        $("#generatorTypes").hidden = automatic;
+        $("#generatorTypeHint").textContent = automatic
+          ? "无需标注题型：年龄 → 单选，常用功能 → 多选，满意度 → 评分，建议 → 文本。"
+          : "在勾选范围内匹配题型；提示词中的明确题型和数量要求优先。";
       }
 
       function renderGeneratedDraft(method) {
@@ -808,7 +820,7 @@
 
       function useGeneratorExample(name) {
         const examples = {
-          product: { topic: "待办清单 App 使用体验", audience: "最近一个月使用过产品的用户", source: "产品支持任务分类、到期提醒和多设备同步。希望了解用户的使用场景、遇到的困难以及后续改进方向。", prompt: "生成 8 道题，重点关注任务分类、到期提醒、多设备同步，最后加一道建议题。" },
+          product: { topic: "待办清单 App 使用体验", audience: "最近一个月使用过产品的用户", source: "产品支持任务分类、到期提醒和多设备同步。希望了解用户的使用场景、遇到的困难以及后续改进方向。", prompt: "生成 8 道题，了解使用频率、常用功能、使用场景、整体满意度和改进建议。" },
           course: { topic: "摄影入门课程反馈", audience: "完成本期课程的学员", source: "课程包含摄影基础、构图练习和作品点评。希望了解课程是否帮助学员提升拍摄能力，以及教学安排有哪些改进空间。", prompt: "生成 8 道题，重点关注教学内容、课程节奏、实践练习，最后加一道建议题。" },
           food: { topic: "社区食堂用餐体验", audience: "最近一个月就餐的居民", source: "社区食堂提供堂食与外带服务，计划根据居民反馈调整菜单与服务。", prompt: "生成 8 道题，重点关注菜品口味、价格、排队时间、服务体验，最后加一道建议题。" }
         };
@@ -816,6 +828,7 @@
         if (!example) return;
         for (const [key, id] of [["topic", "generatorTopic"], ["audience", "generatorAudience"], ["source", "generatorSource"], ["prompt", "generatorPrompt"]]) $(`#${id}`).value = example[key];
         $("#generatorCount").value = "8";
+        $("#generatorTypeMode").value = "auto";
         $$("input[name='generatorType']").forEach(input => { input.checked = true; });
         handleGeneratorInput({ target: $("#generatorTopic") });
         generatorStatus("示例已填入，可修改要求后生成问卷。");
@@ -1242,6 +1255,7 @@
       window.pulse38 = { escapeHTML, normalizeQuestion, normalizeSurvey, encodeSurvey, decodeSurvey, validateAnswers, aggregateSurvey, hasAnswer };
       restoreGenerator();
       updatePromptLength();
+      updateGeneratorTypeMode();
       renderBuilder();
       if (!routeFromHash()) setMode("build");
     })();

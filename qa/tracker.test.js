@@ -29,6 +29,43 @@ test('app 047 describes its reference preview and remains published', () => {
   assert.equal(doneIds.has(47), true, 'INIT_DONE must mark app 047 as done');
 });
 
+test('app 049 describes region recording and remains published as project 49', () => {
+  const ideas = extractIdeas();
+  const doneIds = extractOfficialDoneIds();
+  const app49 = ideas[48];
+
+  assert.equal(app49[0], '屏幕录制工具');
+  assert.equal(app49[1], 'FRAME/49：本地录屏+截图框选区域录制+双路音频+暂停与下载');
+  assert.equal(app49[3], 'https://jokerlixing.github.io/100apps/apps/049-screen-recorder/');
+  assert.equal(doneIds.has(49), true, 'INIT_DONE must mark app 049 as done');
+});
+
+test('app 049 region recording description reaches an existing browser tracker', () => {
+  const ideas = extractIdeas();
+  const initMatch = html.match(/const INIT_DONE=(\{[^}]*\})/);
+  const start = html.indexOf('function syncOfficial(){');
+  const end = html.indexOf('\nfunction save()', start);
+  assert.ok(initMatch && start >= 0 && end > start, 'tracker migration source should be extractable');
+  const context = {};
+
+  vm.runInNewContext(`
+    let apps=[{id:49,name:"屏幕录制工具",desc:"FRAME/49：本地录屏+双路音频+暂停与下载",lv:3,st:"done",custom:false,link:"https://jokerlixing.github.io/100apps/apps/049-screen-recorder/"}];
+    const IDEAS=${JSON.stringify(ideas)};
+    const INIT_DONE=${initMatch[1]};
+    let didSave=false;
+    function save(){didSave=true}
+    ${html.slice(start, end)}
+    syncOfficial();
+    result={apps,didSave};
+  `, context);
+
+  assert.equal(context.result.apps[0].id, 49);
+  assert.equal(context.result.apps[0].desc, ideas[48][1]);
+  assert.equal(context.result.apps[0].st, 'done');
+  assert.equal(context.result.apps[0].link, ideas[48][3]);
+  assert.equal(context.result.didSave, true);
+});
+
 test('published apps 061 and 063 are included in the official completion state', () => {
   const ideas = extractIdeas();
   const doneIds = extractOfficialDoneIds();

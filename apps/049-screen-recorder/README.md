@@ -1,12 +1,13 @@
 # FRAME/49 本地屏幕录制台
 
-100 个应用挑战的第 49 个项目。一台完全运行在浏览器中的屏幕录制台：选择屏幕、窗口或标签页，按需混入共享音频和麦克风，录完即可在本地预览与下载。
+100 个应用挑战的第 49 个项目。一台完全运行在浏览器中的屏幕录制台：选择屏幕、窗口或标签页，支持先截图框选区域再录制，按需混入共享音频和麦克风，录完即可在本地预览与下载。
 
 ![FRAME/49 桌面端待命界面](assets/screenshot.png)
 
 ## 功能
 
 - 录制整个屏幕、单个窗口或浏览器标签页
+- 点击「截图录制」，在共享画面的截图上框选区域，只录制区域内的实时画面
 - 按浏览器与共享目标能力采集系统/标签页音频
 - 可选麦克风讲解，并在浏览器中混合双路声音
 - 720p、1080p、原画三档画面规格
@@ -25,6 +26,16 @@
 2. 点击「开始录制」，在浏览器弹出的共享面板中选择目标画面。
 3. 需要时暂停或继续；点击「结束并生成」，或从浏览器停止共享。
 4. 在监看区回放结果，确认后点击「下载录像」。
+
+### 截图框选区域录制
+
+1. 点击「开始录制」上方的「截图录制」按钮。
+2. 在浏览器共享面板中授权屏幕、窗口或标签页；页面取得该画面的一张截图用于选区。
+3. 在截图上按住并拖动，框选需要录制的矩形区域；可以重新拖动框选，或取消退出。
+4. 确认选区后开始录制。录到的是该区域不断变化的实时画面，截图只用于确定位置。
+5. 使用现有的暂停、继续、结束与下载控制。共享音频、麦克风与倒计时选项同样生效。
+
+选区固定在本次授权画面的坐标内，不会自动跟随其中移动的窗口或内容。若共享画面的像素尺寸变化，录制会结束并生成已有片段；调整窗口尺寸后，请再次点击「截图录制」重新框选。
 
 ## 隐私
 
@@ -55,6 +66,7 @@ https://jokerlixing.github.io/100apps/apps/049-screen-recorder/
 - 推荐最新版 Chrome 或 Edge；Firefox/Safari 的共享音频、编码格式和可选共享目标能力可能不同。
 - 是否能录到系统声音由浏览器、操作系统以及用户选择的共享目标共同决定。例如部分环境只允许录制标签页声音。
 - 浏览器会显示系统级共享面板，页面不能替用户预选窗口或绕过授权。
+- 截图框选只能作用于已授权的共享画面。区域录制还需要浏览器支持 Canvas `captureStream()`；选区之外的画面不会进入最终录像，但浏览器授权范围仍是所选屏幕、窗口或标签页。
 - 长时间、高分辨率录制会占用较多内存；本项目定位于教程、演示和问题复现等短录制。
 
 ## 测试
@@ -62,17 +74,27 @@ https://jokerlixing.github.io/100apps/apps/049-screen-recorder/
 在仓库根目录执行：
 
 ```powershell
-node --test apps/049-screen-recorder/recorder-core.test.js
+node --test apps/049-screen-recorder/recorder-core.test.js apps/049-screen-recorder/region-capture.test.js qa/tracker.test.js
 node --check apps/049-screen-recorder/recorder-core.js
+node --check apps/049-screen-recorder/region-capture.js
 node --check apps/049-screen-recorder/app.js
 ```
+
+安装 Playwright 并准备 Chromium（或使用 Codex 提供的浏览器运行环境）后，可执行实际编码与回放的浏览器回归测试：
+
+```powershell
+node apps/049-screen-recorder/qa/region-recording-smoke.cjs
+```
+
+该测试使用合成动态画面和声音作为共享来源，验证实际录像中的裁剪尺寸、像素、音频、暂停与恢复、取消释放及完整画面录制，不读取真实桌面内容。
 
 ## 技术栈
 
 - 语义化 HTML 与原生 CSS 响应式布局
 - 原生 JavaScript、Screen Capture API、MediaStream 与 MediaRecorder
+- Canvas 截图框选与实时区域裁剪
 - Web Audio API 双路声音混合
 - Blob、Object URL 与本地下载
 - Node.js 内置 `node:test` 单元测试
 
-项目不依赖第三方库或在线 API。
+页面运行不依赖第三方库或在线 API。

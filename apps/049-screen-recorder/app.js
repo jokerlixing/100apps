@@ -26,6 +26,7 @@
     newTakeButton: $("#newTakeButton"),
     pauseButton: $("#pauseButton"),
     playbackPreview: $("#playbackPreview"),
+    regionButton: $("#regionButton"),
     resolutionValue: $("#resolutionValue"),
     resultCard: $("#resultCard"),
     resultMeta: $("#resultMeta"),
@@ -60,6 +61,10 @@
   let preparationToken = 0;
   let stopInProgress = false;
   let selectedMimeType = "";
+  let captureController = null;
+  let regionCapture = null;
+  let captureMode = "full";
+  let recordingEndNotice = "";
 
   function init() {
     restorePreferences();
@@ -68,6 +73,7 @@
     checkSupport();
 
     elements.captureForm.addEventListener("submit", startCapture);
+    elements.regionButton.addEventListener("click", (event) => startCapture(event, "region"));
     elements.pauseButton.addEventListener("click", togglePause);
     elements.stopButton.addEventListener("click", () => stopRecording("button"));
     elements.newTakeButton.addEventListener("click", resetForNewTake);
@@ -83,6 +89,8 @@
     if (hasCapture && hasRecorder && secureEnough) {
       elements.supportAlert.hidden = true;
       elements.startButton.disabled = false;
+      elements.regionButton.disabled = !window.RegionCapture?.isSupported();
+      elements.regionButton.title = elements.regionButton.disabled ? "当前浏览器不支持区域录制，请使用最新版 Chrome 或 Edge。" : "";
       return true;
     }
 
@@ -92,6 +100,7 @@
     elements.supportMessage.textContent = `${reasons.join("；")}。建议使用最新版 Chrome 或 Edge。`;
     elements.supportAlert.hidden = false;
     elements.startButton.disabled = true;
+    elements.regionButton.disabled = true;
     setState("unsupported", "UNAVAILABLE");
     announce("当前环境不支持屏幕录制");
     return false;
@@ -125,14 +134,20 @@
     }
   }
 
-  async function startCapture(event) {
+  async function startCapture(event, mode = "full") {
     event.preventDefault();
-    if (!checkSupport() || recorder || displayStream) return;
+    if (captureController || recorder || displayStream || !checkSupport()) return;
+    if (mode === "region" && !window.RegionCapture?.isSupported()) return;
 
     clearResult();
     stopInProgress = false;
     preparationToken += 1;
     const token = preparationToken;
+    captureController = new AbortController();
+    const { signal } = captureController;
+    const isCurrent = () => token === preparationToken && !signal.aborted;
+    captureMode = mode;
+    recordingEndNotice = "";
     setInputsLocked(true);
     setState("requesting", "SELECT SOURCE");
     setStartCopy("等待选择", "请在浏览器面板里确认画面");
@@ -140,44 +155,86 @@
 
     try {
       const profileName = document.querySelector("input[name='profile']:checked")?.value || "1080";
-      displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: captureProfile(profileName),
+      const screen = await navigator.mediaDevices.getDisplayMedia({
+        video: mode === "region" ? { frameRate: { ideal: 30, max: 30 } } : captureProfile(profileName),
         audio: elements.systemAudio.checked,
         preferCurrentTab: false,
         selfBrowserSurface: "exclude",
-        surfaceSwitching: "include",
+        surfaceSwitching: mode === "region" ? "exclude" : "include",
         systemAudio: elements.systemAudio.checked ? "include" : "exclude",
       });
 
-      if (token !== preparationToken) {
-        stopStream(displayStream);
-        displayStream = null;
+      if (!isCurrent()) {
+        stopStream(screen);
         return;
       }
+      displayStream = screen;
 
       const videoTrack = displayStream.getVideoTracks()[0];
       if (!videoTrack) throw new Error("没有取得可录制的视频轨道");
+      if (videoTrack.readyState === "ended") throw new Error("共享画面已经结束，请重新选择。");
       videoTrack.addEventListener("ended", handleSurfaceEnded, { once: true });
-      showLivePreview(displayStream);
-      updateResolution(videoTrack);
+      let videoSource = displayStream;
+      if (mode === "region") {
+        setStartCopy("准备截图", "正在读取共享画面");
+        const region = await window.RegionCapture.create(displayStream, {
+          profileName,
+          signal,
+          onSelecting() {
+            if (!isCurrent()) return;
+            setState("selecting", "SELECT AREA");
+            setStartCopy("框选录制区域", "确认截图选区后开始录制");
+            announce("请在截图上拖动框选要录制的区域");
+          },
+        });
+        if (!isCurrent()) {
+          region.stop();
+          return;
+        }
+        regionCapture = region;
+        videoSource = region.stream;
+        const regionTrack = videoSource.getVideoTracks()[0];
+        regionTrack.addEventListener("ended", handleRegionEnded, { once: true });
+        if (regionTrack.readyState === "ended") {
+          handleRegionEnded();
+          return;
+        }
+        elements.resolutionValue.textContent = `${region.width}×${region.height}`;
+      } else {
+        updateResolution(videoTrack);
+      }
+      showLivePreview(videoSource);
 
-      if (elements.microphone.checked) await requestMicrophone();
-      recordingStream = await createRecordingStream(displayStream, microphoneStream);
+      if (elements.microphone.checked) await requestMicrophone(signal);
+      if (!isCurrent()) return;
+      const combinedStream = await createRecordingStream(videoSource, microphoneStream, signal);
+      if (!isCurrent()) {
+        stopStream(combinedStream);
+        return;
+      }
+      recordingStream = combinedStream;
 
       if (elements.useCountdown.checked) {
         await runCountdown(token);
       }
 
-      if (token !== preparationToken || videoTrack.readyState === "ended") return;
+      if (!isCurrent() || videoTrack.readyState === "ended") return;
       beginRecording(profileName);
     } catch (error) {
-      handleCaptureError(error);
+      if (!isCurrent()) return;
+      if (error?.name === "RegionSelectionCancelled") {
+        showToast("已取消截图录制，共享画面已关闭。");
+        announce("已取消截图录制");
+      } else {
+        handleCaptureError(error);
+      }
       releaseAllMedia();
       resetReadyState();
+      if (mode === "region") elements.regionButton.focus();
     }
   }
 
-  async function requestMicrophone() {
+  async function requestMicrophone(signal) {
     if (!navigator.mediaDevices?.getUserMedia) {
       elements.microphone.checked = false;
       showToast("浏览器不支持麦克风采集，将只录制画面声音。", "error");
@@ -185,7 +242,7 @@
     }
 
     try {
-      microphoneStream = await navigator.mediaDevices.getUserMedia({
+      const mic = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -193,7 +250,13 @@
         },
         video: false,
       });
+      if (signal.aborted) {
+        stopStream(mic);
+        return;
+      }
+      microphoneStream = mic;
     } catch (error) {
+      if (signal.aborted) return;
       elements.microphone.checked = false;
       savePreferences();
       showToast(error?.name === "NotAllowedError"
@@ -202,7 +265,7 @@
     }
   }
 
-  async function createRecordingStream(screen, mic) {
+  async function createRecordingStream(screen, mic, signal) {
     const videoTracks = screen.getVideoTracks();
     const audioTracks = [...screen.getAudioTracks(), ...(mic?.getAudioTracks() || [])];
 
@@ -214,11 +277,16 @@
       return new MediaStream([...videoTracks, audioTracks[0]]);
     }
 
-    audioContext = new AudioContextClass();
-    if (audioContext.state === "suspended") await audioContext.resume();
-    const destination = audioContext.createMediaStreamDestination();
+    const context = new AudioContextClass();
+    audioContext = context;
+    if (context.state === "suspended") await context.resume();
+    if (signal.aborted) {
+      context.close().catch(() => {});
+      throw new DOMException("录制准备已取消", "AbortError");
+    }
+    const destination = context.createMediaStreamDestination();
     audioNodes = audioTracks.map((track) => {
-      const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+      const source = context.createMediaStreamSource(new MediaStream([track]));
       source.connect(destination);
       return source;
     });
@@ -234,8 +302,10 @@
       announce(`${value} 秒后开始录制`);
       await delay(800);
     }
-    elements.countdown.textContent = "";
-    elements.countdown.hidden = true;
+    if (token === preparationToken) {
+      elements.countdown.textContent = "";
+      elements.countdown.hidden = true;
+    }
   }
 
   function beginRecording(profileName) {
@@ -260,14 +330,17 @@
     recorder.start(1000);
 
     elements.startButton.hidden = true;
+    elements.regionButton.hidden = true;
     elements.transport.hidden = false;
     elements.pauseButton.innerHTML = '<span class="pause-icon" aria-hidden="true"></span><span>暂停</span>';
     setState("recording", "REC");
     updateFormatBadge(recorder.mimeType || selectedMimeType);
     updateTelemetry();
     timerId = window.setInterval(updateTelemetry, 250);
-    announce("录制已开始");
-    showToast("录制开始。结束共享或点击“结束并生成”即可保存。", "success");
+    announce(captureMode === "region" ? "选中区域的录制已开始" : "录制已开始");
+    showToast(captureMode === "region"
+      ? "正在录制框选区域。点击“结束并生成”即可保存。"
+      : "录制开始。结束共享或点击“结束并生成”即可保存。", "success");
   }
 
   function handleDataAvailable(event) {
@@ -298,7 +371,7 @@
   }
 
   function stopRecording(reason = "button") {
-    if (!recorder || recorder.state === "inactive" || stopInProgress) return;
+    if (!recorder || stopInProgress) return;
     stopInProgress = true;
     finalDuration = elapsedMilliseconds();
     window.clearInterval(timerId);
@@ -306,7 +379,7 @@
     setState("processing", "PROCESSING");
     elements.pauseButton.disabled = true;
     elements.stopButton.disabled = true;
-    recorder.stop();
+    if (recorder.state !== "inactive") recorder.stop();
     stopSourceTracks();
     announce(reason === "surface" ? "共享画面已结束，正在生成录像" : "正在生成录像");
   }
@@ -314,13 +387,20 @@
   function handleSurfaceEnded() {
     preparationToken += 1;
     elements.countdown.hidden = true;
-    if (recorder && recorder.state !== "inactive") {
+    if (recorder) {
       stopRecording("surface");
       return;
     }
     releaseAllMedia();
     resetReadyState();
     showToast("共享画面已结束，录制未开始。", "error");
+  }
+
+  function handleRegionEnded() {
+    if (stopInProgress) return;
+    recordingEndNotice = "共享画面尺寸发生变化或无法继续读取，已结束录制；请重新框选区域。";
+    handleSurfaceEnded();
+    showToast(recordingEndNotice, "error");
   }
 
   function finalizeRecording() {
@@ -359,7 +439,7 @@
     chunks = [];
     stopInProgress = false;
     announce("录像已经生成，可以预览或下载");
-    showToast("录像已生成，文件仍只保存在当前浏览器中。", "success");
+    showToast(recordingEndNotice || "录像已生成，文件仍只保存在当前浏览器中。", recordingEndNotice ? "error" : "success");
   }
 
   function resetForNewTake() {
@@ -387,6 +467,7 @@
     elements.livePreview.srcObject = null;
     elements.monitorEmpty.hidden = false;
     elements.startButton.hidden = false;
+    elements.regionButton.hidden = false;
     elements.transport.hidden = true;
     elements.pauseButton.disabled = false;
     elements.stopButton.disabled = false;
@@ -440,6 +521,7 @@
       input.disabled = locked;
     });
     elements.startButton.disabled = locked;
+    elements.regionButton.disabled = locked || !window.RegionCapture?.isSupported();
   }
 
   function updateFormatBadge(mimeType) {
@@ -469,6 +551,10 @@
   function releaseAllMedia(options = {}) {
     window.clearInterval(timerId);
     timerId = null;
+    captureController?.abort();
+    captureController = null;
+    regionCapture?.stop();
+    regionCapture = null;
     stopSourceTracks();
     audioNodes.forEach((node) => {
       try { node.disconnect(); } catch (_) {}

@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#dfe5ec">
-  <meta name="description" content="FRAME/49 是一款完全在浏览器本地运行的屏幕录制工具，支持系统音频、麦克风、暂停和下载。">
+  <meta name="description" content="FRAME/49 是一款完全在浏览器本地运行的屏幕录制工具，支持截图框选区域录制、系统音频、麦克风、暂停和下载。">
   <title>FRAME/49 · 本地屏幕录制台</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="region-capture.css">
 </head>
 <body data-state="ready">
   <a class="skip-link" href="#captureRack">跳到录制设置</a>
@@ -150,6 +151,12 @@
             <span>浏览器会弹出系统级画面选择器。本站看不到你的其他窗口，也不会上传录像。</span>
           </div>
 
+          <button class="button button-region" id="regionButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5M8 8h8v8H8z"></path></svg>
+            <span><strong>截图录制</strong><small>截图框选区域，只录选中画面</small></span>
+            <b aria-hidden="true">AREA</b>
+          </button>
+
           <button class="button button-record" id="startButton" type="submit">
             <span class="record-dot" aria-hidden="true"></span>
             <span><strong>开始录制</strong><small>选择要分享的画面</small></span>
@@ -184,6 +191,7 @@
   <p class="sr-only" id="liveStatus" aria-live="polite"></p>
 
   <script src="recorder-core.js"></script>
+  <script src="region-capture.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

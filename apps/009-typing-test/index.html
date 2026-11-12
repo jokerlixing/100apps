@@ -107,6 +107,7 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-he
    - WPM 行业算法：正确字符数 ÷ 5 ÷ 分钟（1"词"≈5字符，中英通用）
    - 逐字对比渲染：每个字符一个 span，输入即比对上色（O(1) 更新）
    - 计时用时间戳（Date.now 差值），首字符触发、setInterval 只负责刷新显示
+   - 输入法组字期(compositionstart/end)屏蔽比对，避免拼音被计入导致提前结算
    ============================================================ */
 const MODES={
   中文:[
@@ -128,6 +129,7 @@ const DUR=60;
 
 const $=id=>document.getElementById(id);
 let mode="中文",text="",typed="",startAt=0,timer=null,finished=false,errors=0;
+let composing=false,hintTimer=null;  /* composing: 输入法组字中（拼音尚未上屏） */
 
 /* ---------- 模式 ---------- */
 function renderModes(){
@@ -139,8 +141,8 @@ function setMode(m){mode=m;renderModes();newRound()}
 /* ---------- 新一轮 ---------- */
 function newRound(){
   text=MODES[mode][Math.floor(Math.random()*MODES[mode].length)];
-  typed="";startAt=0;finished=false;errors=0;
-  clearInterval(timer);timer=null;
+  typed="";startAt=0;finished=false;errors=0;composing=false;
+  clearInterval(timer);timer=null;clearTimeout(hintTimer);hintTimer=null;
   $("inp").value="";$("inp").disabled=false;$("inp").classList.remove("err");
   $("hint").textContent="点击下方输入框，输入第一个字即开始计时 ⏱️";
   $("result").classList.remove("show");
@@ -163,23 +165,59 @@ function renderText(){
   $("display").innerHTML=html;
 }
 
-/* ---------- 输入处理 ---------- */
-$("inp").addEventListener("input",e=>{
-  if(finished)return;
-  typed=e.target.value;
-  if(typed.length>text.length){typed=text.slice(0,text.length);e.target.value=typed}
+/* ---------- 输入处理 ----------
+   中文拼音等输入法有「组字期」(composition)：敲键盘时输入框里先是拼音字母，
+   选字上屏后才是真正的汉字。若组字期就读取 value 做逐字比对，
+   拼音字母会被当成已输入内容，十来个字就能凑满整段文本 → 提前自动结算。
+   所以组字期一律跳过，等 compositionend 拿到最终上屏文字再统一比对。 */
+function processInput(el){
+  if(finished||composing)return;
+  /* 只取目标长度（一次上屏多个字可能跨过终点），不改写 value，避免破坏输入法 */
+  typed=el.value.slice(0,text.length);
   if(!startAt&&typed.length>0){
     startAt=Date.now();
     $("hint").textContent="计时开始！保持节奏 💪";
     timer=setInterval(tick,200);
   }
   renderText();updateStats();
-  if(typed.length===text.length)end();
+  if(typed.length>=text.length)end();
+}
+$("inp").addEventListener("input",e=>{
+  if(composing||e.isComposing)return;  /* 组字中的临时拼音不参与比对 */
+  processInput(e.target);
+});
+$("inp").addEventListener("compositionstart",()=>{composing=true});
+$("inp").addEventListener("compositionend",e=>{
+  composing=false;
+  /* 各浏览器 compositionend / input 顺序不一致：主动处理一次并延后复核，
+     processInput 幂等，重复触发不会重复计时或重复结算 */
+  processInput(e.target);
+  setTimeout(()=>{if(!composing)processInput(e.target)},0);
 });
 $("inp").addEventListener("keydown",e=>{
+  /* 组字期方向键/回车/空格要交给输入法翻页选字，不能拦截 */
+  if(composing||e.isComposing)return;
   /* 阻止输入框内方向键移动光标（必须顺序输入） */
   if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"].includes(e.key))e.preventDefault();
 });
+/* 点击输入框一律把光标放到末尾，避免中间插入导致逐字对比错位 */
+$("inp").addEventListener("click",e=>{
+  if(composing)return;
+  const el=e.target;
+  if(el.selectionStart!==el.value.length||el.selectionEnd!==el.value.length){
+    el.setSelectionRange(el.value.length,el.value.length);
+  }
+});
+/* 打字测试不接受粘贴/拖入整段文字（会瞬间触发结算，成绩失真） */
+function blockBulkInput(e){
+  e.preventDefault();
+  const old=$("hint").textContent;
+  $("hint").textContent="打字测试请逐字输入，不支持粘贴 ✋";
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>{$("hint").textContent=old},1600);
+}
+$("inp").addEventListener("paste",blockBulkInput);
+$("inp").addEventListener("drop",blockBulkInput);
 
 /* ---------- 统计 ---------- */
 function countErr(){
@@ -209,7 +247,7 @@ function end(){
   if(finished)return;
   finished=true;
   clearInterval(timer);
-  const elapsed=Math.min((Date.now()-startAt)/1000,DUR);
+  const elapsed=Math.max(Math.min((Date.now()-startAt)/1000,DUR),0.1);
   errors=countErr();
   const correct=typed.length-errors;
   const wpm=Math.round(correct/5/(elapsed/60));
@@ -226,6 +264,7 @@ function end(){
     wpm>=30?"👍 不错，日常水平，还有提升空间":
     "🌱 慢慢来，准确率优先，速度会跟上来的";
   $("result").classList.add("show");
+  $("inp").value=typed;  /* 结算时与统计口径一致，去掉终点处多上屏的字 */
   $("inp").disabled=true;
   $("hint").textContent="完成！看看成绩 👆";
 }

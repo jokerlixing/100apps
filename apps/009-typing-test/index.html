@@ -44,7 +44,12 @@ h1 span{background:linear-gradient(90deg,var(--green),var(--blue));-webkit-backg
 #display .c.space.bad{background:rgba(224,108,117,.35)}
 
 /* 输入区 */
-.input-hint{text-align:center;color:var(--dim);font-size:13px;margin-bottom:10px}
+.input-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.input-hint{flex:1;min-width:0;color:var(--dim);font-size:13px}
+.shuffle{flex:none;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;padding:6px 12px;border-radius:16px;cursor:pointer;white-space:nowrap;transition:.15s;font-family:inherit}@media(hover:hover){
+.shuffle:hover{border-color:var(--green);color:var(--text)}}
+.shuffle:active{transform:scale(.97)}
+#segInfo{color:var(--dim);margin-left:5px}
 .inp{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:13px 15px;color:var(--text);font-size:15px;outline:none;font-family:inherit;transition:.15s}
 .inp:focus{border-color:var(--green)}
 .inp:disabled{opacity:.5}
@@ -70,7 +75,7 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-he
 <body>
 <div class="app">
   <h1>⌨️ <span>打字速度测试</span></h1>
-  <div class="sub">中文/英文 · 60秒限时 · 实时WPM与准确率 · 逐字对比</div>
+  <div class="sub">中文/英文 · 各105段范文 · 60秒限时 · 实时WPM与准确率 · 逐字对比</div>
 
   <div class="modes" id="modes"></div>
 
@@ -82,7 +87,10 @@ footer{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-he
   </div>
 
   <div class="text-card"><div id="display"></div></div>
-  <div class="input-hint" id="hint">点击下方输入框，输入第一个字即开始计时 ⏱️</div>
+  <div class="input-row">
+    <div class="input-hint" id="hint">点击下方输入框，输入第一个字即开始计时 ⏱️</div>
+    <button class="shuffle" onclick="reshuffle()">🎲 换一段<span id="segInfo"></span></button>
+  </div>
   <input class="inp" id="inp" placeholder="在这里跟着上面的文字输入…" autocomplete="off" autocapitalize="off" spellcheck="false">
 
   <div class="result" id="result">
@@ -115,32 +123,236 @@ const MODES={
     "深夜的代码最安静，只有键盘敲击的声音陪伴着开发者，一行行代码像是搭积木一样慢慢垒成高楼",
     "前端开发就像画画，超文本标记语言是画布，层叠样式是颜料，脚本是画笔，三者合在一起就是网页的世界",
     "打字速度快不是目的，准确和节奏才是根本，手指在键盘上跳舞，思想在屏幕上流淌",
-    "坚持一百天做一百个应用，听起来很难，但只要每天进步一点点，回头看时已经走了很远很远的路"
+    "坚持一百天做一百个应用，听起来很难，但只要每天进步一点点，回头看时已经走了很远很远的路",
+    "清晨的阳光透过窗帘洒在书桌上，一杯热茶慢慢冒着白气，翻开书页的那一刻，整个屋子都安静了下来",
+    "城市刚醒来的街道还带着凉意，早点铺前排起小小的队伍，油条在锅里滋滋作响，豆浆的香气飘出去很远",
+    "下雨天最适合待在屋里，听水滴轻轻敲打玻璃窗，手边放一本读了一半的小说，时间就这么慢悠悠地淌过去",
+    "爷爷总说种地急不得，春天播种夏天除草，秋天才有满仓的收成，世上踏实的好事大多都要慢慢等",
+    "傍晚沿着河堤散步，风把柳条吹得轻轻摇晃，远处的灯一盏盏亮起来，倒影在水面上碎成温柔的光",
+    "学会做饭以后才明白，火候和耐心比菜谱更要紧，盐放多少得亲口尝过，生活的味道也大抵如此",
+    "老书店的木地板踩上去会响，老板坐在柜台后头看报，阳光里浮着细小的灰尘，连翻书都舍不得太快",
+    "第一次骑车穿过整座城市，风从耳边呼呼地掠过，路过桥头和旧巷子，忽然觉得自己能去更远的地方",
+    "母亲收拾衣柜时翻出一件旧毛衣，袖口已经磨得发白，她说那年冬天特别冷，你天天穿着它去上学",
+    "深夜敲完最后一行代码，保存提交关掉屏幕，窗外只剩零星几盏灯，心里却浮起一种踏实的高兴",
+    "山里的春天来得比城里晚，溪水刚化开还带着冰碴，野花却已经沿着石缝一丛丛冒了出来",
+    "秋天的风把银杏叶吹成满地金黄，踩上去有细碎的响声，孩子们捡起最好看的一片夹进课本",
+    "海边的黄昏总是很长，浪一层层退回去又涌上来，沙滩上留着浅浅的脚印，很快被水抹平",
+    "冬夜把窗户关严实，屋里的暖灯照着桌角一杯热水，外面的雪落得很轻，像怕吵醒谁",
+    "雷雨过后空气清得发甜，屋檐还在滴水，远处的天边透出一线亮光，蝉声又慢慢响了起来",
+    "初夏的荷塘铺满圆圆的叶子，风一过就翻出浅白的背面，有蜻蜓停在尖角上，久久不肯飞走",
+    "高原的天蓝得不像话，云低得仿佛伸手就能摸到，牧人的歌顺着山坡飘下来，听不真切却很好听",
+    "雾起的早晨连对面的楼都看不清，走到路口才认出常去的那家铺子，世界忽然变得很小很近",
+    "月光落在没拉帘的窗台上，把花盆的影子拉得细长，夜里安静得能听见钟摆一下一下地走",
+    "一场大雪把院子盖得平平整整，麻雀跳过去留下一串小点，谁也不忍心先踩上第一脚",
+    "菜市场最热闹的是清早，摊主把青菜码得整整齐齐，讨价还价声混着水声，鲜活得很",
+    "包饺子的时候全家都围着桌子，有人擀皮有人拌馅，形状歪一点也没关系，下锅煮熟就好",
+    "一碗热汤面端上来，葱花浮在油花上头，先喝一口汤暖暖胃，一天的疲乏就散了大半",
+    "外婆熬粥从不看时间，米粒开花了就关火，盛出来晾一会儿，稠稠地挂着勺子最香",
+    "街角那家面包店天没亮就开工，烤炉一开整条巷子都是麦香，路过的人总要放慢脚步",
+    "夏天切一只冰镇西瓜，刀刚下去就听见清脆的裂声，最中间那一块照例留给最小的孩子",
+    "学做红烧肉才知道炒糖色急不得，火大一点就发苦，慢慢翻慢慢等，颜色才亮得好看",
+    "火锅咕嘟咕嘟冒着热气，筷子在雾里来回穿梭，谁也顾不上说话，吃饱了才想起聊近况",
+    "秋后的柿子晒在竹匾里，太阳一天天把涩味收走，捏起来软软的时候，甜得恰到好处",
+    "泡茶的水温要看得准，太烫会烫坏叶子，等上片刻再冲下去，香气才一层层舒展开",
+    "读书不必贪快，遇到喜欢的段落就停下来多读两遍，合上书还记得的，才算真正进了心里",
+    "练字最磨性子，一横一竖都要稳住手腕，写满一页再看，歪斜的地方自己就先笑了",
+    "笔记本用了一半，前面记着零碎的念头，后头留白还给将来，翻回去看常有意外的收获",
+    "遇到想不通的问题先放一放，出去走一圈回来，思路常常自己就松开了，比硬坐着管用",
+    "教别人一遍胜过自己闷头看三遍，讲不清楚的地方就是还没懂透，回头再补最有效",
+    "每天留半小时给不实用的书，不为了考什么也不为了用，纯粹好奇，日子会宽一点",
+    "背单词像往罐子里一枚枚存硬币，单看一枚没声响，攒到某天忽然就能读下一整页",
+    "好老师不急着给答案，只把问题再问得清楚一点，让学生自己拐过那道弯，记得格外牢",
+    "考试前一晚反而该早点睡，脑子清醒比多刷两套题要紧，临阵的从容也是练出来的",
+    "把学过的东西写成几行讲给朋友听，卡壳的地方标出来，第二天补上就再也不会忘",
+    "写代码之前先把思路说清楚，画两张草图分好模块，动手以后反而比边想边敲要快许多",
+    "程序出了错别急着乱改，先看报错的那一行，再顺着数据往回找，多数毛病都藏在中途",
+    "好的命名能省掉一半注释，变量叫什么，函数做什么，一眼看懂比写得聪明更重要",
+    "版本记录像给项目写日记，每次改动留一句话，哪天想退回从前，翻一翻就知道路怎么走",
+    "备份这件事平时毫不起眼，真出问题的那一秒才明白，它比任何技巧都值得先做，也最容易被拖到明天",
+    "把大任务拆成一小块一小块，每完成一块就划掉一行，看着进度往前挪，心里就不慌",
+    "快捷键练熟以后手指几乎不用想，眼睛盯着屏幕，动作交给肌肉，效率是慢慢攒出来的",
+    "界面上少放一个按钮往往更难，要替使用者想清楚什么该留，留得克制才显得干净",
+    "测试不是挑刺，是替未来的自己留一盏灯，哪天改坏了一处，它第一时间就亮起来",
+    "技术更新得很快，但把基础弄明白的人总能跟得上，原理不变，工具只是换了个样子",
+    "坐慢车穿过小站最有意思，站台上的招牌一闪而过，隔着窗猜那座城的人怎么过日子",
+    "背包里塞得越满走得越慢，后来学会只带用得上的几样，路反倒轻快了不少，风景也看得更细",
+    "陌生城市的清晨适合乱走，不看导航，拐进哪条巷子算哪条，常能撞见计划外的惊喜",
+    "山顶的风比想象中大，站定往下看，来时的路细成一条线，喘的那口气忽然就值了",
+    "火车靠窗的座位总抢手，田野一格格退过去，什么也不做也不觉得浪费时间，连心事都跟着慢下来",
+    "旅途中记下的多半不是景点，是巷口那碗面，老板的一句闲话，傍晚刚好亮起的灯",
+    "地图上看很近的两个地方，走起来可能要翻一道坡，脚步比眼睛更懂距离，也懂什么叫值得",
+    "回程的行李总比去时重，多出来的都是些不值钱的小东西，却件件都舍不得丢，像把一路的日子都装了回来",
+    "在海边小镇住上几天，作息跟着潮水走，早起看退潮，傍晚听浪，日子简单得发亮",
+    "迷路有时候不算坏事，绕远的那段路常藏着最好看的墙，最安静的树和一家没招牌的店",
+    "晨跑最难的是出门那一步，真跑起来过了第一条街，呼吸顺了，身体自己就想往前",
+    "拉伸别图快，慢慢停在一个刚刚有点紧的位置，多待几秒，肌肉会自己松开，急了反而更僵",
+    "睡前一小时把屏幕放远一点，灯调暗，翻几页纸书，入睡比刷到困要踏实得多，第二天醒来也清爽",
+    "长跑拼的不是起跑那一下，是把配速稳住，能一直聊着天跑下去的强度才合适，快半分钟往往撑不到终点",
+    "规律吃饭听着老套，可真做到以后，上午的困和下午的慌都少了许多，连脾气都跟着平稳",
+    "爬山时别一直盯着顶，看脚下这一步踩稳了，抬头才发现已经过了半山腰，路原来是一步步自己长出来的",
+    "学游泳先学会在水里放松，越较劲越往下沉，肯把身体交给浮力，反而浮得起来，这一课别处也用得上",
+    "天冷更要动一动，出门前多穿一件，回来时浑身发热，连情绪都跟着亮堂，屋子也显得暖和",
+    "打球最开心的不是赢，是几个回合里彼此刚好想到一块去，那种默契比比分难忘，散场了还在聊",
+    "久坐之后站起来伸个懒腰，走到窗边看看远处，眼睛和肩背会一起谢你，思路也跟着松了一寸",
+    "老朋友隔很久不联系，一通电话还是能从半句接上，中间空掉的那些日子不算数，一开口就都回来了",
+    "帮忙不必等到开口，看见谁正忙得腾不出手，顺手递一下，比说十句客气话暖，也不必等一句谢",
+    "一家人围着桌子吃饭，说的都是些不要紧的小事，可日子就是靠这些小事连起来的",
+    "道歉最难的不是说对不起，是往后真的改一点，对方其实一直在看动作不看话，时间会替你作证",
+    "有人愿意听你把烦心事讲完，不急着给建议也不插嘴，光是听着就已经帮了大忙，说完自己就轻了",
+    "邻居送来自家种的青菜，装在最普通的塑料袋里，拎回厨房时心里却热乎乎的，晚饭也跟着多了滋味",
+    "约好一起做件小事就别迟到，守时看着不起眼，其实是把对方的时间当回事，也是把自己的话当回事",
+    "夸人要夸得具体，说清楚哪一处做得好，听的人就知道自己被认真看见了，比起笼统的好厉害管用得多",
+    "争吵时先停三秒再回话，多数伤人的句子都死在这三秒里，事后省去许多后悔，也给彼此留了台阶",
+    "多年以后还记得的，往往不是谁送了什么，是某天傍晚一起走回去的那段路，路灯把两个影子拉得很长",
+    "手艺人做事有种慢悠悠的准头，量两次才下刀，边角磨到摸不出毛刺才肯收工，这份讲究藏在看不见的地方",
+    "桌面收拾干净再开工，东西各归其位，找不着笔的那种小烦躁一少，心思就整了，手也愿意多停一会儿",
+    "一件事只做一件事，回消息和写东西分开时段，来回切换看着忙，其实两头都浅，不如各自给足一段时间",
+    "难的任务放在上午精力最好的那段，把琐碎的留到午后，一天的节奏就顺了，傍晚还能留出空来",
+    "交付前自己先当一回用户，从头到尾走一遍，别扭的地方多半就在这时露出来，比事后被人提醒体面得多",
+    "会议开得短有个笨办法，先写清楚要定哪几件事，跑题了就把它拉回纸上，散会时人人都知道下一步做什么",
+    "把常犯的错记成一张小清单，下次动手前扫一眼，同样的坑不会踩第三回，纸面虽小却替脑子省了不少事",
+    "认真听清需求比立刻开工省时间，多问两句，少返工两天，这笔账很好算，可惜常被赶进度的心气盖过去",
+    "收尾那十分钟最容易被忽略，命名对齐，多余文件清掉，后来接手的人会轻松很多",
+    "手艺没有捷径，就是重复里一点点校准，某天忽然发现手比脑子先知道该怎么做，那时候才算真会了",
+    "时间不偏袒谁，你把注意力放在哪儿，日子就在哪儿长出东西来，急也急不得，回头看都连得起来",
+    "进步常常不是一条直线上去，停一阵，退半步，回头看才发现整体还在往前挪，也就没那么慌了",
+    "把今天能做完的一件小事做好，比在纸上列一整页漂亮计划更让人安心，明天的事明天再接着来",
+    "允许自己有状态差的那天，做不动就歇一歇，绷太紧的弦反而最容易断，歇好了回来手更稳",
+    "很多担心后来都没发生，当时却占了一整晚的心思，想清楚这点就能睡得着，天亮了事情照旧好办",
+    "慢一点不等于落后，别人赶路你修鞋，等真要起步的时候，脚是稳的，也走得更久一些",
+    "养成一个习惯靠的不是狠劲，是把它接在每天都会做的事后面，顺手就做了，日子久了便不必再提醒自己",
+    "回头翻两年前的笔记会有点好笑，可那些笨拙的记录，正是走过来的证据，比任何漂亮的总结都真",
+    "认真过完普通的一天，饭按时吃，事一件件做，晚上躺下心里没什么挂着，就挺好",
+    "别急着要结果，先把手里这一件事做扎实，路走够了，答案常自己迎面走来，多半还比预想的更妥当"
   ],
   英文:[
     "The quick brown fox jumps over the lazy dog while the cat watches from the warm windowsill in silence",
     "Practice makes perfect and every keystroke brings you closer to mastery of the keyboard you use daily",
     "Programming is the art of telling another human what one wants the computer to do in clear language",
     "Small daily improvements are the key to staggering long term results so keep typing and keep building",
-    "The best way to predict the future is to invent it so build something amazing today and ship it fast"
+    "The best way to predict the future is to invent it so build something amazing today and ship it fast",
+    "The morning light falls across the wooden table while a cup of tea cools slowly beside an open book",
+    "A quiet street wakes up before the shops open and the smell of fresh bread drifts along the empty sidewalk",
+    "Rain taps softly on the window all afternoon and the half finished novel stays open beside a warm lamp",
+    "My grandfather used to say that good things need seasons and patient hands more than they need hurry",
+    "We walked along the river at dusk and watched the lamps appear one by one across the still water",
+    "Cooking taught me that heat and patience matter more than any recipe written down in a tidy notebook",
+    "The old bookshop creaks under every step and dust floats in the sunbeams above the quiet counter",
+    "Riding across the whole city for the first time made the distant bridges feel close enough to touch",
+    "She found an old sweater in the closet and remembered a winter so cold the windows froze at night",
+    "Saving the last line of code felt small and good with only a few lights left in the sleeping buildings",
+    "Spring arrives later in the mountains where the stream still carries bits of ice between the stones",
+    "Autumn turns the ginkgo leaves into a soft golden floor that crackles under the shoes of children",
+    "The tide comes in and pulls back again leaving shallow footprints that the next wave quietly erases",
+    "Snow falls gently beyond a closed window while a warm lamp keeps the little room steady and still",
+    "After the storm the air tastes clean and the eaves keep dripping long after the sky turns bright",
+    "A dragonfly rests on the tip of a lotus leaf while the wind turns over every round green surface",
+    "The sky above the high plain seems close enough to touch and a distant song drifts down the slope",
+    "Fog hides the buildings across the road until the familiar corner shop suddenly appears out of nowhere",
+    "Moonlight stretches the shadow of a flower pot across the sill and the old clock keeps its slow rhythm",
+    "Nobody wants to be the first to step into the smooth white snow covering the whole quiet yard",
+    "The market is loudest just after sunrise when the greens are stacked neatly and the water never stops",
+    "Everyone gathers around the table to wrap dumplings and nobody cares if the shapes come out uneven",
+    "A bowl of hot noodles arrives with chopped greens floating on top and the long day begins to fade",
+    "She never times the porridge and simply turns off the stove when the grains open like small flowers",
+    "The bakery on the corner starts before dawn and the whole lane slows down to breathe in the smell",
+    "A cold watermelon splits with a clean sound and the sweetest middle piece always goes to the youngest",
+    "Making braised pork teaches patience in the kitchen because the sugar turns bitter the moment the flame grows impatient",
+    "Steam rises from the pot and chopsticks cross through the fog before anyone remembers to say a word",
+    "Persimmons dry on a bamboo tray until the sun slowly takes the sharpness away and leaves only sweetness",
+    "Good tea waits for the water to cool a little so the leaves can open and release their layered scent",
+    "Reading slowly is fine because the lines you still remember after closing the book are the ones that stayed",
+    "Practicing handwriting steadies the wrist and a page of crooked strokes can make you laugh at yourself",
+    "Half of a notebook holds small thoughts while the blank pages wait for whatever comes next in its own time",
+    "Step away from a hard problem and take a short walk because the answer often loosens on its own",
+    "Explaining something once teaches more than reading it three times and every pause shows what you missed",
+    "Keep half an hour for books that serve no purpose at all and the days feel a little wider",
+    "Learning new words is like dropping coins in a jar until one morning a whole page makes sense",
+    "A good teacher asks a clearer question instead of handing over the answer and the lesson sticks",
+    "Sleeping early before an exam beats another late round of practice because a calm mind remembers better",
+    "Write down what you learned in a few lines for a friend and mark the places where you stumble",
+    "Sketch the idea before touching the keyboard and the code comes together faster than guessing as you go",
+    "When a program breaks read the failing line first and follow the data backward to where it changed",
+    "Clear names remove half of the comments because everyone can see what a function is meant to do",
+    "A commit message is a short diary for the project and it shows the way back when you need it",
+    "Backups look useless until the single second something breaks and then they matter more than any trick",
+    "Split a large task into small pieces and cross them off one by one until the worry quiets down",
+    "Once shortcuts become habit the fingers stop thinking and the eyes stay free to watch the screen",
+    "Removing a button is harder than adding one because restraint asks you to decide what truly belongs",
+    "Tests are not criticism but a small lamp left on for the future self who changes things later",
+    "Tools keep changing but the principles stay put and anyone who understands them can follow along without starting over",
+    "Slow trains make the best journeys because the little station signs flash past and invite a guess",
+    "A heavy bag teaches you to carry only what you use and the road suddenly feels much lighter",
+    "Wandering without a map in a new city often leads to the small surprises no plan could include",
+    "The wind on the summit is stronger than expected but the thin road below makes every breath worth it",
+    "Window seats are worth the wait when the fields slide past and doing nothing feels completely fine",
+    "What stays from a trip is rarely a landmark but a small bowl of noodles and a warm lamp at dusk",
+    "Two places look close on a map yet a ridge between them reminds the feet what distance means",
+    "The bag home is always heavier with small cheap things that suddenly feel impossible to leave behind",
+    "In a seaside town the days follow the tide with low water at dawn and waves again at evening",
+    "Getting lost is not always bad because the long way around hides the quiet trees and nameless shops",
+    "The hardest part of a morning run is the front door and after one street the breath finds its rhythm",
+    "Stretch slowly and rest at the point that feels just tight until the muscle decides to let go",
+    "Put the screen away an hour before bed and a few paper pages make sleep arrive without a fight",
+    "A long run is won by holding an easy pace where talking still feels comfortable the whole way",
+    "Eating at regular hours sounds dull at first but it removes the sleepy mornings and the restless afternoons",
+    "Look at the next step instead of the summit and you will notice halfway arrived without announcement",
+    "Swimming begins with letting go because fighting the water sinks you while trust quietly lifts you up",
+    "Move a little on cold days and come back warm with a mood that is brighter than the weather",
+    "The best part of a game is not the score but the moment when everyone thinks the same thought",
+    "Stand up from a long sitting stretch toward the window and your shoulders and eyes both thank you",
+    "Old friends can pick up half a sentence after years away and the missing time simply does not count",
+    "Help before being asked by noticing the hands that are full and quietly passing what is needed",
+    "A family table is held together by small unimportant stories repeated over ordinary evening meals year after year",
+    "Sorry is easy compared with changing one small habit afterward and people watch the habit not the word",
+    "Someone who listens all the way through without advice has already done more than enough to help",
+    "The neighbor brought vegetables in a plain bag that felt surprisingly warm on the walk to the kitchen",
+    "Being on time for a small promise is a quiet way of saying that the hours of another person matter",
+    "Praise lands better when it names the exact detail because the other person feels truly seen and remembered",
+    "Pause for three seconds before answering in an argument and most hurtful sentences never get spoken at all",
+    "Years later what remains is not a gift but the stretch of road walked together one evening",
+    "A craftsperson measures twice before the cut and smooths every edge until no roughness can be felt",
+    "Clear the desk before starting and the small annoyance of a missing pen never steals your attention",
+    "Do one thing at a time because switching between writing and replies makes both of them shallow",
+    "Put the hard work in the bright morning and leave the small chores for the slower afternoon",
+    "Pretend to be a new user before shipping and walk through the whole thing from the very start",
+    "Meetings get shorter when someone writes down which few decisions actually need to be made before anyone arrives",
+    "Keep a short list of repeated mistakes and glance at it before starting to avoid the same trap",
+    "Asking two extra questions at the very beginning often saves two days of redoing the same work later",
+    "The last ten minutes of tidying names and files make life much easier for whoever comes next",
+    "Skill has no shortcut and quiet repetition slowly teaches the hands to know before the mind explains it",
+    "Time favors nobody and the days grow whatever you keep paying attention to so there is no rush",
+    "Progress rarely moves in a straight line and a pause or half step back still belongs to the journey",
+    "Finishing one small thing today feels better than a whole page of beautiful plans left untouched until tomorrow",
+    "Allow a low day and rest when the work will not move because a tight string breaks the soonest",
+    "Most worries never happened yet they occupied a whole evening and remembering that helps you sleep at night",
+    "Slow is not the same as behind because mending your shoes makes the next start a steady one",
+    "Habits grow from attaching a new action to something already done every single day without extra effort or willpower",
+    "Notes from two years ago look clumsy now but they are honest proof of the road you walked",
+    "An ordinary day done well with meals on time and tasks finished leaves nothing heavy at bedtime",
+    "Do not demand the result too soon because a solid piece of work often meets the answer halfway"
   ]
 };
 const DUR=60;
 
 const $=id=>document.getElementById(id);
 let mode="中文",text="",typed="",startAt=0,timer=null,finished=false,errors=0;
-let composing=false,hintTimer=null;  /* composing: 输入法组字中（拼音尚未上屏） */
+let composing=false,hintTimer=null,lastIdx=-1;  /* composing: 输入法组字中（拼音尚未上屏） */
 
 /* ---------- 模式 ---------- */
 function renderModes(){
   $("modes").innerHTML=Object.keys(MODES).map(m=>
     `<button class="${m===mode?"on":""}" onclick="setMode('${m}')">${m==="中文"?"🇨🇳 中文":"🇬🇧 英文"}</button>`).join("");
 }
-function setMode(m){mode=m;renderModes();newRound()}
+function setMode(m){mode=m;lastIdx=-1;renderModes();newRound()}
 
 /* ---------- 新一轮 ---------- */
 function newRound(){
-  text=MODES[mode][Math.floor(Math.random()*MODES[mode].length)];
+  const pool=MODES[mode];
+  let idx=Math.floor(Math.random()*pool.length);
+  if(pool.length>1&&idx===lastIdx)idx=(idx+1)%pool.length;  /* 不连续抽到同一段 */
+  lastIdx=idx;text=pool[idx];
+  $("segInfo").textContent=`${idx+1}/${pool.length}`;
   typed="";startAt=0;finished=false;errors=0;composing=false;
   clearInterval(timer);timer=null;clearTimeout(hintTimer);hintTimer=null;
   $("inp").value="";$("inp").disabled=false;$("inp").classList.remove("err");
@@ -149,7 +361,8 @@ function newRound(){
   $("vWpm").textContent="0";$("vAcc").textContent="100%";$("vTime").textContent=DUR;$("vErr").textContent="0";
   renderText();updateStats();
 }
-function restart(){newRound();$("inp").focus()}
+function reshuffle(){newRound();$("inp").focus()}
+function restart(){reshuffle()}
 
 /* ---------- 逐字渲染 ---------- */
 function renderText(){
